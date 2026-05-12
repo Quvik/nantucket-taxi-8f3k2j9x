@@ -235,6 +235,7 @@ fetch('zones.kml')
     detectCurrentLocation();
 });
 
+});
 function detectCurrentLocation() {
 
     navigator.geolocation.getCurrentPosition(pos => {
@@ -284,8 +285,12 @@ function getFare(fromZone, toZone) {
 
 let lastDestinationAddress = "";
 
+window.addEventListener('DOMContentLoaded', () => {
+
 const destinationInput = document.getElementById('destination');
 const suggestionList = document.getElementById('suggestions');
+
+if (!destinationInput || !suggestionList) return;
 
 destinationInput.addEventListener('input', async function() {
 
