@@ -111,7 +111,13 @@ button {
         </select>
     </div>
 
+    
     <button onclick="calculateFare()">Calculate Fare</button>
+
+    <button onclick="openGoogleMaps()">Open in Google Maps</button>
+
+    <button onclick="openWaze()">Open in Waze</button>
+
 
     <div class="card">
         <div>Destination Zone</div>
@@ -268,9 +274,40 @@ function getFare(fromZone, toZone) {
     return fareTable[direct] || fareTable[reverse] || null;
 }
 
+
+let lastDestinationAddress = "";
+
+function openGoogleMaps() {
+
+    if (!lastDestinationAddress) {
+        alert("Calculate fare first");
+        return;
+    }
+
+    const url =
+        `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(lastDestinationAddress)}`;
+
+    window.open(url, '_blank');
+}
+
+function openWaze() {
+
+    if (!lastDestinationAddress) {
+        alert("Calculate fare first");
+        return;
+    }
+
+    const url =
+        `https://waze.com/ul?q=${encodeURIComponent(lastDestinationAddress)}&navigate=yes`;
+
+    window.open(url, '_blank');
+}
+
+
 async function calculateFare() {
 
     const address = document.getElementById('destination').value;
+    lastDestinationAddress = address;
 
     if (!address) {
         alert('Enter destination address');
