@@ -277,6 +277,37 @@ function getFare(fromZone, toZone) {
 
 let lastDestinationAddress = "";
 
+const destinationInput = document.getElementById('destination');
+
+destinationInput.addEventListener('input', async function() {
+
+    const query = destinationInput.value;
+
+    if (query.length < 3) return;
+
+    try {
+
+        const url =
+            `https://photon.komoot.io/api/?q=${encodeURIComponent(query + " Nantucket")}&limit=3`;
+
+        const response = await fetch(url);
+        const data = await response.json();
+
+        if (data.features && data.features.length > 0) {
+
+            const suggestion =
+                data.features[0].properties.name || query;
+
+            destinationInput.placeholder =
+                "Suggestion: " + suggestion;
+        }
+
+    } catch(e) {}
+
+});
+
+
+
 function openGoogleMaps() {
 
     if (!lastDestinationAddress) {
@@ -316,18 +347,21 @@ async function calculateFare() {
 
     const passengers = parseInt(document.getElementById('passengers').value);
 
-    const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address + ", Nantucket MA")}`;
+    const url =
+        `https://photon.komoot.io/api/?q=${encodeURIComponent(address + " Nantucket")}&limit=5`;
 
     const response = await fetch(url);
     const data = await response.json();
 
-    if (!data.length) {
-        alert('Address not found');
+    if (!data.features || !data.features.length) {
+        alert('Place not found');
         return;
     }
 
-    const lat = parseFloat(data[0].lat);
-    const lng = parseFloat(data[0].lon);
+    const best = data.features[0];
+
+    const lat = best.geometry.coordinates[1];
+    const lng = best.geometry.coordinates[0];
 
     const point = turf.point([lng, lat]);
 
