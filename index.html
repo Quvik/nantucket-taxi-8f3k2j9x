@@ -396,7 +396,23 @@ async function calculateFare() {
 
     const point = turf.point([lng, lat]);
 
-    const destinationZone = findZone(point);
+    let destinationZone = findZone(point);
+
+    const airportPickup =
+        document.getElementById('airportPickup') &&
+        document.getElementById('airportPickup').checked;
+
+    const crossTownRide =
+        document.getElementById('crossTownRide') &&
+        document.getElementById('crossTownRide').checked;
+
+    // Cross Town should ONLY exist with airport pickup + toggle
+    if (
+        destinationZone === 'Cross Town' &&
+        !(airportPickup && crossTownRide)
+    ) {
+        destinationZone = 'Town';
+    }
 
     document.getElementById('destinationZone').innerText =
         destinationZone || 'Unknown';
