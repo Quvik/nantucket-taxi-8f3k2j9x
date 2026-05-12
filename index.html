@@ -77,6 +77,40 @@ button {
         <option value="6">6 Passengers</option>
     </select>
 
+    <div class="card">
+        <label><input type="checkbox" id="nightFee"> Night fee +$5</label><br><br>
+        <label><input type="checkbox" id="dirtRoad"> Dirt road +$5</label><br><br>
+
+        Dogs:
+        <select id="dogs">
+            <option value="0">0 Dogs</option>
+            <option value="1">1 Dog</option>
+            <option value="2">2 Dogs</option>
+            <option value="3">3 Dogs</option>
+        </select>
+
+        <br><br>
+
+        Bikes:
+        <select id="bikes">
+            <option value="0">0 Bikes</option>
+            <option value="1">1 Bike</option>
+            <option value="2">2 Bikes</option>
+            <option value="3">3 Bikes</option>
+        </select>
+
+        <br><br>
+
+        Extra Bags:
+        <select id="bags">
+            <option value="0">0 Extra Bags</option>
+            <option value="1">1 Extra Bag</option>
+            <option value="2">2 Extra Bags</option>
+            <option value="3">3 Extra Bags</option>
+            <option value="4">4 Extra Bags</option>
+        </select>
+    </div>
+
     <button onclick="calculateFare()">Calculate Fare</button>
 
     <div class="card">
@@ -278,15 +312,43 @@ async function calculateFare() {
     }
 
     const extraPassengers = Math.max(0, passengers - 1);
-    const extraCharge = extraPassengers * 3;
+    const passengerCharge = extraPassengers * 3;
 
-    const totalFare = baseFare + extraCharge;
+    const dogs = parseInt(document.getElementById('dogs').value);
+    const dogCharge = dogs * 5;
+
+    const bikes = parseInt(document.getElementById('bikes').value);
+    const bikeCharge = bikes * 5;
+
+    const bags = parseInt(document.getElementById('bags').value);
+    const bagCharge = bags * 2;
+
+    const nightCharge =
+        document.getElementById('nightFee').checked ? 5 : 0;
+
+    const dirtCharge =
+        document.getElementById('dirtRoad').checked ? 5 : 0;
+
+    const totalFare =
+        baseFare +
+        passengerCharge +
+        dogCharge +
+        bikeCharge +
+        bagCharge +
+        nightCharge +
+        dirtCharge;
 
     document.getElementById('fare').innerText =
         `$${totalFare}`;
 
     document.getElementById('fareBreakdown').innerText =
-        `Base: $${baseFare} | Extra passengers: $${extraCharge}`;
+        `Base: $${baseFare}
+        | Passengers: $${passengerCharge}
+        | Dogs: $${dogCharge}
+        | Bikes: $${bikeCharge}
+        | Bags: $${bagCharge}
+        | Night: $${nightCharge}
+        | Dirt road: $${dirtCharge}`;
 
     L.marker([lat, lng]).addTo(map);
 
