@@ -390,6 +390,8 @@ window.addEventListener('load', () => {
 async function calculateFare() {
 
     const address = document.getElementById('destination').value;
+    lastDestinationAddress = address;
+    lastDestinationAddress = address;
 
     // LOCAL NANTUCKET DATABASE
     const localMatch = localPlaces.find(p =>
@@ -414,6 +416,8 @@ async function calculateFare() {
         }
 
         if (baseFare) {
+
+            lastDestinationAddress = address;
 
             document.getElementById('fare').innerText =
                 `$${baseFare}`;
