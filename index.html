@@ -242,6 +242,11 @@ function detectCurrentLocation() {
 
         currentZoneName = findZone(point);
 
+        // Cross Town should never be normal GPS zone
+        if (currentZoneName === 'Cross Town') {
+            currentZoneName = 'Town';
+        }
+
         document.getElementById('currentZone').innerText =
             currentZoneName || 'Unknown';
 
