@@ -66,7 +66,8 @@ button {
         <div class="big" id="currentZone">Detecting...</div>
     </div>
 
-    <input id="destination" placeholder="Enter destination address"/>
+    <input id="destination" list="suggestions" placeholder="Enter hotel, restaurant, address..."/>
+<datalist id="suggestions"></datalist>
 
     <select id="passengers">
         <option value="1">1 Passenger</option>
@@ -304,6 +305,62 @@ function openWaze() {
 }
 
 
+
+// AUTOCOMPLETE
+window.addEventListener('load', () => {
+
+    const destinationInput = document.getElementById('destination');
+    const suggestionList = document.getElementById('suggestions');
+
+    if (!destinationInput || !suggestionList) return;
+
+    destinationInput.addEventListener('input', async function() {
+
+        const query = destinationInput.value;
+
+        if (query.length < 2) return;
+
+        try {
+
+            const url =
+                `https://photon.komoot.io/api/?q=${encodeURIComponent(query + " Nantucket")}&limit=5`;
+
+            const response = await fetch(url);
+            const data = await response.json();
+
+            suggestionList.innerHTML = "";
+
+            if (data.features) {
+
+                data.features.forEach(feature => {
+
+                    const option = document.createElement('option');
+
+                    let label =
+                        feature.properties.name || "";
+
+                    if (
+                        feature.properties.street &&
+                        !label.includes(feature.properties.street)
+                    ) {
+                        label += " - " + feature.properties.street;
+                    }
+
+                    option.value = label;
+
+                    suggestionList.appendChild(option);
+                });
+            }
+
+        } catch(e) {
+            console.log(e);
+        }
+
+    });
+
+});
+
+
 async function calculateFare() {
 
     const address = document.getElementById('destination').value;
@@ -316,18 +373,21 @@ async function calculateFare() {
 
     const passengers = parseInt(document.getElementById('passengers').value);
 
-    const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address + ", Nantucket MA")}`;
+    const url =
+        `https://photon.komoot.io/api/?q=${encodeURIComponent(address + " Nantucket")}&limit=5`;
 
     const response = await fetch(url);
     const data = await response.json();
 
-    if (!data.length) {
-        alert('Address not found');
+    if (!data.features || !data.features.length) {
+        alert('Place not found');
         return;
     }
 
-    const lat = parseFloat(data[0].lat);
-    const lng = parseFloat(data[0].lon);
+    const best = data.features[0];
+
+    const lat = best.geometry.coordinates[1];
+    const lng = best.geometry.coordinates[0];
 
     const point = turf.point([lng, lat]);
 
@@ -341,7 +401,39 @@ async function calculateFare() {
         return;
     }
 
-    const baseFare = getFare(currentZoneName, destinationZone);
+    // Cross Town should only exist for airport pickup line
+    const airportPickup =
+        document.getElementById('airportPickup') &&
+        document.getElementById('airportPickup').checked;
+
+    if (!airportPickup) {
+
+        if (currentZoneName === 'Cross Town') {
+            currentZoneName = 'Town';
+            document.getElementById('currentZone').innerText = 'Town';
+        }
+
+        if (destinationZone === 'Cross Town') {
+            destinationZone = 'Town';
+            document.getElementById('destinationZone').innerText = 'Town';
+        }
+    }
+
+    let pickupZone = currentZoneName;
+
+    if (airportPickup) {
+        pickupZone = 'Airport';
+    }
+
+    let baseFare = getFare(pickupZone, destinationZone);
+
+    // Town flat rate
+    if (
+        pickupZone === 'Town' &&
+        destinationZone === 'Town'
+    ) {
+        baseFare = 14;
+    }
 
     if (!baseFare) {
         document.getElementById('fare').innerText = 'No fare found';
