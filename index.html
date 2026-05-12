@@ -257,19 +257,30 @@ function detectCurrentLocation() {
 
 function findZone(point) {
 
+    let fallbackZone = null;
+
     for (const feature of zonesGeoJSON.features) {
 
         try {
 
             if (turf.booleanPointInPolygon(point, feature)) {
 
-                return feature.properties.name || "Unknown";
+                const zoneName =
+                    feature.properties.name || "Unknown";
+
+                // Ignore Cross Town overlay zone
+                if (zoneName === 'Cross Town') {
+                    fallbackZone = 'Town';
+                    continue;
+                }
+
+                return zoneName;
             }
 
         } catch(e) {}
     }
 
-    return null;
+    return fallbackZone;
 }
 
 function getFare(fromZone, toZone) {
