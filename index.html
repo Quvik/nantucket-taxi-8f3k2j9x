@@ -66,7 +66,7 @@ button {
         <div class="big" id="currentZone">Detecting...</div>
     </div>
 
-    <input id="destination" list="suggestions" placeholder="Enter hotel, restaurant, address..."/><datalist id="suggestions"></datalist>
+    <input id="destination" placeholder="Enter destination address"/>
 
     <select id="passengers">
         <option value="1">1 Passenger</option>
@@ -76,13 +76,6 @@ button {
         <option value="5">5 Passengers</option>
         <option value="6">6 Passengers</option>
     </select>
-
-    <div class="card">
-        <label>
-            <input type="checkbox" id="airportPickup">
-            Airport Pickup Line
-        </label>
-    </div>
 
     <div class="card">
         <label><input type="checkbox" id="nightFee"> Night fee +$5</label><br><br>
@@ -235,7 +228,6 @@ fetch('zones.kml')
     detectCurrentLocation();
 });
 
-});
 function detectCurrentLocation() {
 
     navigator.geolocation.getCurrentPosition(pos => {
@@ -285,87 +277,6 @@ function getFare(fromZone, toZone) {
 
 let lastDestinationAddress = "";
 
-window.addEventListener('DOMContentLoaded', () => {
-
-const destinationInput = document.getElementById('destination');
-const suggestionList = document.getElementById('suggestions');
-
-if (!destinationInput || !suggestionList) return;
-
-destinationInput.addEventListener('input', async function() {
-
-    const query = destinationInput.value;
-
-    if (query.length < 2) return;
-
-    try {
-
-        const url =
-            `https://photon.komoot.io/api/?q=${encodeURIComponent(query + " Nantucket")}&limit=5`;
-
-        const response = await fetch(url);
-        const data = await response.json();
-
-        suggestionList.innerHTML = "";
-
-        if (data.features) {
-
-            data.features.forEach(feature => {
-
-                const option = document.createElement('option');
-
-                const props = feature.properties;
-
-                let label = props.name || "";
-
-                if (props.street) {
-                    label += " - " + props.street;
-                }
-
-                option.value = label;
-
-                suggestionList.appendChild(option);
-            });
-        }
-
-    } catch(e) {
-        console.log(e);
-    }
-});
-
-
-
-const destinationInput = document.getElementById('destination');
-
-destinationInput.addEventListener('input', async function() {
-
-    const query = destinationInput.value;
-
-    if (query.length < 3) return;
-
-    try {
-
-        const url =
-            `https://photon.komoot.io/api/?q=${encodeURIComponent(query + " Nantucket")}&limit=3`;
-
-        const response = await fetch(url);
-        const data = await response.json();
-
-        if (data.features && data.features.length > 0) {
-
-            const suggestion =
-                data.features[0].properties.name || query;
-
-            destinationInput.placeholder =
-                "Suggestion: " + suggestion;
-        }
-
-    } catch(e) {}
-
-});
-
-
-
 function openGoogleMaps() {
 
     if (!lastDestinationAddress) {
@@ -405,56 +316,32 @@ async function calculateFare() {
 
     const passengers = parseInt(document.getElementById('passengers').value);
 
-    const url =
-        `https://photon.komoot.io/api/?q=${encodeURIComponent(address + " Nantucket")}&limit=5`;
+    const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address + ", Nantucket MA")}`;
 
     const response = await fetch(url);
     const data = await response.json();
 
-    if (!data.features || !data.features.length) {
-        alert('Place not found');
+    if (!data.length) {
+        alert('Address not found');
         return;
     }
 
-    const best = data.features[0];
-
-    const lat = best.geometry.coordinates[1];
-    const lng = best.geometry.coordinates[0];
+    const lat = parseFloat(data[0].lat);
+    const lng = parseFloat(data[0].lon);
 
     const point = turf.point([lng, lat]);
 
-    let destinationZone = findZone(point);
-
-    const airportPickup =
-        document.getElementById('airportPickup').checked;
-
-    if (destinationZone === 'Cross Town' && !airportPickup) {
-        destinationZone = 'Town';
-    }
+    const destinationZone = findZone(point);
 
     document.getElementById('destinationZone').innerText =
         destinationZone || 'Unknown';
 
-    if (!destinationZone) {
+    if (!currentZoneName || !destinationZone) {
         document.getElementById('fare').innerText = '$ ?';
         return;
     }
 
-    let pickupZone = currentZoneName;
-
-    if (airportPickup) {
-        pickupZone = 'Airport';
-    }
-
-    let baseFare = getFare(pickupZone, destinationZone);
-
-    // Town flat rate
-    if (
-        pickupZone === 'Town' &&
-        destinationZone === 'Town'
-    ) {
-        baseFare = 14;
-    }
+    const baseFare = getFare(currentZoneName, destinationZone);
 
     if (!baseFare) {
         document.getElementById('fare').innerText = 'No fare found';
