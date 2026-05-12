@@ -78,6 +78,13 @@ button {
     </select>
 
     <div class="card">
+        <label>
+            <input type="checkbox" id="airportPickup">
+            Airport Pickup Line
+        </label>
+    </div>
+
+    <div class="card">
         <label><input type="checkbox" id="nightFee"> Night fee +$5</label><br><br>
         <label><input type="checkbox" id="dirtRoad"> Dirt road +$5</label><br><br>
 
@@ -365,17 +372,30 @@ async function calculateFare() {
 
     const point = turf.point([lng, lat]);
 
-    const destinationZone = findZone(point);
+    let destinationZone = findZone(point);
+
+    const airportPickup =
+        document.getElementById('airportPickup').checked;
+
+    if (destinationZone === 'Cross Town' && !airportPickup) {
+        destinationZone = 'Town';
+    }
 
     document.getElementById('destinationZone').innerText =
         destinationZone || 'Unknown';
 
-    if (!currentZoneName || !destinationZone) {
+    if (!destinationZone) {
         document.getElementById('fare').innerText = '$ ?';
         return;
     }
 
-    const baseFare = getFare(currentZoneName, destinationZone);
+    let pickupZone = currentZoneName;
+
+    if (airportPickup) {
+        pickupZone = 'Airport';
+    }
+
+    const baseFare = getFare(pickupZone, destinationZone);
 
     if (!baseFare) {
         document.getElementById('fare').innerText = 'No fare found';
