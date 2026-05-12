@@ -294,6 +294,16 @@ function getFare(fromZone, toZone) {
 
 let lastDestinationAddress = "";
 
+let localPlaces = [];
+
+fetch('places.json')
+.then(r => r.json())
+.then(data => {
+    localPlaces = data;
+})
+.catch(() => {});
+
+
 function openGoogleMaps() {
 
     if (!lastDestinationAddress) {
@@ -380,6 +390,37 @@ window.addEventListener('load', () => {
 async function calculateFare() {
 
     const address = document.getElementById('destination').value;
+
+    // LOCAL NANTUCKET DATABASE
+    const localMatch = localPlaces.find(p =>
+        p.name.toLowerCase().includes(address.toLowerCase()) ||
+        address.toLowerCase().includes(p.name.toLowerCase())
+    );
+
+    if (localMatch) {
+
+        const destinationZone = localMatch.zone;
+
+        document.getElementById('destinationZone').innerText =
+            destinationZone;
+
+        let baseFare = getFare(currentZoneName, destinationZone);
+
+        if (
+            currentZoneName === 'Town' &&
+            destinationZone === 'Town'
+        ) {
+            baseFare = 14;
+        }
+
+        if (baseFare) {
+
+            document.getElementById('fare').innerText =
+                `$${baseFare}`;
+
+            return;
+        }
+    }
     lastDestinationAddress = address;
 
     if (!address) {

@@ -1,0 +1,374 @@
+[
+  {
+    "name": "White Elephant",
+    "zone": "Town"
+  },
+  {
+    "name": "White Elephant Village",
+    "zone": "Town"
+  },
+  {
+    "name": "The Nantucket Hotel",
+    "zone": "Town"
+  },
+  {
+    "name": "Jared Coffin House",
+    "zone": "Town"
+  },
+  {
+    "name": "21 Broad",
+    "zone": "Town"
+  },
+  {
+    "name": "76 Main",
+    "zone": "Town"
+  },
+  {
+    "name": "Greydon House",
+    "zone": "Town"
+  },
+  {
+    "name": "The Wauwinet",
+    "zone": "Wauwinet"
+  },
+  {
+    "name": "Faraway Nantucket",
+    "zone": "Town"
+  },
+  {
+    "name": "Life House Nantucket",
+    "zone": "Town"
+  },
+  {
+    "name": "Brass Lantern Inn",
+    "zone": "Town"
+  },
+  {
+    "name": "Nantucket Resort Collection",
+    "zone": "Town"
+  },
+  {
+    "name": "Union Street Inn",
+    "zone": "Town"
+  },
+  {
+    "name": "Martin House Inn",
+    "zone": "Town"
+  },
+  {
+    "name": "Beachside Hotel",
+    "zone": "Town"
+  },
+  {
+    "name": "Cru",
+    "zone": "Town"
+  },
+  {
+    "name": "Straight Wharf",
+    "zone": "Town"
+  },
+  {
+    "name": "Lola 41",
+    "zone": "Town"
+  },
+  {
+    "name": "Brotherhood",
+    "zone": "Town"
+  },
+  {
+    "name": "The Charlie Noble",
+    "zone": "Town"
+  },
+  {
+    "name": "The Nautilus",
+    "zone": "Town"
+  },
+  {
+    "name": "Galley Beach",
+    "zone": "Town"
+  },
+  {
+    "name": "Millie's",
+    "zone": "Madaket"
+  },
+  {
+    "name": "Cisco Brewers",
+    "zone": "Cisco/ Miacomet"
+  },
+  {
+    "name": "Slip 14",
+    "zone": "Town"
+  },
+  {
+    "name": "Ventuno",
+    "zone": "Town"
+  },
+  {
+    "name": "Or, The Whale",
+    "zone": "Town"
+  },
+  {
+    "name": "Provisions",
+    "zone": "Town"
+  },
+  {
+    "name": "Juice Bar",
+    "zone": "Town"
+  },
+  {
+    "name": "Black-Eyed Susan's",
+    "zone": "Town"
+  },
+  {
+    "name": "Rose & Crown",
+    "zone": "Town"
+  },
+  {
+    "name": "American Seasons",
+    "zone": "Town"
+  },
+  {
+    "name": "Le Languedoc",
+    "zone": "Town"
+  },
+  {
+    "name": "Island Kitchen",
+    "zone": "Mid Island A"
+  },
+  {
+    "name": "Siam to Go",
+    "zone": "Town"
+  },
+  {
+    "name": "Lemon Press",
+    "zone": "Town"
+  },
+  {
+    "name": "Yummy",
+    "zone": "Mid Island A"
+  },
+  {
+    "name": "The Chicken Box",
+    "zone": "Town"
+  },
+  {
+    "name": "Club Car",
+    "zone": "Town"
+  },
+  {
+    "name": "Brant Point Lighthouse",
+    "zone": "Town"
+  },
+  {
+    "name": "Brant Point",
+    "zone": "Town"
+  },
+  {
+    "name": "Jetties Beach",
+    "zone": "Town"
+  },
+  {
+    "name": "Children's Beach",
+    "zone": "Town"
+  },
+  {
+    "name": "Surfside Beach",
+    "zone": "Tom Nevers"
+  },
+  {
+    "name": "Madaket Beach",
+    "zone": "Madaket"
+  },
+  {
+    "name": "Siasconset Beach",
+    "zone": "Siasconset"
+  },
+  {
+    "name": "Quidnet Beach",
+    "zone": "Quidnet"
+  },
+  {
+    "name": "Cisco Beach",
+    "zone": "Cisco/ Miacomet"
+  },
+  {
+    "name": "Dionis Beach",
+    "zone": "Dionis"
+  },
+  {
+    "name": "Pocomo Beach",
+    "zone": "Pocomo"
+  },
+  {
+    "name": "Low Beach",
+    "zone": "Low Beach"
+  },
+  {
+    "name": "Tom Nevers Beach",
+    "zone": "Tom Nevers"
+  },
+  {
+    "name": "Miacomet Beach",
+    "zone": "Cisco/ Miacomet"
+  },
+  {
+    "name": "Steps Beach",
+    "zone": "Town"
+  },
+  {
+    "name": "Great Point",
+    "zone": "Wauwinet"
+  },
+  {
+    "name": "Sankaty Head Lighthouse",
+    "zone": "Siasconset"
+  },
+  {
+    "name": "Steamship Ferry",
+    "zone": "Town"
+  },
+  {
+    "name": "Steamship Authority",
+    "zone": "Town"
+  },
+  {
+    "name": "Hy-Line Ferry",
+    "zone": "Town"
+  },
+  {
+    "name": "Nantucket Memorial Airport",
+    "zone": "Airport"
+  },
+  {
+    "name": "Airport",
+    "zone": "Airport"
+  },
+  {
+    "name": "Stop and Shop",
+    "zone": "Mid Island A"
+  },
+  {
+    "name": "Stop & Shop",
+    "zone": "Mid Island A"
+  },
+  {
+    "name": "Nantucket Pharmacy",
+    "zone": "Town"
+  },
+  {
+    "name": "Marine Home Center",
+    "zone": "Mid Island A"
+  },
+  {
+    "name": "Handlebar Cafe",
+    "zone": "Town"
+  },
+  {
+    "name": "Affordable Rentals",
+    "zone": "Mid Island A"
+  },
+  {
+    "name": "Young's Bicycle Shop",
+    "zone": "Town"
+  },
+  {
+    "name": "Island Lumber",
+    "zone": "Mid Island A"
+  },
+  {
+    "name": "Bike Barn",
+    "zone": "Mid Island A"
+  },
+  {
+    "name": "Nantucket Cottage Hospital",
+    "zone": "Mid Island A"
+  },
+  {
+    "name": "Town Hall",
+    "zone": "Town"
+  },
+  {
+    "name": "Whaling Museum",
+    "zone": "Town"
+  },
+  {
+    "name": "Dreamland Theater",
+    "zone": "Town"
+  },
+  {
+    "name": "Atheneum",
+    "zone": "Town"
+  },
+  {
+    "name": "Post Office",
+    "zone": "Town"
+  },
+  {
+    "name": "Police Station",
+    "zone": "Mid Island A"
+  },
+  {
+    "name": "Fire Station",
+    "zone": "Town"
+  },
+  {
+    "name": "Miacomet Golf Club",
+    "zone": "Cisco/ Miacomet"
+  },
+  {
+    "name": "Nantucket Golf Club",
+    "zone": "Siasconset"
+  },
+  {
+    "name": "Sankaty Head Golf Club",
+    "zone": "Siasconset"
+  },
+  {
+    "name": "Westmoor Club",
+    "zone": "Town"
+  },
+  {
+    "name": "Town",
+    "zone": "Town"
+  },
+  {
+    "name": "Mid Island",
+    "zone": "Mid Island A"
+  },
+  {
+    "name": "Madaket",
+    "zone": "Madaket"
+  },
+  {
+    "name": "Sconset",
+    "zone": "Siasconset"
+  },
+  {
+    "name": "Wauwinet",
+    "zone": "Wauwinet"
+  },
+  {
+    "name": "Tom Nevers",
+    "zone": "Tom Nevers"
+  },
+  {
+    "name": "Polpis",
+    "zone": "Polpis"
+  },
+  {
+    "name": "Pocomo",
+    "zone": "Pocomo"
+  },
+  {
+    "name": "Quaise",
+    "zone": "Quaise"
+  },
+  {
+    "name": "Quidnet",
+    "zone": "Quidnet"
+  },
+  {
+    "name": "Shimmo",
+    "zone": "Shimo"
+  }
+]
