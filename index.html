@@ -1,0 +1,299 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nantucket Taxi Fare Calculator</title>
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+
+<style>
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background: #101010;
+    color: white;
+}
+
+#topbar {
+    padding: 12px;
+    background: #1a1a1a;
+}
+
+input, select, button {
+    width: 100%;
+    padding: 14px;
+    margin-top: 10px;
+    border-radius: 12px;
+    border: none;
+    font-size: 16px;
+    box-sizing: border-box;
+}
+
+button {
+    cursor: pointer;
+}
+
+#map {
+    height: 52vh;
+}
+
+.card {
+    padding: 14px;
+    background: #1f1f1f;
+    border-radius: 12px;
+    margin-top: 10px;
+}
+
+.big {
+    font-size: 24px;
+    font-weight: bold;
+}
+
+.small {
+    opacity: 0.8;
+    margin-top: 6px;
+}
+</style>
+</head>
+<body>
+
+<div id="topbar">
+
+    <div class="card">
+        <div>Current Zone</div>
+        <div class="big" id="currentZone">Detecting...</div>
+    </div>
+
+    <input id="destination" placeholder="Enter destination address"/>
+
+    <select id="passengers">
+        <option value="1">1 Passenger</option>
+        <option value="2">2 Passengers</option>
+        <option value="3">3 Passengers</option>
+        <option value="4">4 Passengers</option>
+        <option value="5">5 Passengers</option>
+        <option value="6">6 Passengers</option>
+    </select>
+
+    <button onclick="calculateFare()">Calculate Fare</button>
+
+    <div class="card">
+        <div>Destination Zone</div>
+        <div class="big" id="destinationZone">-</div>
+    </div>
+
+    <div class="card">
+        <div>Total Fare</div>
+        <div class="big" id="fare">$ -</div>
+        <div class="small" id="fareBreakdown"></div>
+    </div>
+
+</div>
+
+<div id="map"></div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/togeojson/0.16.0/togeojson.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@turf/turf@6/turf.min.js"></script>
+
+<script>
+
+const fareTable = {
+
+    // AIRPORT
+    "Airport-Cisco/ Miacomet": 32,
+    "Airport-Dionis": 35,
+    "Airport-Eel Point": 40,
+    "Airport-Hoicks Hollow": 36,
+    "Airport-Low Beach": 32,
+    "Airport-Madaket": 47,
+    "Airport-Madequecham Valley": 32,
+    "Airport-Massassoit Bridge": 49,
+    "Airport-Mid Island A": 21,
+    "Airport-Mid - Island B": 21,
+    "Airport-Mid Island C": 26,
+    "Airport-Pocomo": 37,
+    "Airport-Polpis": 32,
+    "Airport-Quaise": 27,
+    "Airport-Quidnet": 37,
+    "Airport-Sankaty Light": 35,
+    "Airport-Shimo": 23,
+    "Airport-Siasconset": 31,
+    "Airport-Tom Nevers": 27,
+    "Airport-Town": 23,
+    "Airport-Wauwinet": 42,
+    "Airport-Cross Town": 27,
+    "Airport-Squam": 44,
+
+    // TOWN
+    "Town-Cisco/ Miacomet": 25,
+    "Town-Dionis": 24,
+    "Town-Eel Point": 30,
+    "Town-Hoicks Hollow": 40,
+    "Town-Low Beach": 36,
+    "Town-Madaket": 31,
+    "Town-Madequecham Valley": 37,
+    "Town-Massassoit Bridge": 39,
+    "Town-Mid Island A": 17,
+    "Town-Mid - Island B": 20,
+    "Town-Mid Island C": 22,
+    "Town-Pocomo": 37,
+    "Town-Polpis": 32,
+    "Town-Quaise": 27,
+    "Town-Quidnet": 37,
+    "Town-Sankaty Light": 39,
+    "Town-Shimo": 23,
+    "Town-Siasconset": 35,
+    "Town-Tom Nevers": 30,
+    "Town-Airport": 23,
+    "Town-Wauwinet": 42,
+    "Town-Squam": 44,
+
+    // CROSS ISLAND
+    "Wauwinet-Siasconset": 50,
+    "Madaket-Siasconset": 65,
+    "Wauwinet-Madaket": 70
+};
+
+let currentZoneName = null;
+let zonesGeoJSON = null;
+
+const map = L.map('map').setView([41.2835, -70.0995], 12);
+
+L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19
+}).addTo(map);
+
+fetch('zones.kml')
+.then(res => res.text())
+.then(kmlText => {
+
+    const parser = new DOMParser();
+    const kml = parser.parseFromString(kmlText, 'text/xml');
+
+    zonesGeoJSON = toGeoJSON.kml(kml);
+
+    const layer = L.geoJSON(zonesGeoJSON, {
+        style: {
+            color: '#00bfff',
+            weight: 2,
+            fillOpacity: 0.2
+        }
+    }).addTo(map);
+
+    map.fitBounds(layer.getBounds());
+
+    detectCurrentLocation();
+});
+
+function detectCurrentLocation() {
+
+    navigator.geolocation.getCurrentPosition(pos => {
+
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
+
+        const point = turf.point([lng, lat]);
+
+        L.marker([lat, lng]).addTo(map);
+
+        currentZoneName = findZone(point);
+
+        document.getElementById('currentZone').innerText =
+            currentZoneName || 'Unknown';
+
+    }, err => {
+        alert('Allow location access');
+    });
+}
+
+function findZone(point) {
+
+    for (const feature of zonesGeoJSON.features) {
+
+        try {
+
+            if (turf.booleanPointInPolygon(point, feature)) {
+
+                return feature.properties.name || "Unknown";
+            }
+
+        } catch(e) {}
+    }
+
+    return null;
+}
+
+function getFare(fromZone, toZone) {
+
+    const direct = `${fromZone}-${toZone}`;
+    const reverse = `${toZone}-${fromZone}`;
+
+    return fareTable[direct] || fareTable[reverse] || null;
+}
+
+async function calculateFare() {
+
+    const address = document.getElementById('destination').value;
+
+    if (!address) {
+        alert('Enter destination address');
+        return;
+    }
+
+    const passengers = parseInt(document.getElementById('passengers').value);
+
+    const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address + ", Nantucket MA")}`;
+
+    const response = await fetch(url);
+    const data = await response.json();
+
+    if (!data.length) {
+        alert('Address not found');
+        return;
+    }
+
+    const lat = parseFloat(data[0].lat);
+    const lng = parseFloat(data[0].lon);
+
+    const point = turf.point([lng, lat]);
+
+    const destinationZone = findZone(point);
+
+    document.getElementById('destinationZone').innerText =
+        destinationZone || 'Unknown';
+
+    if (!currentZoneName || !destinationZone) {
+        document.getElementById('fare').innerText = '$ ?';
+        return;
+    }
+
+    const baseFare = getFare(currentZoneName, destinationZone);
+
+    if (!baseFare) {
+        document.getElementById('fare').innerText = 'No fare found';
+        return;
+    }
+
+    const extraPassengers = Math.max(0, passengers - 1);
+    const extraCharge = extraPassengers * 3;
+
+    const totalFare = baseFare + extraCharge;
+
+    document.getElementById('fare').innerText =
+        `$${totalFare}`;
+
+    document.getElementById('fareBreakdown').innerText =
+        `Base: $${baseFare} | Extra passengers: $${extraCharge}`;
+
+    L.marker([lat, lng]).addTo(map);
+
+    map.setView([lat, lng], 14);
+}
+
+</script>
+
+</body>
+</html>
