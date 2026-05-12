@@ -242,7 +242,7 @@ function detectCurrentLocation() {
 
         currentZoneName = findZone(point);
 
-        // Cross Town should never be normal GPS zone
+        // Safety fallback
         if (currentZoneName === 'Cross Town') {
             currentZoneName = 'Town';
         }
@@ -396,23 +396,7 @@ async function calculateFare() {
 
     const point = turf.point([lng, lat]);
 
-    let destinationZone = findZone(point);
-
-    const airportPickup =
-        document.getElementById('airportPickup') &&
-        document.getElementById('airportPickup').checked;
-
-    const crossTownRide =
-        document.getElementById('crossTownRide') &&
-        document.getElementById('crossTownRide').checked;
-
-    // Cross Town should ONLY exist with airport pickup + toggle
-    if (
-        destinationZone === 'Cross Town' &&
-        !(airportPickup && crossTownRide)
-    ) {
-        destinationZone = 'Town';
-    }
+    const destinationZone = findZone(point);
 
     document.getElementById('destinationZone').innerText =
         destinationZone || 'Unknown';
@@ -422,35 +406,11 @@ async function calculateFare() {
         return;
     }
 
-    // Cross Town should only exist for airport pickup line
-    const airportPickup =
-        document.getElementById('airportPickup') &&
-        document.getElementById('airportPickup').checked;
-
-    if (!airportPickup) {
-
-        if (currentZoneName === 'Cross Town') {
-            currentZoneName = 'Town';
-            document.getElementById('currentZone').innerText = 'Town';
-        }
-
-        if (destinationZone === 'Cross Town') {
-            destinationZone = 'Town';
-            document.getElementById('destinationZone').innerText = 'Town';
-        }
-    }
-
-    let pickupZone = currentZoneName;
-
-    if (airportPickup) {
-        pickupZone = 'Airport';
-    }
-
-    let baseFare = getFare(pickupZone, destinationZone);
+    let baseFare = getFare(currentZoneName, destinationZone);
 
     // Town flat rate
     if (
-        pickupZone === 'Town' &&
+        currentZoneName === 'Town' &&
         destinationZone === 'Town'
     ) {
         baseFare = 14;
