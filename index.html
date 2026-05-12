@@ -66,7 +66,7 @@ button {
         <div class="big" id="currentZone">Detecting...</div>
     </div>
 
-    <input id="destination" placeholder="Enter destination address"/>
+    <input id="destination" list="suggestions" placeholder="Enter hotel, restaurant, address..."/><datalist id="suggestions"></datalist>
 
     <select id="passengers">
         <option value="1">1 Passenger</option>
@@ -285,6 +285,52 @@ function getFare(fromZone, toZone) {
 let lastDestinationAddress = "";
 
 const destinationInput = document.getElementById('destination');
+const suggestionList = document.getElementById('suggestions');
+
+destinationInput.addEventListener('input', async function() {
+
+    const query = destinationInput.value;
+
+    if (query.length < 2) return;
+
+    try {
+
+        const url =
+            `https://photon.komoot.io/api/?q=${encodeURIComponent(query + " Nantucket")}&limit=5`;
+
+        const response = await fetch(url);
+        const data = await response.json();
+
+        suggestionList.innerHTML = "";
+
+        if (data.features) {
+
+            data.features.forEach(feature => {
+
+                const option = document.createElement('option');
+
+                const props = feature.properties;
+
+                let label = props.name || "";
+
+                if (props.street) {
+                    label += " - " + props.street;
+                }
+
+                option.value = label;
+
+                suggestionList.appendChild(option);
+            });
+        }
+
+    } catch(e) {
+        console.log(e);
+    }
+});
+
+
+
+const destinationInput = document.getElementById('destination');
 
 destinationInput.addEventListener('input', async function() {
 
@@ -395,7 +441,15 @@ async function calculateFare() {
         pickupZone = 'Airport';
     }
 
-    const baseFare = getFare(pickupZone, destinationZone);
+    let baseFare = getFare(pickupZone, destinationZone);
+
+    // Town flat rate
+    if (
+        pickupZone === 'Town' &&
+        destinationZone === 'Town'
+    ) {
+        baseFare = 14;
+    }
 
     if (!baseFare) {
         document.getElementById('fare').innerText = 'No fare found';
