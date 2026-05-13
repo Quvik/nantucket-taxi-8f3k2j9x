@@ -113,7 +113,29 @@ button {
     </div>
 
     
-    <button onclick="calculateFare()">Calculate Fare</button>
+    
+<div class="card">
+<div style="margin-bottom:10px;font-weight:bold;">Quick Places</div>
+
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+
+<button onclick="setDestination('Airport')">Airport</button>
+<button onclick="setDestination('Steamship Ferry')">Ferry</button>
+
+<button onclick="setDestination('White Elephant')">White Elephant</button>
+<button onclick="setDestination('Cisco Brewers')">Cisco Brewers</button>
+
+<button onclick="setDestination('The Wauwinet')">Wauwinet</button>
+<button onclick="setDestination('Stop & Shop')">Stop & Shop</button>
+
+<button onclick="setDestination('Jetties Beach')">Jetties Beach</button>
+<button onclick="setDestination('The Nantucket Hotel')">Nantucket Hotel</button>
+
+</div>
+</div>
+
+
+<button onclick="calculateFare()">Calculate Fare</button>
 
     <button onclick="openGoogleMaps()">Open in Google Maps</button>
 
@@ -302,6 +324,17 @@ fetch('places.json')
     localPlaces = data;
 })
 .catch(() => {});
+
+
+
+function setDestination(placeName) {
+
+    const input = document.getElementById('destination');
+
+    input.value = placeName;
+
+    lastDestinationAddress = placeName;
+}
 
 
 function openGoogleMaps() {
