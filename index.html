@@ -66,8 +66,8 @@ button {
         <div class="big" id="currentZone">Detecting...</div>
     </div>
 
-    <input id="destination" list="suggestions" placeholder="Enter hotel, restaurant, address..."/>
-<datalist id="suggestions"></datalist>
+    <input id="destination" placeholder="Search address, hotel, restaurant..."/>
+
 
     <select id="passengers">
         <option value="1">1 Passenger</option>
@@ -434,21 +434,38 @@ async function calculateFare() {
 
     const passengers = parseInt(document.getElementById('passengers').value);
 
-    const url =
-        `https://photon.komoot.io/api/?q=${encodeURIComponent(address + " Nantucket")}&limit=5`;
+    let lat;
+    let lng;
 
-    const response = await fetch(url);
-    const data = await response.json();
+    if (
+        window.selectedPlace &&
+        window.selectedPlace.geometry
+    ) {
 
-    if (!data.features || !data.features.length) {
-        alert('Place not found');
-        return;
+        lat =
+            window.selectedPlace.geometry.location.lat();
+
+        lng =
+            window.selectedPlace.geometry.location.lng();
+
+    } else {
+
+        const url =
+            `https://photon.komoot.io/api/?q=${encodeURIComponent(address + " Nantucket")}&limit=5`;
+
+        const response = await fetch(url);
+        const data = await response.json();
+
+        if (!data.features || !data.features.length) {
+            alert('Place not found');
+            return;
+        }
+
+        const best = data.features[0];
+
+        lat = best.geometry.coordinates[1];
+        lng = best.geometry.coordinates[0];
     }
-
-    const best = data.features[0];
-
-    const lat = best.geometry.coordinates[1];
-    const lng = best.geometry.coordinates[0];
 
     const point = turf.point([lng, lat]);
 
@@ -526,6 +543,35 @@ async function calculateFare() {
     map.setView([lat, lng], 14);
 }
 
+</script>
+
+
+<script>
+let autocomplete;
+
+function initAutocomplete() {
+
+    const input = document.getElementById('destination');
+
+    autocomplete = new google.maps.places.Autocomplete(input, {
+        types: ['geocode', 'establishment'],
+        componentRestrictions: { country: 'us' },
+        fields: ['geometry', 'name', 'formatted_address']
+    });
+
+    autocomplete.addListener('place_changed', () => {
+
+        const place = autocomplete.getPlace();
+
+        if (!place.geometry) return;
+
+        window.selectedPlace = place;
+    });
+}
+</script>
+
+<script async defer
+src="https://maps.googleapis.com/maps/api/js?key=AIzaSyChh4QTDtpcj9u_QwchPjZ5jE9B1VIl1wM&libraries=places&callback=initAutocomplete">
 </script>
 
 </body>
