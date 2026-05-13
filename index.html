@@ -6,6 +6,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Nantucket Taxi Fare Calculator</title>
 
+<link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/3448/3448339.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
+
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 
 
@@ -307,11 +312,82 @@ border-bottom:1px solid #2a2a2a;
 font-size:17px;
 }
 
+
+.splash-screen{
+position:fixed;
+inset:0;
+background:#0b0b0c;
+display:flex;
+align-items:center;
+justify-content:center;
+flex-direction:column;
+z-index:999999;
+transition:opacity .5s ease;
+}
+
+.splash-logo{
+font-size:42px;
+font-weight:900;
+margin-top:18px;
+}
+
+.splash-sub{
+opacity:.7;
+margin-top:8px;
+font-size:18px;
+}
+
+.loader{
+width:54px;
+height:54px;
+border:5px solid #2a2a2a;
+border-top-color:#0A84FF;
+border-radius:50%;
+animation:spin 1s linear infinite;
+}
+
+@keyframes spin{
+to{transform:rotate(360deg);}
+}
+
+.card,
+.quick-btn,
+.tab-btn,
+.search-input,
+.counter-box,
+.chip{
+transition:all .2s ease;
+}
+
+.card:hover{
+transform:translateY(-1px);
+}
+
+.quick-btn:active,
+.tab-btn:active{
+transform:scale(.97);
+}
+
+.fade-in{
+animation:fadeIn .35s ease;
+}
+
+@keyframes fadeIn{
+from{opacity:0;transform:translateY(6px);}
+to{opacity:1;transform:translateY(0);}
+}
+
 </style>
 
 </head>
 
 <body>
+
+<div class="splash-screen" id="splashScreen">
+<div class="loader"></div>
+<div class="splash-logo">Nantucket Taxi</div>
+<div class="splash-sub">Driver Companion</div>
+</div>
 
 
 <div class="top-tabs">
@@ -683,6 +759,57 @@ fetch('places.json')
 
 
 
+
+
+
+function autoCalculate(){
+
+const destination =
+document.getElementById('destination').value.trim();
+
+if(destination.length < 3) return;
+
+try{
+calculateFare();
+}catch(e){}
+}
+
+window.addEventListener('load',()=>{
+
+setTimeout(()=>{
+const splash =
+document.getElementById('splashScreen');
+
+if(splash){
+splash.style.opacity='0';
+
+setTimeout(()=>{
+splash.remove();
+},500);
+}
+},1200);
+
+const watched = [
+'destination',
+'passengers',
+'dogs',
+'bikes',
+'bags',
+'nightFee',
+'dirtRoad'
+];
+
+watched.forEach(id=>{
+
+const el = document.getElementById(id);
+
+if(!el) return;
+
+el.addEventListener('input',autoCalculate);
+el.addEventListener('change',autoCalculate);
+
+});
+});
 
 
 function showTab(tabId, btn){
