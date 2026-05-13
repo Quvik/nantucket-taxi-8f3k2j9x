@@ -916,18 +916,33 @@ function initAutocomplete() {
 
             const txt = item.innerText.toLowerCase();
 
-            // Hide EVERYTHING except Nantucket
-            if (
-                !txt.includes('nantucket')
-            ) {
-                item.style.display = 'none';
+            const allItems =
+                Array.from(document.querySelectorAll('.pac-item'));
+
+            const hasNantucket =
+                allItems.some(el =>
+                    el.innerText.toLowerCase().includes('nantucket')
+                );
+
+            // Only filter when Nantucket results exist
+            if (hasNantucket) {
+
+                if (!txt.includes('nantucket')) {
+                    item.style.display = 'none';
+                } else {
+                    item.style.display = 'block';
+
+                    // Clean text
+                    item.innerHTML =
+                        item.innerHTML
+                            .replace(/,\s*Nantucket,\s*MA,\s*USA/gi,'')
+                            .replace(/Nantucket,\s*MA,\s*USA/gi,'');
+                }
+
             } else {
 
-                // Clean visible text
-                item.innerHTML =
-                    item.innerHTML
-                        .replace(/,\s*Nantucket,\s*MA,\s*USA/gi,'')
-                        .replace(/Nantucket,\s*MA,\s*USA/gi,'');
+                // Show all until Nantucket appears
+                item.style.display = 'block';
             }
         });
     });
