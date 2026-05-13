@@ -8,45 +8,97 @@
 
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 
+
 <style>
 body {
-    margin: 0;
-    font-family: Arial, sans-serif;
-    background: #101010;
-    color: white;
+    margin:0;
+    background:#0f0f10;
+    color:white;
+    font-family:-apple-system,BlinkMacSystemFont,sans-serif;
 }
 
 #topbar {
-    padding: 12px;
-    background: #1a1a1a;
+    padding:14px;
+    padding-bottom:110px;
 }
 
-input, select, button {
-    width: 100%;
-    padding: 14px;
-    margin-top: 10px;
-    border-radius: 12px;
-    border: none;
-    font-size: 16px;
-    box-sizing: border-box;
+.card {
+    background:#17181c;
+    border-radius:18px;
+    padding:14px;
+    margin-bottom:12px;
 }
 
-button {
-    cursor: pointer;
-    font-weight: bold;
-    transition: 0.2s;
+.zone-card {
+    padding:18px;
 }
 
-button:active {
-    transform: scale(0.98);
+.zone-label {
+    opacity:0.7;
+    font-size:16px;
 }
 
-#map {
-    height: 42vh;
-    margin-bottom: 120px;
+.zone-value {
+    font-size:38px;
+    font-weight:800;
+    margin-top:4px;
 }
 
-.quick-row {
+.search-input {
+    width:100%;
+    background:#24252b;
+    color:white;
+    border:none;
+    border-radius:16px;
+    padding:16px;
+    font-size:20px;
+    box-sizing:border-box;
+}
+
+.compact-row {
+    display:flex;
+    gap:10px;
+    margin-top:10px;
+}
+
+.compact-item {
+    flex:1;
+}
+
+.compact-label {
+    font-size:14px;
+    opacity:0.8;
+    margin-bottom:6px;
+}
+
+select {
+    width:100%;
+    background:#24252b;
+    color:white;
+    border:none;
+    border-radius:14px;
+    padding:14px;
+    font-size:18px;
+}
+
+.chips {
+    display:flex;
+    gap:10px;
+    flex-wrap:wrap;
+}
+
+.chip {
+    background:#24252b;
+    border-radius:14px;
+    padding:12px 14px;
+    display:flex;
+    align-items:center;
+    gap:8px;
+    font-size:16px;
+    font-weight:600;
+}
+
+.quick-scroll {
     display:flex;
     gap:10px;
     overflow-x:auto;
@@ -54,26 +106,19 @@ button:active {
 }
 
 .quick-btn {
-    min-width:140px;
-    background:#2b2b2b;
+    min-width:130px;
+    background:#24252b;
     color:white;
     border:none;
-    border-radius:18px;
+    border-radius:16px;
     padding:16px;
-    font-size:17px;
-    font-weight:bold;
+    font-size:16px;
+    font-weight:700;
 }
 
-.fare-card {
-    background:#111;
-    border:2px solid #2d2d2d;
-}
-
-.breakdown-row {
-    display:flex;
-    justify-content:space-between;
-    margin-top:8px;
-    opacity:0.9;
+#map {
+    height:36vh;
+    margin-bottom:100px;
 }
 
 .sticky-bar {
@@ -81,113 +126,307 @@ button:active {
     bottom:0;
     left:0;
     right:0;
-    background:#161616;
-    border-top:1px solid #333;
-    padding:12px;
+    background:#111216;
+    border-top:1px solid #2a2a2a;
     display:flex;
     gap:10px;
+    padding:12px;
     z-index:9999;
 }
 
 .sticky-bar button {
     flex:1;
+    border:none;
     border-radius:16px;
+    padding:16px;
     font-size:18px;
-    padding:18px;
+    font-weight:700;
 }
 
-.primary-btn {
+.primary {
     background:#0A84FF;
     color:white;
 }
 
-.secondary-btn {
-    background:#2b2b2b;
+.secondary {
+    background:#24252b;
     color:white;
 }
 
-.card {
-    padding: 14px;
-    background: #1f1f1f;
-    border-radius: 12px;
-    margin-top: 10px;
+.fare-row {
+    display:flex;
+    justify-content:space-between;
+    margin-top:6px;
+    font-size:16px;
 }
 
-.big {
-    font-size: 24px;
-    font-weight: bold;
+.total-row {
+    display:flex;
+    justify-content:space-between;
+    margin-top:12px;
+    padding-top:12px;
+    border-top:1px solid #333;
+    font-size:24px;
+    font-weight:800;
 }
 
-.small {
-    opacity: 0.8;
-    margin-top: 6px;
+.counter-box{
+background:#1b1c22;
+border-radius:16px;
+padding:10px;
 }
+
+.compact-row{
+gap:8px !important;
+}
+
+.counter-title{
+font-size:13px !important;
+margin-bottom:6px !important;
+}
+
+.counter-controls{
+gap:8px !important;
+}
+
+.counter-btn{
+width:38px !important;
+height:38px !important;
+font-size:22px !important;
+border-radius:12px !important;
+}
+
+.counter-value{
+font-size:22px !important;
+}
+
+.passenger-big{
+font-size:22px !important;
+}
+
+.chips{
+display:flex !important;
+gap:12px !important;
+flex-wrap:nowrap !important;
+}
+
+.chip{
+flex:1;
+justify-content:center;
+padding:10px 12px !important;
+font-size:15px !important;
+border-radius:14px !important;
+white-space:nowrap;
+}
+
+.quick-btn{
+min-width:100px !important;
+padding:12px !important;
+font-size:14px !important;
+border-radius:14px !important;
+}
+
+.quick-scroll{
+gap:8px !important;
+}
+
+.card{
+margin-bottom:10px !important;
+}
+
+.zone-card{
+padding:14px !important;
+}
+
+.zone-value{
+font-size:30px !important;
+}
+
+.search-input{
+padding:13px !important;
+font-size:17px !important;
+}
+
+.counter-title{
+font-size:14px;
+opacity:.75;
+margin-bottom:10px;
+}
+
+.counter-controls{
+display:flex;
+align-items:center;
+justify-content:space-between;
+gap:10px;
+}
+
+.counter-btn{
+width:44px;
+height:44px;
+border:none;
+border-radius:14px;
+background:#2a2b33;
+color:white;
+font-size:26px;
+font-weight:700;
+}
+
+.counter-value{
+font-size:28px;
+font-weight:800;
+min-width:24px;
+text-align:center;
+}
+
+.passenger-big{
+font-size:18px;
+font-weight:700;
+}
+
+.quick-btn{
+min-width:110px !important;
+padding:14px !important;
+font-size:15px !important;
+}
+
+.quick-scroll{
+padding-bottom:8px;
+}
+
+.card{
+padding:12px !important;
+}
+
+.zone-card{
+padding:16px !important;
+}
+
+.zone-value{
+font-size:32px !important;
+}
+
+.search-input{
+padding:14px !important;
+font-size:18px !important;
+}
+
+.compact-row{
+margin-top:8px !important;
+}
+
 </style>
+
 </head>
+
 <body>
 
 <div id="topbar">
 
-    <div class="card fare-card">
-        <div>Current Zone</div>
-        <div class="big" id="currentZone">Detecting...</div>
-    </div>
-
-    <input id="destination" placeholder="Start typing and SELECT suggestion..."/>
-
-
-    <select id="passengers">
-        <option value="1">1 Passenger</option>
-        <option value="2">2 Passengers</option>
-        <option value="3">3 Passengers</option>
-        <option value="4">4 Passengers</option>
-        <option value="5">5 Passengers</option>
-        <option value="6">6 Passengers</option>
-    </select>
-
-    <div class="card">
-        <label><input type="checkbox" id="nightFee"> Night fee +$5</label><br><br>
-        <label><input type="checkbox" id="dirtRoad"> Dirt road +$5</label><br><br>
-
-        Dogs:
-        <select id="dogs">
-            <option value="0">0 Dogs</option>
-            <option value="1">1 Dog</option>
-            <option value="2">2 Dogs</option>
-            <option value="3">3 Dogs</option>
-        </select>
-
-        <br><br>
-
-        Bikes:
-        <select id="bikes">
-            <option value="0">0 Bikes</option>
-            <option value="1">1 Bike</option>
-            <option value="2">2 Bikes</option>
-            <option value="3">3 Bikes</option>
-        </select>
-
-        <br><br>
-
-        Extra Bags:
-        <select id="bags">
-            <option value="0">0 Extra Bags</option>
-            <option value="1">1 Extra Bag</option>
-            <option value="2">2 Extra Bags</option>
-            <option value="3">3 Extra Bags</option>
-            <option value="4">4 Extra Bags</option>
-        </select>
-    </div>
-
-    
-    
+<div class="card zone-card">
+<div class="zone-label">Current Zone</div>
+<div class="zone-value" id="currentZone">Detecting...</div>
+</div>
 
 <div class="card">
-<div style="margin-bottom:12px;font-weight:bold;font-size:20px;">
+<input class="search-input" id="destination" placeholder="Search Nantucket address or hotel..."/>
+</div>
+
+
+<div class="compact-row">
+
+<div class="compact-item">
+<div class="counter-box">
+
+<div class="counter-title">Passengers</div>
+
+<div class="counter-controls">
+<button class="counter-btn" onclick="changeValue('passengers',-1)">−</button>
+<div class="counter-value passenger-big" id="passengersValue">1</div>
+<button class="counter-btn" onclick="changeValue('passengers',1)">+</button>
+</div>
+
+<input type="hidden" id="passengers" value="1">
+
+</div>
+</div>
+
+<div class="compact-item">
+<div class="counter-box">
+
+<div class="counter-title">🐶 Dogs</div>
+
+<div class="counter-controls">
+<button class="counter-btn" onclick="changeValue('dogs',-1)">−</button>
+<div class="counter-value" id="dogsValue">0</div>
+<button class="counter-btn" onclick="changeValue('dogs',1)">+</button>
+</div>
+
+<input type="hidden" id="dogs" value="0">
+
+</div>
+</div>
+
+</div>
+
+<div class="compact-row">
+
+<div class="compact-item">
+<div class="counter-box">
+
+<div class="counter-title">🚲 Bikes</div>
+
+<div class="counter-controls">
+<button class="counter-btn" onclick="changeValue('bikes',-1)">−</button>
+<div class="counter-value" id="bikesValue">0</div>
+<button class="counter-btn" onclick="changeValue('bikes',1)">+</button>
+</div>
+
+<input type="hidden" id="bikes" value="0">
+
+</div>
+</div>
+
+<div class="compact-item">
+<div class="counter-box">
+
+<div class="counter-title">🧳 Bags</div>
+
+<div class="counter-controls">
+<button class="counter-btn" onclick="changeValue('bags',-1)">−</button>
+<div class="counter-value" id="bagsValue">0</div>
+<button class="counter-btn" onclick="changeValue('bags',1)">+</button>
+</div>
+
+<input type="hidden" id="bags" value="0">
+
+</div>
+</div>
+
+</div>
+
+
+<div class="card">
+<div class="chips">
+
+<label class="chip">
+<input type="checkbox" id="nightFee">
+🌙 Night +$5
+</label>
+
+<label class="chip">
+<input type="checkbox" id="dirtRoad">
+🛣 Dirt +$5
+</label>
+
+</div>
+</div>
+
+<div class="card">
+<div style="font-size:22px;font-weight:800;margin-bottom:12px;">
 Quick Favorites
 </div>
 
-<div class="quick-row">
+<div class="quick-scroll">
 
 <button class="quick-btn" onclick="setDestination('Airport')">✈️ Airport</button>
 
@@ -204,41 +443,27 @@ Quick Favorites
 </div>
 </div>
 
-
-
-
-<div class="sticky-bar">
-
-<button class="primary-btn" onclick="calculateFare()">
-Calculate
-</button>
-
-<button class="secondary-btn" onclick="openWaze()">
-Waze
-</button>
-
-<button class="secondary-btn" onclick="openGoogleMaps()">
-Maps
-</button>
-
+<div class="card">
+<div style="opacity:0.7;">Destination Zone</div>
+<div style="font-size:36px;font-weight:800;" id="destinationZone">-</div>
 </div>
 
-
-
-    <div class="card">
-        <div>Destination Zone</div>
-        <div class="big" id="destinationZone">-</div>
-    </div>
-
-    <div class="card">
-        <div>Total Fare</div>
-        <div class="big" id="fare">$ -</div>
-        <div class="small" id="fareBreakdown"></div>
-    </div>
+<div class="card">
+<div style="opacity:0.7;">Total Fare</div>
+<div style="font-size:42px;font-weight:800;" id="fare">$ -</div>
+<div id="fareBreakdown"></div>
+</div>
 
 </div>
 
 <div id="map"></div>
+
+<div class="sticky-bar">
+<button class="primary" onclick="calculateFare()">Calculate</button>
+<button class="secondary" onclick="openWaze()">Waze</button>
+<button class="secondary" onclick="openGoogleMaps()">Maps</button>
+</div>
+
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/togeojson/0.16.0/togeojson.min.js"></script>
@@ -410,17 +635,46 @@ fetch('places.json')
 
 
 
-function setDestination(placeName) {
 
-    const input = document.getElementById('destination');
+function changeValue(id, delta){
 
-    input.value = placeName;
+const input = document.getElementById(id);
+const display = document.getElementById(id + 'Value');
 
-    lastDestinationAddress = placeName;
+let current = parseInt(input.value || 0);
+
+const limits = {
+passengers:[1,6],
+dogs:[0,3],
+bikes:[0,3],
+bags:[0,4]
+};
+
+const min = limits[id][0];
+const max = limits[id][1];
+
+current += delta;
+
+if(current < min) current = min;
+if(current > max) current = max;
+
+input.value = current;
+
+if(id === 'passengers'){
+display.innerText = current;
+}else{
+display.innerText = current;
+}
 }
 
 
+function setDestination(placeName) {
+    document.getElementById('destination').value = placeName;
+    lastDestinationAddress = placeName;
+}
+
 function openGoogleMaps() {
+
 
     if (!lastDestinationAddress) {
         alert("Calculate fare first");
@@ -638,17 +892,18 @@ async function calculateFare() {
         `$${totalFare}`;
 
     document.getElementById('fareBreakdown').innerHTML =
-        `
-<div class="breakdown-row"><span>Base Fare</span><span>$${baseFare}</span></div>
-<div class="breakdown-row"><span>Passengers</span><span>$${passengerCharge}</span></div>
-<div class="breakdown-row"><span>Dogs</span><span>$${dogCharge}</span></div>
-<div class="breakdown-row"><span>Bikes</span><span>$${bikeCharge}</span></div>
-<div class="breakdown-row"><span>Bags</span><span>$${bagCharge}</span></div>
-<div class="breakdown-row"><span>Night Fee</span><span>$${nightCharge}</span></div>
-<div class="breakdown-row"><span>Dirt Road</span><span>$${dirtCharge}</span></div>
-<hr style="border-color:#333;margin-top:12px;">
-<div class="breakdown-row" style="font-size:20px;font-weight:bold;">
-<span>Total</span><span>$${totalFare}</span>
+`
+<div class="fare-row"><span>Base Fare</span><span>$${baseFare}</span></div>
+<div class="fare-row"><span>Passengers</span><span>$${passengerCharge}</span></div>
+<div class="fare-row"><span>Dogs</span><span>$${dogCharge}</span></div>
+<div class="fare-row"><span>Bikes</span><span>$${bikeCharge}</span></div>
+<div class="fare-row"><span>Bags</span><span>$${bagCharge}</span></div>
+<div class="fare-row"><span>Night Fee</span><span>$${nightCharge}</span></div>
+<div class="fare-row"><span>Dirt Road</span><span>$${dirtCharge}</span></div>
+
+<div class="total-row">
+<span>Total</span>
+<span>$${totalFare}</span>
 </div>
 `;
 
@@ -670,18 +925,9 @@ function initAutocomplete() {
 
     const input = document.getElementById('destination');
 
-    const nantucketBounds = {
-        north: 41.340,
-        south: 41.230,
-        west: -70.240,
-        east: -69.950
-    };
-
     autocomplete = new google.maps.places.Autocomplete(input, {
         types: ['geocode', 'establishment'],
         componentRestrictions: { country: 'us' },
-        bounds: nantucketBounds,
-        strictBounds: true,
         fields: ['geometry', 'name', 'formatted_address']
     });
 
