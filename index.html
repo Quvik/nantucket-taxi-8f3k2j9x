@@ -538,31 +538,40 @@ Quick Favorites
 <div id="ferryTab" style="display:none;padding:14px 14px 130px;">
 
   <!-- Rush indicator -->
-  <div id="rushIndicatorCard" style="background:#17181d;border:1px solid #2a2a2a;border-radius:18px;padding:18px;margin-bottom:12px;">
-    <div style="opacity:.6;font-size:14px;">Статус</div>
-    <div style="font-size:20px;font-weight:800;margin-top:4px;">Загрузка...</div>
+  <div id="rushIndicatorCard" style="background:#17181d;border:1px solid #2a2a2a;border-radius:18px;padding:16px;margin-bottom:10px;">
+    <div style="opacity:.55;font-size:13px;margin-bottom:4px;">Статус</div>
+    <div style="font-size:20px;font-weight:800;">⏳ Открываю расписание...</div>
   </div>
 
-  <!-- Date nav -->
-  <div class="card" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
-    <div>
-      <div style="opacity:.6;font-size:13px;">Расписание на</div>
-      <div style="font-size:20px;font-weight:800;" id="ferryDateLabel">Сегодня</div>
+  <!-- Live refresh button + date nav in one row -->
+  <div style="display:flex;gap:10px;margin-bottom:10px;align-items:stretch;">
+    <button id="refreshFerryBtn" onclick="refreshFerryLive()" style="
+      flex:1;background:linear-gradient(135deg,#0A84FF,#005ecb);
+      color:white;border:none;border-radius:16px;
+      padding:14px;font-size:16px;font-weight:800;
+      display:flex;align-items:center;justify-content:center;gap:8px;">
+      <span id="refreshIcon">🔄</span>
+      <span id="refreshLabel">Live-обновление</span>
+    </button>
+    <div style="display:flex;gap:6px;">
+      <button class="counter-btn" onclick="shiftFerryDay(-1)" style="font-size:20px;width:48px;height:100%;border-radius:14px;">‹</button>
+      <button class="counter-btn" onclick="shiftFerryDay(1)"  style="font-size:20px;width:48px;height:100%;border-radius:14px;">›</button>
     </div>
-    <div style="display:flex;gap:8px;">
-      <button class="counter-btn" onclick="shiftFerryDay(-1)" style="font-size:20px;">‹</button>
-      <button class="counter-btn" onclick="shiftFerryDay(1)"  style="font-size:20px;">›</button>
-    </div>
+  </div>
+
+  <!-- Date + source badge -->
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+    <div style="font-size:18px;font-weight:800;" id="ferryDateLabel">Сегодня</div>
+    <div id="ferrySourceBadge" style="font-size:11px;padding:4px 10px;border-radius:20px;background:#1e1e28;color:#aaa;"></div>
   </div>
 
   <!-- Arrivals list -->
-  <div id="ferryArrivalsContainer"></div>
+  <div id="ferryArrivalsContainer">
+    <div style="text-align:center;padding:40px;opacity:.4;font-size:15px;">Загрузка...</div>
+  </div>
 
-  <!-- Last updated -->
-  <div id="ferryLastUpdated" style="text-align:center;opacity:.45;font-size:13px;margin:10px 0;"></div>
-
-  <!-- Quick links -->
-  <div style="display:flex;gap:10px;margin-top:8px;">
+  <!-- Links -->
+  <div style="display:flex;gap:10px;margin-top:12px;">
     <button class="quick-btn" style="flex:1;" onclick="window.open('https://www.steamshipauthority.com/traveling_today/status','_blank')">🚢 Steamship</button>
     <button class="quick-btn" style="flex:1;" onclick="window.open('https://hylinecruises.com/schedules/','_blank')">🚤 Hy-Line</button>
   </div>
@@ -803,373 +812,434 @@ el.addEventListener('change',autoCalculate);
 });
 
 
-function showTab(tabId, btn){
+// ═══════════════════════════════════════════════════════════════
+//  FERRY ENGINE — Hybrid: Live scrape → fallback to built-in data
+// ═══════════════════════════════════════════════════════════════
 
-document.getElementById('taxiTab').style.display='none';
-document.getElementById('ferryTab').style.display='none';
+// ── Built-in schedule (fallback). Times = ARRIVE Nantucket ──────
+// Source: nantucketferries.com, manually verified from screenshots
+const FERRY_BUILTIN = [
 
-document.getElementById(tabId).style.display='block';
-
-document.querySelectorAll('.tab-btn').forEach(b=>{
-b.classList.remove('active-tab');
-});
-
-btn.classList.add('active-tab');
-
-// Ferry tab hook
-if (tabId === 'ferryTab') {
-  renderFerryTab();
-  startFerryTick();
-} else {
-  stopFerryTick();
-}
-}
-
-
-
-// ─── FERRY SCHEDULE ENGINE ───────────────────────────────────────────────────
-// Arrivals TO Nantucket only. Source: nantucketferries.com (2026 season)
-// Each entry: { time:"H:MM AM/PM", line:"...", from:"...", type:"..." }
-// Seasons keyed by date ranges; engine picks the right season automatically.
-
-const FERRY_SEASONS = [
-
-  // ── May 14 – June 10, 2026 ───────────────────────────────────────────────
+  // MAY 13 – JUNE 10, 2026  (fixed: was 14, now includes 13)
   {
-    label: "May 14 – Jun 10",
-    from: "2026-05-14", to: "2026-06-10",
-    // days: null = every day; [0..6] = Sun=0 … Sat=6
+    from: "2026-05-13", to: "2026-06-10",
+    label: "May 13 – Jun 10",
     arrivals: [
-      // Hy-Line High-Speed (Hyannis→Nantucket, +1h travel)
-      { time:"7:10 AM",  line:"Hy-Line",    from:"Hyannis",     type:"High-Speed" },
-      { time:"9:15 AM",  line:"Steamship",  from:"Hyannis",     type:"High-Speed" },
-      { time:"9:30 AM",  line:"Hy-Line",    from:"Hyannis",     type:"High-Speed", days:[5,0], note:"5/15,5/17,5/31,6/7" },
-      { time:"10:30 AM", line:"Hy-Line",    from:"Hyannis",     type:"High-Speed" },
-      // Steamship Traditional (Hyannis→Nantucket, 2h15m)
-      { time:"11:30 AM", line:"Steamship",  from:"Hyannis",     type:"Traditional" },
-      { time:"12:20 PM", line:"Hy-Line",    from:"Hyannis",     type:"High-Speed" },
-      { time:"1:45 PM",  line:"Hy-Line",    from:"Hyannis",     type:"High-Speed" },
-      { time:"2:15 PM",  line:"Steamship",  from:"Hyannis",     type:"Traditional", days:[6,0], note:"Sat & Sun" },
-      { time:"3:00 PM",  line:"Steamship",  from:"Hyannis",     type:"High-Speed" },
-      { time:"3:25 PM",  line:"Hy-Line",    from:"Hyannis",     type:"High-Speed" },
-      { time:"5:00 PM",  line:"Steamship",  from:"Hyannis",     type:"Traditional" },
-      { time:"5:15 PM",  line:"Hy-Line",    from:"Hyannis",     type:"High-Speed" },
-      { time:"6:00 PM",  line:"Steamship",  from:"Hyannis",     type:"High-Speed" },
-      { time:"6:40 PM",  line:"Hy-Line",    from:"Hyannis",     type:"High-Speed" },
-      { time:"7:45 PM",  line:"Steamship",  from:"Hyannis",     type:"Traditional" },
-      { time:"9:00 PM",  line:"Hy-Line",    from:"Hyannis",     type:"High-Speed" },
-      { time:"8:30 PM",  line:"Steamship",  from:"Hyannis",     type:"High-Speed" },
-      // Seastreak (New Bedford→Nantucket)
-      { time:"10:45 AM", line:"Seastreak",  from:"New Bedford",  type:"High-Speed" },
-      { time:"4:00 PM",  line:"Seastreak",  from:"New Bedford",  type:"High-Speed" },
+      // Hyannis High-Speed → Nantucket (+1h travel)
+      { time:"7:10 AM",  line:"Hy-Line",   from:"Hyannis",      type:"High-Speed" },
+      { time:"9:15 AM",  line:"Steamship", from:"Hyannis",      type:"High-Speed" },
+      // *8:30 dep = 9:30 arr, only certain days
+      { time:"9:30 AM",  line:"Hy-Line",   from:"Hyannis",      type:"High-Speed", note:"5/15,5/17,5/31,6/7" },
+      { time:"10:30 AM", line:"Hy-Line",   from:"Hyannis",      type:"High-Speed" },
+      { time:"12:00 PM", line:"Steamship", from:"Hyannis",      type:"High-Speed" },
+      { time:"12:20 PM", line:"Hy-Line",   from:"Hyannis",      type:"High-Speed" },
+      { time:"1:45 PM",  line:"Hy-Line",   from:"Hyannis",      type:"High-Speed" },
+      { time:"3:00 PM",  line:"Steamship", from:"Hyannis",      type:"High-Speed" },
+      { time:"3:25 PM",  line:"Hy-Line",   from:"Hyannis",      type:"High-Speed" },
+      { time:"5:15 PM",  line:"Hy-Line",   from:"Hyannis",      type:"High-Speed" },
+      { time:"6:00 PM",  line:"Steamship", from:"Hyannis",      type:"High-Speed" },
+      { time:"6:40 PM",  line:"Hy-Line",   from:"Hyannis",      type:"High-Speed" },
+      { time:"8:30 PM",  line:"Steamship", from:"Hyannis",      type:"High-Speed" },
+      { time:"9:00 PM",  line:"Hy-Line",   from:"Hyannis",      type:"High-Speed" },
+      // Hyannis Traditional → Nantucket (+2h15m), Sat & Sun only
+      { time:"8:45 AM",  line:"Steamship", from:"Hyannis",      type:"Traditional", days:[0,6] },
+      { time:"11:30 AM", line:"Steamship", from:"Hyannis",      type:"Traditional", days:[0,6] },
+      { time:"2:15 PM",  line:"Steamship", from:"Hyannis",      type:"Traditional", days:[0,6] },
+      { time:"5:00 PM",  line:"Steamship", from:"Hyannis",      type:"Traditional", days:[0,6] },
+      { time:"7:45 PM",  line:"Steamship", from:"Hyannis",      type:"Traditional", days:[0,6] },
+      { time:"10:15 PM", line:"Steamship", from:"Hyannis",      type:"Traditional", days:[0,6] },
+      // Seastreak New Bedford
+      { time:"10:45 AM", line:"Seastreak", from:"New Bedford",  type:"High-Speed" },
+      { time:"4:00 PM",  line:"Seastreak", from:"New Bedford",  type:"High-Speed" },
     ]
   },
 
-  // ── June 11 – September 7, 2026 (peak season) ───────────────────────────
+  // JUNE 11 – SEPT 7, 2026 (peak)
   {
-    label: "Jun 11 – Sep 7 (Peak)",
     from: "2026-06-11", to: "2026-09-07",
+    label: "Jun 11 – Sep 7",
     arrivals: [
-      { time:"7:10 AM",  line:"Hy-Line",    from:"Hyannis",     type:"High-Speed" },
-      { time:"8:45 AM",  line:"Steamship",  from:"Hyannis",     type:"Traditional", days:[6,0] },
-      { time:"9:15 AM",  line:"Steamship",  from:"Hyannis",     type:"High-Speed" },
-      { time:"9:30 AM",  line:"Hy-Line",    from:"Hyannis",     type:"High-Speed" },
-      { time:"10:15 AM", line:"Hy-Line",    from:"Hyannis",     type:"High-Speed" },
-      { time:"10:45 AM", line:"Seastreak",  from:"New Bedford",  type:"High-Speed" },
-      { time:"11:30 AM", line:"Steamship",  from:"Hyannis",     type:"Traditional" },
-      { time:"12:20 PM", line:"Hy-Line",    from:"Hyannis",     type:"High-Speed" },
-      { time:"1:15 PM",  line:"Hy-Line",    from:"Hyannis",     type:"High-Speed" },
-      { time:"1:30 PM",  line:"Steamship",  from:"Hyannis",     type:"High-Speed" },
-      { time:"1:15 PM",  line:"Hy-Line",    from:"Oak Bluffs",  type:"Fast Ferry" },
-      { time:"2:45 PM",  line:"Steamship",  from:"Hyannis",     type:"Traditional" },
-      { time:"3:25 PM",  line:"Hy-Line",    from:"Hyannis",     type:"High-Speed" },
-      { time:"4:00 PM",  line:"Seastreak",  from:"New Bedford",  type:"High-Speed" },
-      { time:"5:00 PM",  line:"Hy-Line",    from:"Hyannis",     type:"High-Speed" },
-      { time:"5:00 PM",  line:"Steamship",  from:"Hyannis",     type:"Traditional" },
-      { time:"5:00 PM",  line:"Hy-Line",    from:"Oak Bluffs",  type:"Fast Ferry" },
-      { time:"6:00 PM",  line:"Steamship",  from:"Hyannis",     type:"High-Speed" },
-      { time:"6:15 PM",  line:"Hy-Line",    from:"Hyannis",     type:"High-Speed" },
-      { time:"7:45 PM",  line:"Steamship",  from:"Hyannis",     type:"Traditional" },
-      { time:"8:05 PM",  line:"Hy-Line",    from:"Hyannis",     type:"High-Speed" },
-      { time:"8:30 PM",  line:"Steamship",  from:"Hyannis",     type:"High-Speed" },
-      { time:"9:00 PM",  line:"Hy-Line",    from:"Hyannis",     type:"High-Speed" },
-      { time:"10:15 PM", line:"Steamship",  from:"Hyannis",     type:"Traditional" },
-      // Freedom (Harwich Port→Nantucket)
-      { time:"10:10 AM", line:"Freedom",    from:"Harwich Port", type:"Fast Ferry" },
+      { time:"7:10 AM",  line:"Hy-Line",   from:"Hyannis",      type:"High-Speed" },
+      { time:"9:15 AM",  line:"Steamship", from:"Hyannis",      type:"High-Speed" },
+      { time:"9:30 AM",  line:"Hy-Line",   from:"Hyannis",      type:"High-Speed" },
+      { time:"10:15 AM", line:"Hy-Line",   from:"Hyannis",      type:"High-Speed" },
+      { time:"10:10 AM", line:"Freedom",   from:"Harwich Port", type:"Fast Ferry" },
+      { time:"10:45 AM", line:"Seastreak", from:"New Bedford",  type:"High-Speed" },
+      { time:"11:30 AM", line:"Steamship", from:"Hyannis",      type:"Traditional" },
+      { time:"10:15 AM", line:"Hy-Line",   from:"Oak Bluffs",   type:"Fast Ferry" },
+      { time:"12:20 PM", line:"Hy-Line",   from:"Hyannis",      type:"High-Speed" },
+      { time:"1:30 PM",  line:"Steamship", from:"Hyannis",      type:"High-Speed" },
+      { time:"1:45 PM",  line:"Hy-Line",   from:"Hyannis",      type:"High-Speed" },
+      { time:"2:45 PM",  line:"Steamship", from:"Hyannis",      type:"Traditional" },
+      { time:"3:25 PM",  line:"Hy-Line",   from:"Hyannis",      type:"High-Speed" },
+      { time:"4:00 PM",  line:"Seastreak", from:"New Bedford",  type:"High-Speed" },
+      { time:"5:00 PM",  line:"Steamship", from:"Hyannis",      type:"High-Speed" },
+      { time:"5:15 PM",  line:"Hy-Line",   from:"Hyannis",      type:"High-Speed" },
+      { time:"5:00 PM",  line:"Hy-Line",   from:"Oak Bluffs",   type:"Fast Ferry" },
+      { time:"6:00 PM",  line:"Steamship", from:"Hyannis",      type:"High-Speed" },
+      { time:"6:40 PM",  line:"Hy-Line",   from:"Hyannis",      type:"High-Speed" },
+      { time:"7:45 PM",  line:"Steamship", from:"Hyannis",      type:"Traditional" },
+      { time:"8:05 PM",  line:"Hy-Line",   from:"Hyannis",      type:"High-Speed" },
+      { time:"8:30 PM",  line:"Steamship", from:"Hyannis",      type:"High-Speed" },
+      { time:"9:00 PM",  line:"Hy-Line",   from:"Hyannis",      type:"High-Speed" },
+      { time:"10:15 PM", line:"Steamship", from:"Hyannis",      type:"Traditional" },
     ]
   },
 
-  // ── September 8 – October 2026 ──────────────────────────────────────────
+  // SEPT 8 – OCT 31, 2026
   {
-    label: "Sep 8 – Oct (Fall)",
     from: "2026-09-08", to: "2026-10-31",
+    label: "Sep 8 – Oct 31",
     arrivals: [
-      { time:"7:10 AM",  line:"Hy-Line",    from:"Hyannis",     type:"High-Speed" },
-      { time:"9:15 AM",  line:"Steamship",  from:"Hyannis",     type:"High-Speed" },
-      { time:"9:30 AM",  line:"Hy-Line",    from:"Hyannis",     type:"High-Speed" },
-      { time:"11:00 AM", line:"Steamship",  from:"Hyannis",     type:"High-Speed" },
-      { time:"12:20 PM", line:"Hy-Line",    from:"Hyannis",     type:"High-Speed" },
-      { time:"12:45 PM", line:"Hy-Line",    from:"Hyannis",     type:"High-Speed" },
-      { time:"3:00 PM",  line:"Steamship",  from:"Hyannis",     type:"High-Speed" },
-      { time:"3:25 PM",  line:"Hy-Line",    from:"Hyannis",     type:"High-Speed" },
-      { time:"5:15 PM",  line:"Hy-Line",    from:"Hyannis",     type:"High-Speed" },
-      { time:"5:45 PM",  line:"Steamship",  from:"Hyannis",     type:"High-Speed" },
-      { time:"6:40 PM",  line:"Hy-Line",    from:"Hyannis",     type:"High-Speed" },
-      { time:"8:30 PM",  line:"Steamship",  from:"Hyannis",     type:"High-Speed" },
-      { time:"9:00 PM",  line:"Hy-Line",    from:"Hyannis",     type:"High-Speed" },
+      { time:"7:10 AM",  line:"Hy-Line",   from:"Hyannis",      type:"High-Speed" },
+      { time:"9:15 AM",  line:"Steamship", from:"Hyannis",      type:"High-Speed" },
+      { time:"9:30 AM",  line:"Hy-Line",   from:"Hyannis",      type:"High-Speed" },
+      { time:"12:00 PM", line:"Steamship", from:"Hyannis",      type:"High-Speed" },
+      { time:"12:20 PM", line:"Hy-Line",   from:"Hyannis",      type:"High-Speed" },
+      { time:"1:45 PM",  line:"Hy-Line",   from:"Hyannis",      type:"High-Speed" },
+      { time:"3:00 PM",  line:"Steamship", from:"Hyannis",      type:"High-Speed" },
+      { time:"3:25 PM",  line:"Hy-Line",   from:"Hyannis",      type:"High-Speed" },
+      { time:"5:15 PM",  line:"Hy-Line",   from:"Hyannis",      type:"High-Speed" },
+      { time:"6:00 PM",  line:"Steamship", from:"Hyannis",      type:"High-Speed" },
+      { time:"6:40 PM",  line:"Hy-Line",   from:"Hyannis",      type:"High-Speed" },
+      { time:"8:30 PM",  line:"Steamship", from:"Hyannis",      type:"High-Speed" },
+      { time:"9:00 PM",  line:"Hy-Line",   from:"Hyannis",      type:"High-Speed" },
     ]
   }
-
 ];
 
-// ─── State ────────────────────────────────────────────────────────────────────
+// ── State ──────────────────────────────────────────────────────
 let ferryDayOffset   = 0;
-let ferryCountdownId = null;
+let ferryTickId      = null;
+let ferryLiveCache   = {}; // date-key → parsed arrivals from live scrape
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-function ferryTargetDate(offset) {
+// ── Helpers ───────────────────────────────────────────────────
+function ferryTargetDate(off) {
   const d = new Date();
-  d.setDate(d.getDate() + (offset || 0));
+  d.setDate(d.getDate() + (off||0));
   return d;
 }
-
-function dateKey(d) {
-  // "YYYY-MM-DD"
-  return d.toISOString().slice(0, 10);
+function dateKey(d) { return d.toISOString().slice(0,10); }
+function ferryLabel(d) {
+  const diff = Math.round((new Date(dateKey(d)) - new Date(dateKey(new Date()))) / 86400000);
+  if (diff===0) return 'Сегодня';
+  if (diff===1) return 'Завтра';
+  if (diff===-1) return 'Вчера';
+  return d.toLocaleDateString('ru-RU',{weekday:'short',day:'numeric',month:'short'});
 }
-
-function ferryDateLabel(d) {
-  const t = new Date(); t.setHours(0,0,0,0);
-  const dd = new Date(d); dd.setHours(0,0,0,0);
-  const diff = Math.round((dd - t) / 86400000);
-  if (diff === 0) return 'Сегодня';
-  if (diff === 1) return 'Завтра';
-  if (diff === -1) return 'Вчера';
-  return d.toLocaleDateString('ru-RU', { weekday:'short', day:'numeric', month:'short' });
+function parseFT(timeStr, base) {
+  const [t,mod] = timeStr.trim().split(' ');
+  let [h,m] = t.split(':').map(Number);
+  if (mod==='PM'&&h!==12) h+=12;
+  if (mod==='AM'&&h===12) h=0;
+  const d = new Date(base); d.setHours(h,m,0,0); return d;
 }
-
-function getSeason(d) {
-  const key = dateKey(d);
-  return FERRY_SEASONS.find(s => key >= s.from && key <= s.to) || null;
+function fmtCD(ms) {
+  if (ms<=0) return 'Прибыл';
+  const m=Math.floor(ms/60000), h=Math.floor(m/60);
+  return h>0 ? `${h}ч ${m%60}м` : `${m} мин`;
 }
+function lineEmoji(l){ return l.includes('Steam')?'🚢':l.includes('Hy')?'🚤':l.includes('Sea')?'⛴':l.includes('Free')?'🛥':'⛵'; }
+function lineClr(l){ return l.includes('Steam')?'#0A84FF':l.includes('Hy')?'30d158':l.includes('Sea')?'#ff9f0a':l.includes('Free')?'#bf5af2':'#aaa'; }
+function lineColor(l){ return l.includes('Steam')?'#0A84FF':l.includes('Hy')?'#30d158':l.includes('Sea')?'#ff9f0a':l.includes('Free')?'#bf5af2':'#aaa'; }
 
-function parseFerryTime(timeStr, baseDate) {
-  const [t, mod] = timeStr.trim().split(' ');
-  let [h, m] = t.split(':').map(Number);
-  if (mod === 'PM' && h !== 12) h += 12;
-  if (mod === 'AM' && h === 12) h = 0;
-  const d = new Date(baseDate);
-  d.setHours(h, m, 0, 0);
-  return d;
-}
-
-function fmtCountdown(ms) {
-  if (ms <= 0) return 'Прибыл';
-  const mins = Math.floor(ms / 60000);
-  const h = Math.floor(mins / 60), m = mins % 60;
-  if (h > 0) return `${h}ч ${m}м`;
-  return `${m} мин`;
-}
-
-function lineEmoji(line) {
-  if (line.includes('Steam'))   return '🚢';
-  if (line.includes('Hy'))      return '🚤';
-  if (line.includes('Sea'))     return '⛴';
-  if (line.includes('Free'))    return '🛥';
-  return '⛵';
-}
-function lineColor(line) {
-  if (line.includes('Steam'))   return '#0A84FF';
-  if (line.includes('Hy'))      return '#30d158';
-  if (line.includes('Sea'))     return '#ff9f0a';
-  if (line.includes('Free'))    return '#bf5af2';
-  return '#aaa';
-}
-
-// ─── Build arrival list for a given date ──────────────────────────────────────
-function buildArrivals(targetDate) {
-  const season = getSeason(targetDate);
+// ── Get built-in arrivals for date ────────────────────────────
+function builtinArrivals(targetDate) {
+  const key = dateKey(targetDate);
+  const season = FERRY_BUILTIN.find(s => key >= s.from && key <= s.to);
   if (!season) return null;
-
-  const dow = targetDate.getDay(); // 0=Sun … 6=Sat
-
+  const dow = targetDate.getDay();
   return season.arrivals
     .filter(a => !a.days || a.days.includes(dow))
-    .map(a => ({ ...a, dateObj: parseFerryTime(a.time, targetDate) }))
-    .sort((a, b) => a.dateObj - b.dateObj);
+    .map(a => ({...a, dateObj: parseFT(a.time, targetDate), source:'builtin'}))
+    .sort((a,b)=>a.dateObj-b.dateObj);
 }
 
-// ─── Render ───────────────────────────────────────────────────────────────────
-function renderFerryTab() {
+// ── LIVE SCRAPE via CORS proxy ─────────────────────────────────
+// Tries multiple free proxies in order
+const PROXIES = [
+  url => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+  url => `https://corsproxy.io/?${encodeURIComponent(url)}`,
+  url => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`,
+];
+
+async function scrapeLive() {
+  const target = 'https://www.nantucketferries.com';
+  let html = null;
+
+  for (const makeUrl of PROXIES) {
+    try {
+      const r = await fetch(makeUrl(target), {signal: AbortSignal.timeout(8000)});
+      if (r.ok) { html = await r.text(); break; }
+    } catch(e) { /* try next */ }
+  }
+
+  if (!html) return null;
+
+  // Parse "Depart X - Arrive Nantucket" lines from page text
+  // Pattern: "H:MM a.m./p.m. - H:MM a.m./p.m. (LineName)"
+  // We want the ARRIVE time (second time) for routes TO Nantucket
+  const arrivals = [];
+
+  // Split into sections by port
+  const sections = html.split(/FROM\s+(?:HYANNIS|NEW BEDFORD|HARWICH|MARTHA)/gi);
+
+  // Regex: grab lines with depart→arrive times
+  // "Hyannis to Nantucket" sections — Depart Hyannis-Arrive Nantucket
+  const lineRx = /(\d{1,2}:\d{2}\s*[ap]\.m\.)[\s\S]{1,6}?(\d{1,2}:\d{2}\s*[ap]\.m\.)\s*\(([^)]+)\)/gi;
+
+  // Extract all "arrive Nantucket" times from raw page
+  // The page lists: "Depart X - Arrive Nantucket" with the section header
+  // We'll do a simpler targeted regex on the raw HTML text
+
+  const clean = html.replace(/<[^>]+>/g,' ').replace(/&[a-z]+;/gi,' ');
+
+  // Find "Hyannis to Nantucket" block, then grab times
+  const hyToNan = clean.match(/Hyannis to Nantucket[\s\S]{0,4000}?(?=Nantucket to Hyannis)/i);
+  const nbToNan = clean.match(/New Bedford to Nantucket[\s\S]{0,2000}?(?=Nantucket to New|FROM)/i);
+  const hwToNan = clean.match(/Harwich[\s\S]{0,1000}?(?=Nantucket to Harwich|FROM)/i);
+  const mvToNan = clean.match(/(?:Oak Bluffs|MVY) to Nantucket[\s\S]{0,2000}?(?=Nantucket to|FROM)/i);
+
+  function extractArrivals(block, lineName, fromPort, ferryType) {
+    if (!block) return;
+    // Match "6:10 a.m. - 7:10 a.m. (Hy-Line)" → take second time
+    const rx = /(\d{1,2}:\d{2}\s*[ap]\.m\.)\s*[-–]\s*(\d{1,2}:\d{2}\s*[ap]\.m\.)\s*\(([^)]+)\)/gi;
+    let m;
+    while ((m=rx.exec(block[0]))!==null) {
+      const arriveStr = m[2].replace(/\./g,'').replace(/\s+/g,' ').trim();
+      const lineParsed = m[3].trim();
+      // convert "7:10 a m" → "7:10 AM"
+      const t = arriveStr.replace(/a m$/i,'AM').replace(/p m$/i,'PM');
+      arrivals.push({
+        time: fmtTime(t),
+        line: lineParsed,
+        from: fromPort,
+        type: ferryType,
+        source:'live'
+      });
+    }
+  }
+
+  function fmtTime(raw) {
+    // "7:10 AM" or "7:10 a m" → "7:10 AM"
+    return raw.replace(/a\.?m\.?/i,'AM').replace(/p\.?m\.?/i,'PM').replace(/\s+/g,' ').trim();
+  }
+
+  // Parse each direction block
+  if (hyToNan) extractArrivals(hyToNan, 'Hy-Line/Steamship', 'Hyannis', 'High-Speed');
+  if (nbToNan) extractArrivals(nbToNan, 'Seastreak',         'New Bedford', 'High-Speed');
+  if (hwToNan) extractArrivals(hwToNan, 'Freedom',           'Harwich Port', 'Fast Ferry');
+  if (mvToNan) extractArrivals(mvToNan, 'Hy-Line',           'Oak Bluffs', 'Fast Ferry');
+
+  return arrivals.length > 0 ? arrivals : null;
+}
+
+// ── Live refresh (button) ──────────────────────────────────────
+async function refreshFerryLive() {
+  const btn   = document.getElementById('refreshFerryBtn');
+  const icon  = document.getElementById('refreshIcon');
+  const label = document.getElementById('refreshLabel');
+
+  icon.innerText  = '⏳';
+  label.innerText = 'Подключаюсь...';
+  btn.disabled = true;
+
+  try {
+    const raw = await scrapeLive();
+    if (raw && raw.length > 0) {
+      // Attach real dateObjs for today (live data is always today's season)
+      const targetDate = ferryTargetDate(ferryDayOffset);
+      const withDates = raw.map(a => ({
+        ...a,
+        dateObj: parseFT(a.time, targetDate)
+      })).sort((a,b)=>a.dateObj-b.dateObj);
+
+      ferryLiveCache[dateKey(targetDate)] = withDates;
+      renderFerryTab('live');
+
+      icon.innerText  = '✅';
+      label.innerText = 'Обновлено live!';
+      setTimeout(()=>{ icon.innerText='🔄'; label.innerText='Live-обновление'; }, 3000);
+    } else {
+      icon.innerText  = '📋';
+      label.innerText = 'Встроенные данные';
+      setTimeout(()=>{ icon.innerText='🔄'; label.innerText='Live-обновление'; }, 3000);
+    }
+  } catch(e) {
+    icon.innerText  = '⚠️';
+    label.innerText = 'Нет связи';
+    setTimeout(()=>{ icon.innerText='🔄'; label.innerText='Live-обновление'; }, 3000);
+  }
+  btn.disabled = false;
+}
+
+// ── Render ─────────────────────────────────────────────────────
+function renderFerryTab(forceSource) {
   const targetDate = ferryTargetDate(ferryDayOffset);
-  document.getElementById('ferryDateLabel').innerText = ferryDateLabel(targetDate);
+  document.getElementById('ferryDateLabel').innerText = ferryLabel(targetDate);
 
-  const arrivals = buildArrivals(targetDate);
+  const key = dateKey(targetDate);
+  let arrivals = null;
+  let source = 'builtin';
 
-  if (!arrivals) {
+  if (ferryLiveCache[key] && !forceSource) {
+    arrivals = ferryLiveCache[key]; source = 'live';
+  } else if (forceSource === 'live' && ferryLiveCache[key]) {
+    arrivals = ferryLiveCache[key]; source = 'live';
+  } else {
+    arrivals = builtinArrivals(targetDate); source = 'builtin';
+  }
+
+  // Badge
+  const badge = document.getElementById('ferrySourceBadge');
+  if (source==='live') {
+    badge.style.background='#0a2a0a'; badge.style.color='#30d158';
+    badge.innerText='🟢 Live данные';
+  } else {
+    badge.style.background='#1e1e28'; badge.style.color='#aaa';
+    badge.innerText='📋 Встроенные';
+  }
+
+  if (!arrivals || arrivals.length===0) {
     document.getElementById('ferryArrivalsContainer').innerHTML =
-      `<div class="card" style="text-align:center;padding:28px;opacity:.6;">
-         Нет данных для этой даты.<br>Проверь <a href="https://www.nantucketferries.com" target="_blank" style="color:#0A84FF;">nantucketferries.com</a>
+      `<div style="text-align:center;padding:32px;opacity:.5;font-size:15px;">
+         Нет данных для этой даты.<br>
+         <a href="https://www.nantucketferries.com" target="_blank" style="color:#0A84FF;">nantucketferries.com</a>
        </div>`;
     document.getElementById('rushIndicatorCard').innerHTML =
-      `<div style="opacity:.6;font-size:14px;">Статус</div>
+      `<div style="opacity:.5;font-size:13px;">Статус</div>
        <div style="font-size:18px;font-weight:800;margin-top:4px;">📅 Нет расписания</div>`;
     return;
   }
 
   const now = new Date();
-  const upcoming = arrivals.filter(a => a.dateObj > now);
-  const past     = arrivals.filter(a => a.dateObj <= now);
+  const upcoming = arrivals.filter(a=>a.dateObj>now);
+  const past     = arrivals.filter(a=>a.dateObj<=now);
 
-  // Rush indicator
-  renderRush(upcoming, now);
+  renderRushCard(upcoming, now);
 
-  // Cards
   let html = '';
 
-  const season = getSeason(targetDate);
-  if (season) {
-    html += `<div style="font-size:12px;color:#0A84FF;font-weight:700;letter-spacing:.5px;margin-bottom:8px;opacity:.8;">
-               📋 СЕЗОН: ${season.label}
-             </div>`;
+  if (upcoming.length===0 && past.length===0) {
+    html = `<div style="text-align:center;padding:24px;opacity:.5;">Нет паромов</div>`;
   }
 
-  if (upcoming.length === 0 && past.length === 0) {
-    html += `<div class="card" style="text-align:center;padding:24px;opacity:.6;">Паромов нет</div>`;
-  }
-
-  // — Upcoming ————
   if (upcoming.length > 0) {
-    html += `<div style="font-size:12px;font-weight:700;opacity:.45;margin-bottom:8px;letter-spacing:1px;">СЛЕДУЮЩИЕ</div>`;
-    upcoming.forEach((a, i) => {
-      const isNext = i === 0;
-      const minsLeft = Math.floor((a.dateObj - now) / 60000);
-      const urgent = minsLeft <= 20;
+    html += `<div style="font-size:11px;font-weight:700;opacity:.4;letter-spacing:1px;margin-bottom:8px;">СЛЕДУЮЩИЕ ПРИБЫТИЯ</div>`;
+    upcoming.forEach((a,i)=>{
+      const isNext = i===0;
+      const minsLeft = Math.floor((a.dateObj-now)/60000);
+      const hot = minsLeft<=20;
       html += `
-      <div class="ferry-row-card" data-iso="${a.dateObj.toISOString()}" style="
-        background:${isNext ? (urgent ? '#2a1200' : '#12201a') : '#17181c'};
-        border:1px solid ${isNext ? (urgent ? '#ff9f0a' : '#30d158') : '#2a2a2a'};
-        border-radius:16px; padding:14px 16px; margin-bottom:10px;
-        display:flex; align-items:center; justify-content:space-between;
-      ">
-        <div style="display:flex;align-items:center;gap:12px;">
-          <div style="font-size:26px;">${lineEmoji(a.line)}</div>
+      <div class="fa-row" data-iso="${a.dateObj.toISOString()}" style="
+        background:${isNext?(hot?'#2a1200':'#0f1f14'):'#17181c'};
+        border:1px solid ${isNext?(hot?'#ff9f0a':'#30d158'):'#252528'};
+        border-radius:15px;padding:13px 15px;margin-bottom:9px;
+        display:flex;align-items:center;justify-content:space-between;">
+        <div style="display:flex;align-items:center;gap:11px;">
+          <div style="font-size:24px;">${lineEmoji(a.line)}</div>
           <div>
-            <div style="font-size:19px;font-weight:800;">${a.time}</div>
+            <div style="font-size:18px;font-weight:800;">${a.time}</div>
             <div style="font-size:13px;color:${lineColor(a.line)};font-weight:600;">${a.line}</div>
-            <div style="font-size:12px;opacity:.55;">из ${a.from} · ${a.type}</div>
+            <div style="font-size:11px;opacity:.5;">из ${a.from} · ${a.type}${a.note?` · ${a.note}`:''}</div>
           </div>
         </div>
-        <div style="text-align:right;">
-          <div class="cd-val" style="font-size:16px;font-weight:800;color:${urgent && isNext ? '#ff9f0a' : 'white'};">
-            ${fmtCountdown(a.dateObj - now)}
-          </div>
-          ${isNext ? `<div style="font-size:10px;color:${urgent ? '#ff9f0a' : '#30d158'};font-weight:800;margin-top:3px;">
-            ${urgent ? '⚡ СКОРО!' : '▶ СЛЕДУЮЩИЙ'}
-          </div>` : ''}
+        <div style="text-align:right;min-width:60px;">
+          <div class="cd-val" style="font-size:15px;font-weight:800;color:${hot&&isNext?'#ff9f0a':'white'};">${fmtCD(a.dateObj-now)}</div>
+          ${isNext?`<div style="font-size:10px;font-weight:800;color:${hot?'#ff9f0a':'#30d158'};margin-top:3px;">${hot?'⚡СКОРО':'▶ NEXT'}</div>`:''}
         </div>
       </div>`;
     });
   }
 
-  // — Past ————
   if (past.length > 0) {
-    html += `<div style="font-size:12px;font-weight:700;opacity:.35;margin:14px 0 8px;letter-spacing:1px;">УЖЕ ПРИБЫЛИ</div>`;
-    past.slice().reverse().forEach(a => {
+    html += `<div style="font-size:11px;font-weight:700;opacity:.3;letter-spacing:1px;margin:14px 0 8px;">УЖЕ ПРИБЫЛИ</div>`;
+    past.slice().reverse().forEach(a=>{
       html += `
-      <div style="
-        background:#111; border:1px solid #1e1e1e; border-radius:14px;
-        padding:11px 14px; margin-bottom:8px; opacity:.4;
-        display:flex; align-items:center; justify-content:space-between;
-      ">
-        <div style="display:flex;align-items:center;gap:10px;">
-          <div style="font-size:20px;">${lineEmoji(a.line)}</div>
+      <div style="background:#111;border:1px solid #1e1e1e;border-radius:13px;
+        padding:10px 14px;margin-bottom:7px;opacity:.35;
+        display:flex;align-items:center;justify-content:space-between;">
+        <div style="display:flex;align-items:center;gap:9px;">
+          <div style="font-size:18px;">${lineEmoji(a.line)}</div>
           <div>
-            <div style="font-size:16px;font-weight:700;text-decoration:line-through;">${a.time}</div>
-            <div style="font-size:12px;color:${lineColor(a.line)};">${a.line} · из ${a.from}</div>
+            <div style="font-size:15px;font-weight:700;text-decoration:line-through;">${a.time}</div>
+            <div style="font-size:11px;color:${lineColor(a.line)};">${a.line} · из ${a.from}</div>
           </div>
         </div>
-        <div style="font-size:12px;">✓</div>
+        <div style="font-size:12px;opacity:.6;">✓</div>
       </div>`;
     });
   }
 
   document.getElementById('ferryArrivalsContainer').innerHTML = html;
-
-  // Last updated
-  document.getElementById('ferryLastUpdated').innerText =
-    `Данные: nantucketferries.com · ${new Date().toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'})}`;
 }
 
-function renderRush(upcoming, now) {
+function renderRushCard(upcoming, now) {
   const card = document.getElementById('rushIndicatorCard');
-  if (!upcoming || upcoming.length === 0) {
-    card.innerHTML = `<div style="opacity:.5;font-size:14px;">Статус</div>
-      <div style="font-size:20px;font-weight:800;margin-top:4px;">🌙 Больше паромов нет</div>`;
+  if (!upcoming||upcoming.length===0) {
+    card.innerHTML=`<div style="opacity:.5;font-size:13px;">Статус</div><div style="font-size:20px;font-weight:800;margin-top:4px;">🌙 Паромов больше нет</div>`;
     return;
   }
-  const next = upcoming[0];
-  const mins = Math.floor((next.dateObj - now) / 60000);
-  let icon, color, msg, sub;
-  if (mins <= 20) {
-    icon='🚨'; color='#ff453a';
-    msg=`Паром через ${mins} мин!`;
-    sub=`${lineEmoji(next.line)} ${next.line} · ${next.time} из ${next.from}`;
-  } else if (mins <= 45) {
-    icon='⚠️'; color='#ffd60a';
-    msg=`Паром через ${Math.floor(mins/60)?Math.floor(mins/60)+'ч ':''} ${mins%60}мин`;
-    sub=`${lineEmoji(next.line)} ${next.line} · ${next.time} из ${next.from}`;
-  } else {
-    icon='🟢'; color='#30d158';
-    const h=Math.floor(mins/60), m=mins%60;
-    msg=`Спокойно · ${h?h+'ч ':''}${m}м до парома`;
-    sub=`${lineEmoji(next.line)} ${next.line} прибудет в ${next.time}`;
-  }
-  card.innerHTML = `
-    <div style="opacity:.6;font-size:13px;">Статус</div>
+  const next=upcoming[0], mins=Math.floor((next.dateObj-now)/60000);
+  let icon,color,msg,sub;
+  if (mins<=20)      { icon='🚨';color='#ff453a'; msg=`Паром через ${mins} мин!`;  sub=`${lineEmoji(next.line)} ${next.line} · ${next.time} из ${next.from}`; }
+  else if (mins<=45) { icon='⚠️';color='#ffd60a'; msg=`Паром через ${Math.floor(mins/60)?Math.floor(mins/60)+'ч ':''}${mins%60}мин`; sub=`${lineEmoji(next.line)} ${next.line} · ${next.time}`; }
+  else               { icon='🟢';color='#30d158'; const h=Math.floor(mins/60),m=mins%60; msg=`Спокойно · ${h?h+'ч ':''}${m}м`; sub=`${lineEmoji(next.line)} ${next.line} прибудет в ${next.time}`; }
+  card.innerHTML=`
+    <div style="opacity:.5;font-size:13px;">Статус</div>
     <div style="font-size:22px;font-weight:900;color:${color};margin-top:4px;">${icon} ${msg}</div>
-    <div style="font-size:14px;opacity:.75;margin-top:6px;">${sub}</div>`;
+    <div style="font-size:13px;opacity:.7;margin-top:5px;">${sub}</div>`;
 }
 
-// ─── Countdown tick (every 30s) ───────────────────────────────────────────────
+// ── Countdown tick ─────────────────────────────────────────────
 function startFerryTick() {
   stopFerryTick();
-  ferryCountdownId = setInterval(() => {
-    // Update countdown values in-place
+  ferryTickId = setInterval(()=>{
     const now = new Date();
-    document.querySelectorAll('.ferry-row-card').forEach(row => {
-      const iso = row.getAttribute('data-iso');
-      if (!iso) return;
-      const d = new Date(iso);
-      const ms = d - now;
-      const cdEl = row.querySelector('.cd-val');
-      if (cdEl) cdEl.innerText = fmtCountdown(ms);
-      // Move to past if expired
-      if (ms <= 0) renderFerryTab();
+    // Update countdown values in place
+    document.querySelectorAll('.fa-row').forEach(row=>{
+      const d=new Date(row.getAttribute('data-iso'));
+      const cdEl=row.querySelector('.cd-val');
+      if(cdEl) cdEl.innerText=fmtCD(d-now);
+      if(d<=now) renderFerryTab(); // re-render when one expires
     });
-    // Re-render rush indicator
-    const targetDate = ferryTargetDate(ferryDayOffset);
-    const arrivals = buildArrivals(targetDate);
-    if (arrivals) {
-      const upcoming = arrivals.filter(a => a.dateObj > now);
-      renderRush(upcoming, now);
-    }
+    // Update rush card
+    const targetDate=ferryTargetDate(ferryDayOffset);
+    const key=dateKey(targetDate);
+    const arr=ferryLiveCache[key]||builtinArrivals(targetDate)||[];
+    renderRushCard(arr.filter(a=>a.dateObj>now), now);
   }, 30000);
 }
-function stopFerryTick() {
-  if (ferryCountdownId) clearInterval(ferryCountdownId);
-  ferryCountdownId = null;
-}
+function stopFerryTick() { if(ferryTickId) clearInterval(ferryTickId); ferryTickId=null; }
 
-// ─── Day navigation ──────────────────────────────────────────────────────────
-function shiftFerryDay(delta) {
-  ferryDayOffset = Math.max(0, ferryDayOffset + delta);
+// ── Day nav ────────────────────────────────────────────────────
+function shiftFerryDay(d) {
+  ferryDayOffset=Math.max(0,ferryDayOffset+d);
   renderFerryTab();
 }
 
-// ─── Init on load if ferry tab already visible ────────────────────────────────
-window.addEventListener('load', () => {
-  document.getElementById('ferryDateLabel').innerText = ferryDateLabel(new Date());
+// ── Hook into showTab ──────────────────────────────────────────
+function showTab(tabId, btn){
+  document.getElementById('taxiTab').style.display='none';
+  document.getElementById('ferryTab').style.display='none';
+  document.getElementById(tabId).style.display='block';
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active-tab'));
+  btn.classList.add('active-tab');
+  if (tabId==='ferryTab') { renderFerryTab(); startFerryTick(); }
+  else                    { stopFerryTick(); }
+}
+
+// ── Init ───────────────────────────────────────────────────────
+window.addEventListener('load', async ()=>{
+  document.getElementById('ferryDateLabel').innerText = ferryLabel(new Date());
+  // Try live on first load silently
+  try {
+    const raw = await scrapeLive();
+    if (raw&&raw.length>0) {
+      const targetDate=ferryTargetDate(0);
+      ferryLiveCache[dateKey(targetDate)]=raw.map(a=>({...a,dateObj:parseFT(a.time,targetDate)})).sort((a,b)=>a.dateObj-b.dateObj);
+    }
+  } catch(e){}
 });
 
 
