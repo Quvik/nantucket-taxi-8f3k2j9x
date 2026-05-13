@@ -689,24 +689,27 @@ btn.classList.add('active-tab');
 }
 
 
-const steamshipArrivals = [
-'8:15 AM',
-'10:15 AM',
-'12:45 PM',
-'3:15 PM',
-'5:45 PM',
-'8:15 PM',
-'10:45 PM'
-];
 
-const hylineArrivals = [
-'9:00 AM',
-'11:15 AM',
-'2:15 PM',
-'5:10 PM',
-'7:40 PM',
-'10:00 PM'
-];
+let steamshipArrivals = [];
+let hylineArrivals = [];
+
+async function loadFerrySchedules(){
+
+try{
+
+const response = await fetch('./ferries.json');
+
+const data = await response.json();
+
+steamshipArrivals = data.steamship || [];
+hylineArrivals = data.hyline || [];
+
+}catch(e){
+
+console.log('Unable to load ferries.json');
+}
+}
+
 
 function parseTime(str){
 
@@ -859,7 +862,10 @@ container.innerHTML = `
 `;
 }
 
-window.addEventListener('load',()=>{
+window.addEventListener('load', async ()=>{
+
+await loadFerrySchedules();
+
 
 loadSteamshipArrival();
 loadHylineArrival();
