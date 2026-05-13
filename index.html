@@ -391,7 +391,6 @@ async function calculateFare() {
 
     const address = document.getElementById('destination').value;
     lastDestinationAddress = address;
-    lastDestinationAddress = address;
 
     // LOCAL NANTUCKET DATABASE
     const localMatch = localPlaces.find(p =>
@@ -417,10 +416,55 @@ async function calculateFare() {
 
         if (baseFare) {
 
+            const extraPassengers =
+                Math.max(0, passengers - 1);
+
+            const passengerCharge =
+                extraPassengers * 3;
+
+            const dogs =
+                parseInt(document.getElementById('dogs').value);
+
+            const dogCharge = dogs * 5;
+
+            const bikes =
+                parseInt(document.getElementById('bikes').value);
+
+            const bikeCharge = bikes * 5;
+
+            const bags =
+                parseInt(document.getElementById('bags').value);
+
+            const bagCharge = bags * 2;
+
+            const nightCharge =
+                document.getElementById('nightFee').checked ? 5 : 0;
+
+            const dirtCharge =
+                document.getElementById('dirtRoad').checked ? 5 : 0;
+
+            const totalFare =
+                baseFare +
+                passengerCharge +
+                dogCharge +
+                bikeCharge +
+                bagCharge +
+                nightCharge +
+                dirtCharge;
+
             lastDestinationAddress = address;
 
             document.getElementById('fare').innerText =
                 `$${totalFare}`;
+
+            document.getElementById('fareBreakdown').innerText =
+                `Base: $${baseFare}
+                | Passengers: $${passengerCharge}
+                | Dogs: $${dogCharge}
+                | Bikes: $${bikeCharge}
+                | Bags: $${bagCharge}
+                | Night: $${nightCharge}
+                | Dirt road: $${dirtCharge}`;
 
             return;
         }
