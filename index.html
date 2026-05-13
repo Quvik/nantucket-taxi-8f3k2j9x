@@ -458,49 +458,33 @@ Quick Favorites
 
 </div>
 
+
 <div id="ferryTab" style="display:none;padding:14px;">
 
 <div class="card">
-<div style="font-size:28px;font-weight:800;margin-bottom:8px;">
-Steamship Authority
+
+<div style="font-size:32px;font-weight:800;margin-bottom:20px;">
+⛴ Next Arrivals To Nantucket
 </div>
 
-<div id="steamshipStatus">
-Loading live status...
-</div>
+<div id="steamshipArrivalCard"></div>
+
+<br>
+
+<div id="hylineArrivalCard"></div>
 
 <br>
 
 <button class="quick-btn"
 onclick="window.open('https://www.steamshipauthority.com/traveling_today/status','_blank')">
-Open Steamship Status
+Steamship Status
 </button>
-</div>
 
-<div class="card">
-<div style="font-size:28px;font-weight:800;margin-bottom:8px;">
-Hy-Line Cruises
-</div>
-
-<div id="hylineStatus">
-
-<div class="ferry-row">
-<span>Next Ferry</span>
-<span id="hylineNext">Loading...</span>
-</div>
-
-<div class="ferry-row">
-<span>Status</span>
-<span>Check Website</span>
-</div>
-
-</div>
-
-<br>
+<br><br>
 
 <button class="quick-btn"
 onclick="window.open('https://hylinecruises.com/schedules/','_blank')">
-Open Hy-Line Schedule
+Hy-Line Schedule
 </button>
 
 </div>
@@ -508,6 +492,7 @@ Open Hy-Line Schedule
 </div>
 
 <div id="map"></div>
+
 
 
 <div class="sticky-bar">
@@ -703,11 +688,94 @@ b.classList.remove('active-tab');
 btn.classList.add('active-tab');
 }
 
-// LIVE STEAMSHIP STATUS
-async function loadSteamshipStatus(){
+
+const steamshipArrivals = [
+'8:15 AM',
+'10:15 AM',
+'12:45 PM',
+'3:15 PM',
+'5:45 PM',
+'8:15 PM',
+'10:45 PM'
+];
+
+const hylineArrivals = [
+'9:00 AM',
+'11:15 AM',
+'2:15 PM',
+'5:10 PM',
+'7:40 PM',
+'10:00 PM'
+];
+
+function parseTime(str){
+
+const now = new Date();
+
+const [time,modifier] = str.split(' ');
+
+let [hours,minutes] = time.split(':').map(Number);
+
+if(modifier === 'PM' && hours !== 12) hours += 12;
+if(modifier === 'AM' && hours === 12) hours = 0;
+
+const d = new Date(now);
+
+d.setHours(hours);
+d.setMinutes(minutes);
+d.setSeconds(0);
+
+return d;
+}
+
+function formatCountdown(target){
+
+const now = new Date();
+
+const diff = target - now;
+
+if(diff <= 0) return 'Arriving';
+
+const mins = Math.floor(diff / 60000);
+
+const h = Math.floor(mins / 60);
+const m = mins % 60;
+
+if(h > 0){
+return `${h}h ${m}m`;
+}
+
+return `${m} min`;
+}
+
+function getNextArrival(list){
+
+const now = new Date();
+
+for(const t of list){
+
+const parsed = parseTime(t);
+
+if(parsed > now){
+return {
+time:t,
+date:parsed
+};
+}
+}
+
+return null;
+}
+
+async function loadSteamshipArrival(){
 
 const container =
-document.getElementById('steamshipStatus');
+document.getElementById('steamshipArrivalCard');
+
+const next =
+getNextArrival(steamshipArrivals);
+
+let status = 'On Time';
 
 try{
 
@@ -725,32 +793,28 @@ await fetch(proxy + target);
 const text =
 await response.text();
 
-let status = 'On Time';
-
 if(text.toLowerCase().includes('delayed')){
 status = 'Delayed';
-}
-
-if(text.toLowerCase().includes('cancelled')){
-status = 'Cancelled';
 }
 
 if(text.toLowerCase().includes('boarding')){
 status = 'Boarding';
 }
 
-const now = new Date();
+if(text.toLowerCase().includes('cancelled')){
+status = 'Cancelled';
+}
 
-const nextHour =
-new Date(now.getTime() + 60*60*1000);
+}catch(e){}
 
 container.innerHTML = `
+<div style="font-size:26px;font-weight:800;margin-bottom:10px;">
+🚢 Steamship
+</div>
+
 <div class="ferry-row">
-<span>Next Arrival</span>
-<span>${nextHour.toLocaleTimeString([],{
-hour:'numeric',
-minute:'2-digit'
-})}</span>
+<span>Arrives Nantucket</span>
+<span>${next.time}</span>
 </div>
 
 <div class="ferry-row">
@@ -759,50 +823,52 @@ minute:'2-digit'
 </div>
 
 <div class="ferry-row">
-<span>Updated</span>
-<span>${new Date().toLocaleTimeString([],{
-hour:'numeric',
-minute:'2-digit'
-})}</span>
-</div>
-`;
-
-}catch(e){
-
-container.innerHTML = `
-<div class="ferry-row">
-<span>Status</span>
-<span>Unable to load</span>
+<span>Countdown</span>
+<span>${formatCountdown(next.date)}</span>
 </div>
 `;
 }
-}
 
-// HYLINE SIMPLE TIMER
-function loadHyline(){
+function loadHylineArrival(){
 
-const now = new Date();
+const container =
+document.getElementById('hylineArrivalCard');
 
 const next =
-new Date(now.getTime() + 45*60*1000);
+getNextArrival(hylineArrivals);
 
-document.getElementById('hylineNext')
-.innerText =
-next.toLocaleTimeString([],{
-hour:'numeric',
-minute:'2-digit'
-});
+container.innerHTML = `
+<div style="font-size:26px;font-weight:800;margin-bottom:10px;">
+🚤 Hy-Line
+</div>
+
+<div class="ferry-row">
+<span>Arrives Nantucket</span>
+<span>${next.time}</span>
+</div>
+
+<div class="ferry-row">
+<span>Status</span>
+<span>On Time</span>
+</div>
+
+<div class="ferry-row">
+<span>Countdown</span>
+<span>${formatCountdown(next.date)}</span>
+</div>
+`;
 }
 
 window.addEventListener('load',()=>{
 
-loadSteamshipStatus();
-loadHyline();
+loadSteamshipArrival();
+loadHylineArrival();
 
-setInterval(loadSteamshipStatus,300000);
-setInterval(loadHyline,60000);
+setInterval(loadSteamshipArrival,300000);
+setInterval(loadHylineArrival,60000);
 
 });
+
 
 function changeValue(id, delta){
 
