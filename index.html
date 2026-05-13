@@ -342,6 +342,8 @@ window.addEventListener('load', () => {
 
     destinationInput.addEventListener('input', async function() {
 
+        window.selectedPlace = null;
+
         const query = destinationInput.value;
 
         if (query.length < 2) return;
@@ -389,99 +391,60 @@ window.addEventListener('load', () => {
 
 async function calculateFare() {
 
-    const address = document.getElementById('destination').value;
+    const address = document.getElementById('destination').value.trim();
+
+    if (!address) {
+        alert('Enter destination');
+        return;
+    }
+
     lastDestinationAddress = address;
 
-    // LOCAL NANTUCKET DATABASE
+    const passengers =
+        parseInt(document.getElementById('passengers').value);
+
+    const extraPassengers =
+        Math.max(0, passengers - 1);
+
+    const passengerCharge =
+        extraPassengers * 3;
+
+    const dogs =
+        parseInt(document.getElementById('dogs').value);
+
+    const dogCharge = dogs * 5;
+
+    const bikes =
+        parseInt(document.getElementById('bikes').value);
+
+    const bikeCharge = bikes * 5;
+
+    const bags =
+        parseInt(document.getElementById('bags').value);
+
+    const bagCharge = bags * 2;
+
+    const nightCharge =
+        document.getElementById('nightFee').checked ? 5 : 0;
+
+    const dirtCharge =
+        document.getElementById('dirtRoad').checked ? 5 : 0;
+
+    let destinationZone = null;
+    let lat = null;
+    let lng = null;
+
+    // LOCAL DATABASE FIRST
     const localMatch = localPlaces.find(p =>
-        p.name.toLowerCase().includes(address.toLowerCase()) ||
+        p.name.toLowerCase() === address.toLowerCase() ||
         address.toLowerCase().includes(p.name.toLowerCase())
     );
 
     if (localMatch) {
 
-        const destinationZone = localMatch.zone;
+        destinationZone = localMatch.zone;
 
-        document.getElementById('destinationZone').innerText =
-            destinationZone;
-
-        let baseFare = getFare(currentZoneName, destinationZone);
-
-        if (
-            currentZoneName === 'Town' &&
-            destinationZone === 'Town'
-        ) {
-            baseFare = 14;
-        }
-
-        if (baseFare) {
-
-            const extraPassengers =
-                Math.max(0, passengers - 1);
-
-            const passengerCharge =
-                extraPassengers * 3;
-
-            const dogs =
-                parseInt(document.getElementById('dogs').value);
-
-            const dogCharge = dogs * 5;
-
-            const bikes =
-                parseInt(document.getElementById('bikes').value);
-
-            const bikeCharge = bikes * 5;
-
-            const bags =
-                parseInt(document.getElementById('bags').value);
-
-            const bagCharge = bags * 2;
-
-            const nightCharge =
-                document.getElementById('nightFee').checked ? 5 : 0;
-
-            const dirtCharge =
-                document.getElementById('dirtRoad').checked ? 5 : 0;
-
-            const totalFare =
-                baseFare +
-                passengerCharge +
-                dogCharge +
-                bikeCharge +
-                bagCharge +
-                nightCharge +
-                dirtCharge;
-
-            lastDestinationAddress = address;
-
-            document.getElementById('fare').innerText =
-                `$${totalFare}`;
-
-            document.getElementById('fareBreakdown').innerText =
-                `Base: $${baseFare}
-                | Passengers: $${passengerCharge}
-                | Dogs: $${dogCharge}
-                | Bikes: $${bikeCharge}
-                | Bags: $${bagCharge}
-                | Night: $${nightCharge}
-                | Dirt road: $${dirtCharge}`;
-
-            return;
-        }
-    }
-    lastDestinationAddress = address;
-
-    if (!address) {
-        alert('Enter destination address');
-        return;
-    }
-
-    const passengers = parseInt(document.getElementById('passengers').value);
-
-    let lat;
-    let lng;
-
-    if (
+    } else if (
         window.selectedPlace &&
         window.selectedPlace.geometry
     ) {
@@ -491,6 +454,10 @@ async function calculateFare() {
 
         lng =
             window.selectedPlace.geometry.location.lng();
+
+        const point = turf.point([lng, lat]);
+
+        destinationZone = findZone(point);
 
     } else {
 
@@ -509,13 +476,12 @@ async function calculateFare() {
 
         lat = best.geometry.coordinates[1];
         lng = best.geometry.coordinates[0];
+
+        const point = turf.point([lng, lat]);
+
+        destinationZone = findZone(point);
     }
 
-    const point = turf.point([lng, lat]);
-
-    let destinationZone = findZone(point);
-
-    // Cross Town should never be used as normal destination
     if (destinationZone === 'Cross Town') {
         destinationZone = 'Town';
     }
@@ -530,7 +496,6 @@ async function calculateFare() {
 
     let baseFare = getFare(currentZoneName, destinationZone);
 
-    // Town flat rate
     if (
         currentZoneName === 'Town' &&
         destinationZone === 'Town'
@@ -539,27 +504,10 @@ async function calculateFare() {
     }
 
     if (!baseFare) {
-        document.getElementById('fare').innerText = 'No fare found';
+        document.getElementById('fare').innerText =
+            'No fare found';
         return;
     }
-
-    const extraPassengers = Math.max(0, passengers - 1);
-    const passengerCharge = extraPassengers * 3;
-
-    const dogs = parseInt(document.getElementById('dogs').value);
-    const dogCharge = dogs * 5;
-
-    const bikes = parseInt(document.getElementById('bikes').value);
-    const bikeCharge = bikes * 5;
-
-    const bags = parseInt(document.getElementById('bags').value);
-    const bagCharge = bags * 2;
-
-    const nightCharge =
-        document.getElementById('nightFee').checked ? 5 : 0;
-
-    const dirtCharge =
-        document.getElementById('dirtRoad').checked ? 5 : 0;
 
     const totalFare =
         baseFare +
@@ -575,16 +523,19 @@ async function calculateFare() {
 
     document.getElementById('fareBreakdown').innerText =
         `Base: $${baseFare}
-        | Passengers: $${passengerCharge}
-        | Dogs: $${dogCharge}
-        | Bikes: $${bikeCharge}
-        | Bags: $${bagCharge}
-        | Night: $${nightCharge}
-        | Dirt road: $${dirtCharge}`;
+| Passengers: $${passengerCharge}
+| Dogs: $${dogCharge}
+| Bikes: $${bikeCharge}
+| Bags: $${bagCharge}
+| Night: $${nightCharge}
+| Dirt road: $${dirtCharge}`;
 
-    L.marker([lat, lng]).addTo(map);
+    if (lat && lng) {
 
-    map.setView([lat, lng], 14);
+        L.marker([lat, lng]).addTo(map);
+
+        map.setView([lat, lng], 14);
+    }
 }
 
 </script>
