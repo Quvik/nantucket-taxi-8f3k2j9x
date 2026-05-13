@@ -243,6 +243,42 @@ font-size:18px !important;
 margin-top:8px !important;
 }
 
+
+.autocomplete-dropdown{
+position:absolute;
+left:14px;
+right:14px;
+top:100%;
+background:#1b1c22;
+border:1px solid #333;
+border-radius:16px;
+overflow:hidden;
+z-index:99999;
+margin-top:6px;
+display:none;
+max-height:260px;
+overflow-y:auto;
+}
+
+.autocomplete-item{
+padding:14px 16px;
+border-bottom:1px solid #2a2a2a;
+font-size:16px;
+cursor:pointer;
+}
+
+.autocomplete-item:last-child{
+border-bottom:none;
+}
+
+.autocomplete-item:active{
+background:#2a2a2a;
+}
+
+.search-wrapper{
+position:relative;
+}
+
 </style>
 
 </head>
@@ -848,25 +884,89 @@ async function calculateFare() {
 
 
 <script>
-let autocomplete;
+let autocompleteService;
+let placesService;
 
 function initAutocomplete() {
 
     const input = document.getElementById('destination');
+    const dropdown = document.getElementById('autocompleteDropdown');
 
-    autocomplete = new google.maps.places.Autocomplete(input, {
-        types: ['geocode', 'establishment'],
-        componentRestrictions: { country: 'us' },
-        fields: ['geometry', 'name', 'formatted_address']
+    autocompleteService = new google.maps.places.AutocompleteService();
+
+    placesService = new google.maps.places.PlacesService(
+        document.createElement('div')
+    );
+
+    input.addEventListener('input', () => {
+
+        const value = input.value.trim();
+
+        if (value.length < 2) {
+            dropdown.style.display = 'none';
+            return;
+        }
+
+        autocompleteService.getPlacePredictions({
+            input: value + ' Nantucket MA',
+            componentRestrictions: { country: 'us' }
+        }, (predictions, status) => {
+
+            dropdown.innerHTML = '';
+
+            if (
+                status !== google.maps.places.PlacesServiceStatus.OK ||
+                !predictions
+            ) {
+                dropdown.style.display = 'none';
+                return;
+            }
+
+            const nantucketOnly = predictions.filter(p =>
+                p.description.toLowerCase().includes('nantucket')
+            );
+
+            if (!nantucketOnly.length) {
+                dropdown.style.display = 'none';
+                return;
+            }
+
+            nantucketOnly.forEach(prediction => {
+
+                const item = document.createElement('div');
+
+                item.className = 'autocomplete-item';
+
+                item.innerText = prediction.description
+                    .replace(', Nantucket, MA, USA','');
+
+                item.onclick = () => {
+
+                    input.value = item.innerText;
+
+                    dropdown.style.display = 'none';
+
+                    placesService.getDetails({
+                        placeId: prediction.place_id,
+                        fields: ['geometry','name','formatted_address']
+                    }, (place) => {
+
+                        window.selectedPlace = place;
+                    });
+                };
+
+                dropdown.appendChild(item);
+            });
+
+            dropdown.style.display = 'block';
+        });
     });
 
-    autocomplete.addListener('place_changed', () => {
-
-        const place = autocomplete.getPlace();
-
-        if (!place.geometry) return;
-
-        window.selectedPlace = place;
+    document.addEventListener('click', (e) => {
+        if (!dropdown.contains(e.target) &&
+            e.target !== input) {
+            dropdown.style.display = 'none';
+        }
     });
 }
 </script>
