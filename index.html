@@ -916,11 +916,18 @@ function initAutocomplete() {
 
             const txt = item.innerText.toLowerCase();
 
+            // Hide EVERYTHING except Nantucket
             if (
-                txt.includes('ma, usa') &&
                 !txt.includes('nantucket')
             ) {
-                item.style.opacity = '0.25';
+                item.style.display = 'none';
+            } else {
+
+                // Clean visible text
+                item.innerHTML =
+                    item.innerHTML
+                        .replace(/,\s*Nantucket,\s*MA,\s*USA/gi,'')
+                        .replace(/Nantucket,\s*MA,\s*USA/gi,'');
             }
         });
     });
