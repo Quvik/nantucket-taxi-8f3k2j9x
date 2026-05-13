@@ -33,10 +33,77 @@ input, select, button {
 
 button {
     cursor: pointer;
+    font-weight: bold;
+    transition: 0.2s;
+}
+
+button:active {
+    transform: scale(0.98);
 }
 
 #map {
-    height: 52vh;
+    height: 42vh;
+    margin-bottom: 120px;
+}
+
+.quick-row {
+    display:flex;
+    gap:10px;
+    overflow-x:auto;
+    padding-bottom:4px;
+}
+
+.quick-btn {
+    min-width:140px;
+    background:#2b2b2b;
+    color:white;
+    border:none;
+    border-radius:18px;
+    padding:16px;
+    font-size:17px;
+    font-weight:bold;
+}
+
+.fare-card {
+    background:#111;
+    border:2px solid #2d2d2d;
+}
+
+.breakdown-row {
+    display:flex;
+    justify-content:space-between;
+    margin-top:8px;
+    opacity:0.9;
+}
+
+.sticky-bar {
+    position:fixed;
+    bottom:0;
+    left:0;
+    right:0;
+    background:#161616;
+    border-top:1px solid #333;
+    padding:12px;
+    display:flex;
+    gap:10px;
+    z-index:9999;
+}
+
+.sticky-bar button {
+    flex:1;
+    border-radius:16px;
+    font-size:18px;
+    padding:18px;
+}
+
+.primary-btn {
+    background:#0A84FF;
+    color:white;
+}
+
+.secondary-btn {
+    background:#2b2b2b;
+    color:white;
 }
 
 .card {
@@ -61,7 +128,7 @@ button {
 
 <div id="topbar">
 
-    <div class="card">
+    <div class="card fare-card">
         <div>Current Zone</div>
         <div class="big" id="currentZone">Detecting...</div>
     </div>
@@ -114,32 +181,48 @@ button {
 
     
     
+
 <div class="card">
-<div style="margin-bottom:10px;font-weight:bold;">Quick Places</div>
+<div style="margin-bottom:12px;font-weight:bold;font-size:20px;">
+Quick Favorites
+</div>
 
-<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+<div class="quick-row">
 
-<button onclick="setDestination('Airport')">Airport</button>
-<button onclick="setDestination('Steamship Ferry')">Ferry</button>
+<button class="quick-btn" onclick="setDestination('Airport')">✈️ Airport</button>
 
-<button onclick="setDestination('White Elephant')">White Elephant</button>
-<button onclick="setDestination('Cisco Brewers')">Cisco Brewers</button>
+<button class="quick-btn" onclick="setDestination('Steamship Ferry')">⛴ Ferry</button>
 
-<button onclick="setDestination('The Wauwinet')">Wauwinet</button>
-<button onclick="setDestination('Stop & Shop')">Stop & Shop</button>
+<button class="quick-btn" onclick="setDestination('White Elephant')">🏨 White Elephant</button>
 
-<button onclick="setDestination('Jetties Beach')">Jetties Beach</button>
-<button onclick="setDestination('The Nantucket Hotel')">Nantucket Hotel</button>
+<button class="quick-btn" onclick="setDestination('Cisco Brewers')">🍺 Cisco</button>
+
+<button class="quick-btn" onclick="setDestination('The Wauwinet')">🌊 Wauwinet</button>
+
+<button class="quick-btn" onclick="setDestination('The Nantucket Hotel')">🏨 Nantucket Hotel</button>
 
 </div>
 </div>
 
 
-<button onclick="calculateFare()">Calculate Fare</button>
 
-    <button onclick="openGoogleMaps()">Open in Google Maps</button>
 
-    <button onclick="openWaze()">Open in Waze</button>
+<div class="sticky-bar">
+
+<button class="primary-btn" onclick="calculateFare()">
+Calculate
+</button>
+
+<button class="secondary-btn" onclick="openWaze()">
+Waze
+</button>
+
+<button class="secondary-btn" onclick="openGoogleMaps()">
+Maps
+</button>
+
+</div>
+
 
 
     <div class="card">
@@ -554,14 +637,20 @@ async function calculateFare() {
     document.getElementById('fare').innerText =
         `$${totalFare}`;
 
-    document.getElementById('fareBreakdown').innerText =
-        `Base: $${baseFare}
-| Passengers: $${passengerCharge}
-| Dogs: $${dogCharge}
-| Bikes: $${bikeCharge}
-| Bags: $${bagCharge}
-| Night: $${nightCharge}
-| Dirt road: $${dirtCharge}`;
+    document.getElementById('fareBreakdown').innerHTML =
+        `
+<div class="breakdown-row"><span>Base Fare</span><span>$${baseFare}</span></div>
+<div class="breakdown-row"><span>Passengers</span><span>$${passengerCharge}</span></div>
+<div class="breakdown-row"><span>Dogs</span><span>$${dogCharge}</span></div>
+<div class="breakdown-row"><span>Bikes</span><span>$${bikeCharge}</span></div>
+<div class="breakdown-row"><span>Bags</span><span>$${bagCharge}</span></div>
+<div class="breakdown-row"><span>Night Fee</span><span>$${nightCharge}</span></div>
+<div class="breakdown-row"><span>Dirt Road</span><span>$${dirtCharge}</span></div>
+<hr style="border-color:#333;margin-top:12px;">
+<div class="breakdown-row" style="font-size:20px;font-weight:bold;">
+<span>Total</span><span>$${totalFare}</span>
+</div>
+`;
 
     if (lat && lng) {
 
