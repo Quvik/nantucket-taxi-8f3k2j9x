@@ -535,45 +535,66 @@ Quick Favorites
 </div>
 
 
-<div id="ferryTab" style="display:none;padding:14px;">
+<div id="ferryTab" style="display:none;padding:14px 14px 120px;">
 
-<div class="card">
-
-<div style="font-size:32px;font-weight:800;margin-bottom:20px;">
-⛴ Next Arrivals To Nantucket
-</div>
-
-<div id="rushIndicatorCard"
-style="
-background:#17181d;
-border:1px solid #2a2a2a;
-border-radius:18px;
-padding:18px;
-margin-bottom:24px;
+<!-- Rush Indicator -->
+<div id="rushIndicatorCard" style="
+  background:#17181d;
+  border:1px solid #2a2a2a;
+  border-radius:18px;
+  padding:18px;
+  margin-bottom:14px;
 ">
-Loading ferry activity...
+  <div style="opacity:0.6;font-size:15px;">Статус</div>
+  <div style="font-size:22px;font-weight:800;margin-top:4px;">⏳ Обновите расписание</div>
 </div>
 
-<div id="steamshipArrivalCard"></div>
+<!-- Date Display -->
+<div class="card" style="display:flex;align-items:center;justify-content:space-between;">
+  <div>
+    <div style="opacity:0.6;font-size:14px;">Расписание на</div>
+    <div style="font-size:20px;font-weight:800;" id="ferryDateLabel">Сегодня</div>
+  </div>
+  <div style="display:flex;gap:8px;">
+    <button class="counter-btn" onclick="shiftFerryDay(-1)" style="font-size:18px;">‹</button>
+    <button class="counter-btn" onclick="shiftFerryDay(1)" style="font-size:18px;">›</button>
+  </div>
+</div>
 
-<br>
-
-<div id="hylineArrivalCard"></div>
-
-<br>
-
-<button class="quick-btn"
-onclick="window.open('https://www.steamshipauthority.com/traveling_today/status','_blank')">
-Steamship Status
+<!-- AI Fetch Button -->
+<button onclick="fetchFerrySchedule()" id="fetchFerryBtn" style="
+  width:100%;
+  background:linear-gradient(135deg,#0A84FF,#0066cc);
+  color:white;
+  border:none;
+  border-radius:18px;
+  padding:18px;
+  font-size:18px;
+  font-weight:800;
+  margin-bottom:14px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:10px;
+">
+  <span id="fetchBtnIcon">🔄</span>
+  <span id="fetchBtnText">Обновить расписание</span>
 </button>
 
-<br><br>
+<!-- Last Updated -->
+<div id="ferryLastUpdated" style="text-align:center;opacity:0.5;font-size:13px;margin-bottom:14px;"></div>
 
-<button class="quick-btn"
-onclick="window.open('https://hylinecruises.com/schedules/','_blank')">
-Hy-Line Schedule
-</button>
+<!-- Arrivals List -->
+<div id="ferryArrivalsContainer">
+  <div class="card" style="text-align:center;padding:30px;opacity:0.5;">
+    Нажмите «Обновить расписание»<br>чтобы загрузить актуальное время
+  </div>
+</div>
 
+<!-- Quick Links -->
+<div style="display:flex;gap:10px;margin-top:14px;">
+  <button class="quick-btn" style="flex:1;" onclick="window.open('https://www.steamshipauthority.com/traveling_today/status','_blank')">🚢 Steamship</button>
+  <button class="quick-btn" style="flex:1;" onclick="window.open('https://hylinecruises.com/schedules/','_blank')">🚤 Hy-Line</button>
 </div>
 
 </div>
@@ -828,264 +849,326 @@ btn.classList.add('active-tab');
 
 
 
-let steamshipArrivals = [];
-let hylineArrivals = [];
+// ============================================================
+//  FERRY — AI-powered live schedule fetcher
+// ============================================================
 
-async function loadFerrySchedules(){
+let ferryDayOffset = 0;  // 0 = today, 1 = tomorrow, etc.
+let ferryScheduleCache = {};   // cache by date string "YYYY-MM-DD"
+let countdownInterval = null;
 
-try{
-
-const response = await fetch('./ferries.json');
-
-const data = await response.json();
-
-steamshipArrivals = data.steamship || [];
-hylineArrivals = data.hyline || [];
-
-}catch(e){
-
-console.log('Unable to load ferries.json');
-}
+function getFerryDate(offset) {
+  const d = new Date();
+  d.setDate(d.getDate() + offset);
+  return d;
 }
 
-
-function parseTime(str){
-
-const now = new Date();
-
-const [time,modifier] = str.split(' ');
-
-let [hours,minutes] = time.split(':').map(Number);
-
-if(modifier === 'PM' && hours !== 12) hours += 12;
-if(modifier === 'AM' && hours === 12) hours = 0;
-
-const d = new Date(now);
-
-d.setHours(hours);
-d.setMinutes(minutes);
-d.setSeconds(0);
-
-return d;
+function formatFerryDateLabel(d) {
+  const today = new Date();
+  const tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate()+1);
+  if (d.toDateString() === today.toDateString()) return 'Сегодня';
+  if (d.toDateString() === tomorrow.toDateString()) return 'Завтра';
+  return d.toLocaleDateString('ru-RU', {weekday:'long', day:'numeric', month:'long'});
 }
 
-function formatCountdown(target){
-
-const now = new Date();
-
-const diff = target - now;
-
-if(diff <= 0) return 'Arriving';
-
-const mins = Math.floor(diff / 60000);
-
-const h = Math.floor(mins / 60);
-const m = mins % 60;
-
-if(h > 0){
-return `${h}h ${m}m`;
+function formatDateKey(d) {
+  return d.toISOString().slice(0,10);
 }
 
-return `${m} min`;
+function shiftFerryDay(delta) {
+  ferryDayOffset += delta;
+  if (ferryDayOffset < 0) ferryDayOffset = 0;
+  const d = getFerryDate(ferryDayOffset);
+  document.getElementById('ferryDateLabel').innerText = formatFerryDateLabel(d);
+  // If we have cache — show it; otherwise prompt to refresh
+  const key = formatDateKey(d);
+  if (ferryScheduleCache[key]) {
+    renderFerryArrivals(ferryScheduleCache[key]);
+    startCountdownTick();
+  } else {
+    document.getElementById('ferryArrivalsContainer').innerHTML =
+      `<div class="card" style="text-align:center;padding:30px;opacity:0.5;">Нажмите «Обновить расписание»<br>чтобы загрузить расписание на этот день</div>`;
+    stopCountdownTick();
+  }
 }
 
-function getNextArrival(list){
+async function fetchFerrySchedule() {
+  const btn = document.getElementById('fetchFerryBtn');
+  const icon = document.getElementById('fetchBtnIcon');
+  const text = document.getElementById('fetchBtnText');
 
-const now = new Date();
+  icon.innerText = '⏳';
+  text.innerText = 'Загружаю...';
+  btn.disabled = true;
 
-for(const t of list){
+  const targetDate = getFerryDate(ferryDayOffset);
+  const dateStr = targetDate.toLocaleDateString('en-US', {
+    weekday:'long', year:'numeric', month:'long', day:'numeric'
+  });
 
-const parsed = parseTime(t);
+  try {
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        tools: [{ type: 'web_search_20250305', name: 'web_search' }],
+        system: `You are a ferry schedule assistant for a Nantucket taxi driver.
+The driver needs to know ONLY the times ferries ARRIVE at Nantucket (not departures from Nantucket).
+Sources to check: nantucketferries.com, hylinecruises.com, steamshipauthority.com, seastreak.com, freedomferry.com.
 
-if(parsed > now){
-return {
-time:t,
-date:parsed
-};
-}
-}
-
-return null;
-}
-
-
-function updateRushIndicator(steamshipNext, hylineNext){
-
-const card =
-document.getElementById('rushIndicatorCard');
-
-const now = new Date();
-
-const steamMin =
-Math.floor((steamshipNext.date - now)/60000);
-
-const hyMin =
-Math.floor((hylineNext.date - now)/60000);
-
-let content = '';
-
-if(steamMin <= 25 && steamMin > 0){
-
-content = `
-<div style="font-size:30px;font-weight:800;color:#ff453a;">
-🚨 Ferry Rush Soon
-</div>
-
-<div style="margin-top:10px;font-size:20px;">
-Steamship arriving in ${steamMin} min
-</div>
-
-<div style="margin-top:8px;color:#aaa;">
-Suggested location: Steamship Terminal
-</div>
-`;
-
-}else if(hyMin <= 15 && hyMin > 0){
-
-content = `
-<div style="font-size:30px;font-weight:800;color:#ffd60a;">
-⚠️ Hy-Line Rush
-</div>
-
-<div style="margin-top:10px;font-size:20px;">
-Hy-Line arriving in ${hyMin} min
-</div>
-
-<div style="margin-top:8px;color:#aaa;">
-Suggested location: Straight Wharf
-</div>
-`;
-
-}else{
-
-const nextMin = Math.min(steamMin, hyMin);
-
-content = `
-<div style="font-size:30px;font-weight:800;color:#30d158;">
-🟢 Quiet Period
-</div>
-
-<div style="margin-top:10px;font-size:20px;">
-Next arrival in ${nextMin} min
-</div>
-
-<div style="margin-top:8px;color:#aaa;">
-Good time to stay in Town
-</div>
-`;
+Respond ONLY with a JSON object, no preamble, no markdown fences:
+{
+  "date": "YYYY-MM-DD",
+  "note": "short note about schedule validity or special conditions",
+  "arrivals": [
+    {"time": "HH:MM AM/PM", "line": "Hy-Line|Steamship|Seastreak|Freedom", "from": "Hyannis|New Bedford|Harwich|Oak Bluffs", "type": "High-Speed|Traditional|Fast Ferry"},
+    ...
+  ]
 }
 
-card.innerHTML = content;
+Sort arrivals chronologically by time. Include ALL arrivals from ALL ferry lines for this specific date.`,
+        messages: [{
+          role: 'user',
+          content: `What ferries arrive at Nantucket on ${dateStr}? Search nantucketferries.com and individual ferry line sites for the most current schedule. Return only the JSON.`
+        }]
+      })
+    });
+
+    const data = await response.json();
+
+    // Extract text from all content blocks (including after tool use)
+    const fullText = (data.content || [])
+      .map(block => block.type === 'text' ? block.text : '')
+      .filter(Boolean)
+      .join('\n');
+
+    // Parse JSON — strip any accidental fences
+    const clean = fullText.replace(/```json|```/g, '').trim();
+    const parsed = JSON.parse(clean);
+
+    const key = formatDateKey(targetDate);
+    ferryScheduleCache[key] = parsed;
+
+    renderFerryArrivals(parsed);
+    startCountdownTick();
+
+    // Save timestamp
+    document.getElementById('ferryLastUpdated').innerText =
+      `Обновлено: ${new Date().toLocaleTimeString('ru-RU', {hour:'2-digit',minute:'2-digit'})}`;
+
+  } catch(e) {
+    document.getElementById('ferryArrivalsContainer').innerHTML =
+      `<div class="card" style="background:#2a1a1a;border-radius:18px;padding:20px;">
+        <div style="color:#ff453a;font-size:18px;font-weight:700;">⚠️ Ошибка загрузки</div>
+        <div style="margin-top:8px;opacity:0.7;font-size:14px;">Проверьте интернет и попробуйте снова</div>
+      </div>`;
+    console.error(e);
+  }
+
+  icon.innerText = '🔄';
+  text.innerText = 'Обновить расписание';
+  btn.disabled = false;
 }
 
-async function loadSteamshipArrival(){
-
-const container =
-document.getElementById('steamshipArrivalCard');
-
-const next =
-getNextArrival(steamshipArrivals);
-
-let status = 'On Time';
-
-try{
-
-const proxy =
-'https://api.allorigins.win/raw?url=';
-
-const target =
-encodeURIComponent(
-'https://www.steamshipauthority.com/traveling_today/status'
-);
-
-const response =
-await fetch(proxy + target);
-
-const text =
-await response.text();
-
-if(text.toLowerCase().includes('delayed')){
-status = 'Delayed';
+function parseTimeToDate(timeStr) {
+  // timeStr like "9:15 AM" or "3:30 PM"
+  const baseDate = getFerryDate(ferryDayOffset);
+  const [time, modifier] = timeStr.trim().split(' ');
+  let [h, m] = time.split(':').map(Number);
+  if (modifier === 'PM' && h !== 12) h += 12;
+  if (modifier === 'AM' && h === 12) h = 0;
+  const d = new Date(baseDate);
+  d.setHours(h, m, 0, 0);
+  return d;
 }
 
-if(text.toLowerCase().includes('boarding')){
-status = 'Boarding';
+function formatCountdown(target) {
+  const diff = target - new Date();
+  if (diff <= 0) return '🟠 Прибыл';
+  const mins = Math.floor(diff / 60000);
+  const h = Math.floor(mins / 60);
+  const m = mins % 60;
+  if (h > 0) return `${h}ч ${m}м`;
+  if (mins <= 20) return `<span style="color:#ff9f0a;font-weight:800">${m} мин</span>`;
+  return `${m} мин`;
 }
 
-if(text.toLowerCase().includes('cancelled')){
-status = 'Cancelled';
+function lineEmoji(line) {
+  if (line.includes('Steam')) return '🚢';
+  if (line.includes('Hy')) return '🚤';
+  if (line.includes('Sea')) return '⛴';
+  if (line.includes('Free')) return '🛥';
+  return '⛵';
 }
 
-}catch(e){}
-
-window.steamshipNextData = next;
-
-window.hylineNextData = next;
-if(window.steamshipNextData){updateRushIndicator(window.steamshipNextData,next);} 
-
-container.innerHTML = `
-<div style="font-size:26px;font-weight:800;margin-bottom:10px;">
-🚢 Steamship
-</div>
-
-<div class="ferry-row">
-<span>Arrives Nantucket</span>
-<span>${next.time}</span>
-</div>
-
-<div class="ferry-row">
-<span>Status</span>
-<span>${status}</span>
-</div>
-
-<div class="ferry-row">
-<span>Countdown</span>
-<span>${formatCountdown(next.date)}</span>
-</div>
-`;
+function lineColor(line) {
+  if (line.includes('Steam')) return '#0A84FF';
+  if (line.includes('Hy')) return '#30d158';
+  if (line.includes('Sea')) return '#ff9f0a';
+  if (line.includes('Free')) return '#bf5af2';
+  return '#aaa';
 }
 
-function loadHylineArrival(){
+function renderFerryArrivals(data) {
+  const now = new Date();
+  const arrivals = (data.arrivals || []).map(a => ({
+    ...a,
+    dateObj: parseTimeToDate(a.time)
+  })).sort((a,b) => a.dateObj - b.dateObj);
 
-const container =
-document.getElementById('hylineArrivalCard');
+  // Find next upcoming
+  const upcoming = arrivals.filter(a => a.dateObj > now);
+  const past = arrivals.filter(a => a.dateObj <= now);
 
-const next =
-getNextArrival(hylineArrivals);
+  // Rush indicator
+  updateRushIndicatorAI(upcoming);
 
-container.innerHTML = `
-<div style="font-size:26px;font-weight:800;margin-bottom:10px;">
-🚤 Hy-Line
-</div>
+  let html = '';
 
-<div class="ferry-row">
-<span>Arrives Nantucket</span>
-<span>${next.time}</span>
-</div>
+  if (data.note) {
+    html += `<div style="background:#1e1e28;border:1px solid #333;border-radius:14px;padding:12px;margin-bottom:12px;font-size:14px;opacity:0.8;">
+      ℹ️ ${data.note}
+    </div>`;
+  }
 
-<div class="ferry-row">
-<span>Status</span>
-<span>On Time</span>
-</div>
+  if (upcoming.length === 0 && past.length === 0) {
+    html += `<div class="card" style="text-align:center;padding:24px;opacity:0.6;">Нет прибытий на этот день</div>`;
+  }
 
-<div class="ferry-row">
-<span>Countdown</span>
-<span>${formatCountdown(next.date)}</span>
-</div>
-`;
+  if (upcoming.length > 0) {
+    html += `<div style="font-size:13px;font-weight:700;opacity:0.5;margin-bottom:8px;letter-spacing:1px;">СЛЕДУЮЩИЕ ПРИБЫТИЯ</div>`;
+    upcoming.forEach((a, i) => {
+      const isNext = i === 0;
+      html += `
+      <div class="ferry-arrival-row ${isNext ? 'next-arrival' : ''}" data-time="${a.time}" style="
+        background:${isNext ? '#1a2a1a' : '#17181c'};
+        border:1px solid ${isNext ? '#30d158' : '#2a2a2a'};
+        border-radius:16px;
+        padding:14px 16px;
+        margin-bottom:10px;
+        display:flex;
+        align-items:center;
+        justify-content:space-between;
+      ">
+        <div style="display:flex;align-items:center;gap:12px;">
+          <div style="font-size:28px;">${lineEmoji(a.line)}</div>
+          <div>
+            <div style="font-size:20px;font-weight:800;">${a.time}</div>
+            <div style="font-size:13px;color:${lineColor(a.line)};font-weight:600;">${a.line}</div>
+            <div style="font-size:12px;opacity:0.6;">из ${a.from} · ${a.type || ''}</div>
+          </div>
+        </div>
+        <div style="text-align:right;">
+          <div class="countdown-val" style="font-size:17px;font-weight:700;">${formatCountdown(a.dateObj)}</div>
+          ${isNext ? '<div style="font-size:11px;color:#30d158;font-weight:700;margin-top:4px;">СЛЕДУЮЩИЙ</div>' : ''}
+        </div>
+      </div>`;
+    });
+  }
+
+  if (past.length > 0) {
+    html += `<div style="font-size:13px;font-weight:700;opacity:0.4;margin:12px 0 8px;letter-spacing:1px;">УЖЕ ПРИБЫЛИ</div>`;
+    past.forEach(a => {
+      html += `
+      <div style="
+        background:#111;
+        border:1px solid #222;
+        border-radius:14px;
+        padding:12px 16px;
+        margin-bottom:8px;
+        display:flex;
+        align-items:center;
+        justify-content:space-between;
+        opacity:0.45;
+      ">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div style="font-size:22px;">${lineEmoji(a.line)}</div>
+          <div>
+            <div style="font-size:17px;font-weight:700;text-decoration:line-through;">${a.time}</div>
+            <div style="font-size:12px;color:${lineColor(a.line)};">${a.line} · из ${a.from}</div>
+          </div>
+        </div>
+        <div style="font-size:13px;opacity:0.6;">Прибыл</div>
+      </div>`;
+    });
+  }
+
+  document.getElementById('ferryArrivalsContainer').innerHTML = html;
 }
 
-window.addEventListener('load', async ()=>{
+function updateRushIndicatorAI(upcoming) {
+  const card = document.getElementById('rushIndicatorCard');
+  const now = new Date();
 
-await loadFerrySchedules();
+  if (!upcoming || upcoming.length === 0) {
+    card.innerHTML = `<div style="font-size:22px;font-weight:800;color:#636366;">🌙 Больше прибытий нет</div>`;
+    return;
+  }
 
+  const next = upcoming[0];
+  const mins = Math.floor((next.dateObj - now) / 60000);
 
-loadSteamshipArrival();
-loadHylineArrival();
+  let content = '';
+  if (mins <= 20 && mins > 0) {
+    content = `
+      <div style="font-size:28px;font-weight:900;color:#ff453a;">🚨 Паром через ${mins} мин!</div>
+      <div style="margin-top:8px;font-size:17px;">${lineEmoji(next.line)} ${next.line} из ${next.from}</div>
+      <div style="margin-top:6px;font-size:14px;color:#aaa;">⏰ Прибытие в ${next.time} — выезжай сейчас!</div>`;
+  } else if (mins <= 45 && mins > 0) {
+    content = `
+      <div style="font-size:26px;font-weight:800;color:#ffd60a;">⚠️ Паром через ${mins} мин</div>
+      <div style="margin-top:8px;font-size:16px;">${lineEmoji(next.line)} ${next.line} · прибытие ${next.time}</div>
+      <div style="margin-top:6px;font-size:14px;color:#aaa;">Из ${next.from}</div>`;
+  } else {
+    content = `
+      <div style="font-size:24px;font-weight:800;color:#30d158;">🟢 Спокойно</div>
+      <div style="margin-top:8px;font-size:16px;">Следующий: ${lineEmoji(next.line)} ${next.line} в ${next.time}</div>
+      <div style="margin-top:6px;font-size:14px;color:#aaa;">Через ${Math.floor(mins/60)}ч ${mins%60}м · из ${next.from}</div>`;
+  }
 
-setInterval(loadSteamshipArrival,300000);
-setInterval(loadHylineArrival,60000);
+  card.innerHTML = content;
+}
 
+function tickCountdowns() {
+  const key = formatDateKey(getFerryDate(ferryDayOffset));
+  const cached = ferryScheduleCache[key];
+  if (!cached) return;
+
+  // Update rush indicator
+  const now = new Date();
+  const upcoming = (cached.arrivals || [])
+    .map(a => ({ ...a, dateObj: parseTimeToDate(a.time) }))
+    .filter(a => a.dateObj > now)
+    .sort((a,b) => a.dateObj - b.dateObj);
+
+  updateRushIndicatorAI(upcoming);
+
+  // Update countdown values inline
+  document.querySelectorAll('.ferry-arrival-row').forEach(row => {
+    const timeStr = row.getAttribute('data-time');
+    if (!timeStr) return;
+    const d = parseTimeToDate(timeStr);
+    const valEl = row.querySelector('.countdown-val');
+    if (valEl) valEl.innerHTML = formatCountdown(d);
+  });
+}
+
+function startCountdownTick() {
+  stopCountdownTick();
+  countdownInterval = setInterval(tickCountdowns, 30000);
+}
+
+function stopCountdownTick() {
+  if (countdownInterval) clearInterval(countdownInterval);
+  countdownInterval = null;
+}
+
+// Init ferry date label on load
+window.addEventListener('load', () => {
+  const d = getFerryDate(0);
+  document.getElementById('ferryDateLabel').innerText = formatFerryDateLabel(d);
 });
 
 
