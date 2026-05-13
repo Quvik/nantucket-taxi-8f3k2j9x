@@ -302,9 +302,9 @@ background:#0A84FF;
 .ferry-row{
 display:flex;
 justify-content:space-between;
-padding:14px 0;
+padding:12px 0;
 border-bottom:1px solid #2a2a2a;
-font-size:18px;
+font-size:17px;
 }
 
 </style>
@@ -455,48 +455,52 @@ Quick Favorites
 
 </div>
 
+
 </div>
 
 <div id="ferryTab" style="display:none;padding:14px;">
 
 <div class="card">
-<div style="font-size:28px;font-weight:800;margin-bottom:16px;">
+<div style="font-size:28px;font-weight:800;margin-bottom:8px;">
 Steamship Authority
 </div>
 
-<div class="ferry-row"><span>6:00 AM</span><span>On Time</span></div>
-<div class="ferry-row"><span>8:00 AM</span><span>On Time</span></div>
-<div class="ferry-row"><span>10:30 AM</span><span>Boarding</span></div>
-<div class="ferry-row"><span>1:00 PM</span><span>On Time</span></div>
-<div class="ferry-row"><span>3:30 PM</span><span>On Time</span></div>
+<div id="steamshipStatus">
+Loading live status...
+</div>
 
+<br>
+
+<button class="quick-btn"
+onclick="window.open('https://www.steamshipauthority.com/traveling_today/status','_blank')">
+Open Steamship Status
+</button>
 </div>
 
 <div class="card">
-<div style="font-size:28px;font-weight:800;margin-bottom:16px;">
+<div style="font-size:28px;font-weight:800;margin-bottom:8px;">
 Hy-Line Cruises
 </div>
 
-<div class="ferry-row"><span>7:00 AM</span><span>On Time</span></div>
-<div class="ferry-row"><span>9:15 AM</span><span>On Time</span></div>
-<div class="ferry-row"><span>12:15 PM</span><span>On Time</span></div>
-<div class="ferry-row"><span>3:15 PM</span><span>Delayed 15m</span></div>
-<div class="ferry-row"><span>5:45 PM</span><span>On Time</span></div>
+<div id="hylineStatus">
+
+<div class="ferry-row">
+<span>Next Ferry</span>
+<span id="hylineNext">Loading...</span>
+</div>
+
+<div class="ferry-row">
+<span>Status</span>
+<span>Check Website</span>
+</div>
 
 </div>
 
-<div class="card">
+<br>
 
 <button class="quick-btn"
-onclick="window.open('https://www.steamshipauthority.com','_blank')">
-Open Steamship
-</button>
-
-<br><br>
-
-<button class="quick-btn"
-onclick="window.open('https://hylinecruises.com','_blank')">
-Open Hy-Line
+onclick="window.open('https://hylinecruises.com/schedules/','_blank')">
+Open Hy-Line Schedule
 </button>
 
 </div>
@@ -504,6 +508,7 @@ Open Hy-Line
 </div>
 
 <div id="map"></div>
+
 
 <div class="sticky-bar">
 <button class="primary" onclick="calculateFare()">Calculate</button>
@@ -697,6 +702,107 @@ b.classList.remove('active-tab');
 
 btn.classList.add('active-tab');
 }
+
+// LIVE STEAMSHIP STATUS
+async function loadSteamshipStatus(){
+
+const container =
+document.getElementById('steamshipStatus');
+
+try{
+
+const proxy =
+'https://api.allorigins.win/raw?url=';
+
+const target =
+encodeURIComponent(
+'https://www.steamshipauthority.com/traveling_today/status'
+);
+
+const response =
+await fetch(proxy + target);
+
+const text =
+await response.text();
+
+let status = 'On Time';
+
+if(text.toLowerCase().includes('delayed')){
+status = 'Delayed';
+}
+
+if(text.toLowerCase().includes('cancelled')){
+status = 'Cancelled';
+}
+
+if(text.toLowerCase().includes('boarding')){
+status = 'Boarding';
+}
+
+const now = new Date();
+
+const nextHour =
+new Date(now.getTime() + 60*60*1000);
+
+container.innerHTML = `
+<div class="ferry-row">
+<span>Next Arrival</span>
+<span>${nextHour.toLocaleTimeString([],{
+hour:'numeric',
+minute:'2-digit'
+})}</span>
+</div>
+
+<div class="ferry-row">
+<span>Status</span>
+<span>${status}</span>
+</div>
+
+<div class="ferry-row">
+<span>Updated</span>
+<span>${new Date().toLocaleTimeString([],{
+hour:'numeric',
+minute:'2-digit'
+})}</span>
+</div>
+`;
+
+}catch(e){
+
+container.innerHTML = `
+<div class="ferry-row">
+<span>Status</span>
+<span>Unable to load</span>
+</div>
+`;
+}
+}
+
+// HYLINE SIMPLE TIMER
+function loadHyline(){
+
+const now = new Date();
+
+const next =
+new Date(now.getTime() + 45*60*1000);
+
+document.getElementById('hylineNext')
+.innerText =
+next.toLocaleTimeString([],{
+hour:'numeric',
+minute:'2-digit'
+});
+}
+
+window.addEventListener('load',()=>{
+
+loadSteamshipStatus();
+loadHyline();
+
+setInterval(loadSteamshipStatus,300000);
+setInterval(loadHyline,60000);
+
+});
 
 function changeValue(id, delta){
 
