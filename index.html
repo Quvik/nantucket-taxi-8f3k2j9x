@@ -548,9 +548,18 @@ function initAutocomplete() {
 
     const input = document.getElementById('destination');
 
+    const nantucketBounds = {
+        north: 41.340,
+        south: 41.230,
+        west: -70.240,
+        east: -69.950
+    };
+
     autocomplete = new google.maps.places.Autocomplete(input, {
         types: ['geocode', 'establishment'],
         componentRestrictions: { country: 'us' },
+        bounds: nantucketBounds,
+        strictBounds: true,
         fields: ['geometry', 'name', 'formatted_address']
     });
 
