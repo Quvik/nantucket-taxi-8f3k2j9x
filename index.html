@@ -467,6 +467,17 @@ Quick Favorites
 ⛴ Next Arrivals To Nantucket
 </div>
 
+<div id="rushIndicatorCard"
+style="
+background:#17181d;
+border:1px solid #2a2a2a;
+border-radius:18px;
+padding:18px;
+margin-bottom:24px;
+">
+Loading ferry activity...
+</div>
+
 <div id="steamshipArrivalCard"></div>
 
 <br>
@@ -770,6 +781,76 @@ date:parsed
 return null;
 }
 
+
+function updateRushIndicator(steamshipNext, hylineNext){
+
+const card =
+document.getElementById('rushIndicatorCard');
+
+const now = new Date();
+
+const steamMin =
+Math.floor((steamshipNext.date - now)/60000);
+
+const hyMin =
+Math.floor((hylineNext.date - now)/60000);
+
+let content = '';
+
+if(steamMin <= 25 && steamMin > 0){
+
+content = `
+<div style="font-size:30px;font-weight:800;color:#ff453a;">
+🚨 Ferry Rush Soon
+</div>
+
+<div style="margin-top:10px;font-size:20px;">
+Steamship arriving in ${steamMin} min
+</div>
+
+<div style="margin-top:8px;color:#aaa;">
+Suggested location: Steamship Terminal
+</div>
+`;
+
+}else if(hyMin <= 15 && hyMin > 0){
+
+content = `
+<div style="font-size:30px;font-weight:800;color:#ffd60a;">
+⚠️ Hy-Line Rush
+</div>
+
+<div style="margin-top:10px;font-size:20px;">
+Hy-Line arriving in ${hyMin} min
+</div>
+
+<div style="margin-top:8px;color:#aaa;">
+Suggested location: Straight Wharf
+</div>
+`;
+
+}else{
+
+const nextMin = Math.min(steamMin, hyMin);
+
+content = `
+<div style="font-size:30px;font-weight:800;color:#30d158;">
+🟢 Quiet Period
+</div>
+
+<div style="margin-top:10px;font-size:20px;">
+Next arrival in ${nextMin} min
+</div>
+
+<div style="margin-top:8px;color:#aaa;">
+Good time to stay in Town
+</div>
+`;
+}
+
+card.innerHTML = content;
+}
+
 async function loadSteamshipArrival(){
 
 const container =
@@ -809,6 +890,11 @@ status = 'Cancelled';
 }
 
 }catch(e){}
+
+window.steamshipNextData = next;
+
+window.hylineNextData = next;
+if(window.steamshipNextData){updateRushIndicator(window.steamshipNextData,next);} 
 
 container.innerHTML = `
 <div style="font-size:26px;font-weight:800;margin-bottom:10px;">
