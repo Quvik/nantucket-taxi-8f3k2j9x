@@ -273,13 +273,53 @@ color:#0A84FF !important;
 filter:invert(1);
 }
 
+
+.top-tabs{
+position:sticky;
+top:0;
+z-index:9998;
+display:flex;
+gap:10px;
+padding:12px;
+background:#0f0f10;
+}
+
+.tab-btn{
+flex:1;
+border:none;
+border-radius:16px;
+padding:14px;
+font-size:18px;
+font-weight:700;
+background:#24252b;
+color:white;
+}
+
+.active-tab{
+background:#0A84FF;
+}
+
+.ferry-row{
+display:flex;
+justify-content:space-between;
+padding:14px 0;
+border-bottom:1px solid #2a2a2a;
+font-size:18px;
+}
+
 </style>
 
 </head>
 
 <body>
 
-<div id="topbar">
+
+<div class="top-tabs">
+<button class="tab-btn active-tab" onclick="showTab('taxiTab', this)">🚕 Taxi</button>
+<button class="tab-btn" onclick="showTab('ferryTab', this)">⛴ Ferries</button>
+</div>
+
+<div id="topbar"><div id="taxiTab">
 
 <div class="card zone-card">
 <div class="zone-label">Current Zone</div>
@@ -411,6 +451,54 @@ Quick Favorites
 <div style="opacity:0.7;">Total Fare</div>
 <div style="font-size:42px;font-weight:800;" id="fare">$ -</div>
 <div id="fareBreakdown"></div>
+</div>
+
+</div>
+
+</div>
+
+<div id="ferryTab" style="display:none;padding:14px;">
+
+<div class="card">
+<div style="font-size:28px;font-weight:800;margin-bottom:16px;">
+Steamship Authority
+</div>
+
+<div class="ferry-row"><span>6:00 AM</span><span>On Time</span></div>
+<div class="ferry-row"><span>8:00 AM</span><span>On Time</span></div>
+<div class="ferry-row"><span>10:30 AM</span><span>Boarding</span></div>
+<div class="ferry-row"><span>1:00 PM</span><span>On Time</span></div>
+<div class="ferry-row"><span>3:30 PM</span><span>On Time</span></div>
+
+</div>
+
+<div class="card">
+<div style="font-size:28px;font-weight:800;margin-bottom:16px;">
+Hy-Line Cruises
+</div>
+
+<div class="ferry-row"><span>7:00 AM</span><span>On Time</span></div>
+<div class="ferry-row"><span>9:15 AM</span><span>On Time</span></div>
+<div class="ferry-row"><span>12:15 PM</span><span>On Time</span></div>
+<div class="ferry-row"><span>3:15 PM</span><span>Delayed 15m</span></div>
+<div class="ferry-row"><span>5:45 PM</span><span>On Time</span></div>
+
+</div>
+
+<div class="card">
+
+<button class="quick-btn"
+onclick="window.open('https://www.steamshipauthority.com','_blank')">
+Open Steamship
+</button>
+
+<br><br>
+
+<button class="quick-btn"
+onclick="window.open('https://hylinecruises.com','_blank')">
+Open Hy-Line
+</button>
+
 </div>
 
 </div>
@@ -594,6 +682,21 @@ fetch('places.json')
 
 
 
+
+
+function showTab(tabId, btn){
+
+document.getElementById('taxiTab').style.display='none';
+document.getElementById('ferryTab').style.display='none';
+
+document.getElementById(tabId).style.display='block';
+
+document.querySelectorAll('.tab-btn').forEach(b=>{
+b.classList.remove('active-tab');
+});
+
+btn.classList.add('active-tab');
+}
 
 function changeValue(id, delta){
 
