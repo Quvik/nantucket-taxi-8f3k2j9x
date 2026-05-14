@@ -1430,13 +1430,6 @@ function initAutocomplete(){
   `;
   document.body.appendChild(acDropdown);
 
-  function positionDropdown(){
-    const r = input.getBoundingClientRect();
-    acDropdown.style.top   = (r.bottom + 4) + 'px';
-    acDropdown.style.left  = r.left + 'px';
-    acDropdown.style.width = r.width + 'px';
-  }
-
   // Input → debounced search
   input.addEventListener('input', ()=>{
     window.selectedPlace = null;
@@ -1537,6 +1530,15 @@ function selectPrediction(pred){
     hideDropdown();
     try{ calculateFare(); }catch(e){}
   });
+}
+
+function positionDropdown(){
+  const input = document.getElementById('destination');
+  if(!input||!acDropdown) return;
+  const r = input.getBoundingClientRect();
+  acDropdown.style.top   = (r.bottom + 4) + 'px';
+  acDropdown.style.left  = r.left + 'px';
+  acDropdown.style.width = r.width + 'px';
 }
 
 function hideDropdown(){ if(acDropdown) acDropdown.style.display='none'; }
