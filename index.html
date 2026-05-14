@@ -591,6 +591,7 @@ Quick Favorites
 <button class="primary" onclick="calculateFare()">Calculate</button>
 <button class="secondary" onclick="openWaze()">Waze</button>
 <button class="secondary" onclick="openGoogleMaps()">Maps</button>
+<button class="secondary" onclick="resetAll()" style="background:#2a1a1a;color:#ff453a;">↺</button>
 </div>
 
 
@@ -1171,6 +1172,29 @@ window.addEventListener('load',()=>{
   document.getElementById('ferryDateLabel').innerText=ferryLabel(new Date());
 });
 
+
+function resetAll(){
+    // Clear destination
+    document.getElementById('destination').value = '';
+    lastDestinationAddress = '';
+    window.selectedPlace = null;
+    hideDropdown();
+    // Reset counters to defaults
+    const defaults = { passengers:1, dogs:0, bikes:0, bags:0 };
+    for(const [id, val] of Object.entries(defaults)){
+        document.getElementById(id).value = val;
+        document.getElementById(id+'Value').innerText = val;
+    }
+    // Reset night/dirt toggles
+    chipState.nightFee = false;
+    chipState.dirtRoad = false;
+    document.getElementById('nightFeeBtn').classList.remove('on');
+    document.getElementById('dirtRoadBtn').classList.remove('on');
+    // Clear fare display
+    document.getElementById('destinationZone').innerText = '-';
+    document.getElementById('fare').innerText = '$ -';
+    document.getElementById('fareBreakdown').innerHTML = '';
+}
 
 function toggleMap(){
     const mapEl = document.getElementById('map');
