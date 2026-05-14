@@ -1000,14 +1000,21 @@ async function refreshFerryLive(){
       const now=new Date();
       const parsed=merged.map(a=>({...a,dateObj:parseFT(a.time,td)})).sort((a,b)=>a.dateObj-b.dateObj);
       const upcoming=parsed.filter(a=>a.dateObj>now);
+      const hySource = hy ? 'hylinecruises.com' : (all ? 'nantucketferries.com' : '—');
       if(upcoming.length>0){
+        // Live has upcoming ferries — use live data fully
         ferryLiveCache[dateKey(td)]=parsed;
         renderFerryTab('live');
-        const hySource = hy ? 'hylinecruises.com' : (all ? 'nantucketferries.com' : '—');
         icon.innerText='✅';
         lbl.innerText=`Live · Hy-Line: ${hySource}`;
       } else {
-        icon.innerText='📋'; lbl.innerText='Все паромы уже прибыли';
+        // Live only has past ferries — combine with built-in future so display stays correct
+        const builtinFuture=(builtinArrivals(td)||[]).filter(a=>a.dateObj>now);
+        const hybrid=[...parsed,...builtinFuture].sort((a,b)=>a.dateObj-b.dateObj);
+        ferryLiveCache[dateKey(td)]=hybrid;
+        renderFerryTab('live');
+        icon.innerText='📋';
+        lbl.innerText=`Live прошедшие · расписание встроенное`;
       }
     } else { icon.innerText='📋'; lbl.innerText='Нет live данных'; }
   }catch(e){ icon.innerText='⚠️'; lbl.innerText='Нет связи'; }
