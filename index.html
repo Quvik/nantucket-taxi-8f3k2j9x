@@ -103,6 +103,19 @@ select {
     font-weight:600;
 }
 
+.toggle-chip {
+    border:none;
+    cursor:pointer;
+    color:white;
+    flex:1;
+    justify-content:center;
+    transition:background .2s;
+}
+
+.toggle-chip.on {
+    background:#0A84FF;
+}
+
 .quick-scroll {
     display:grid;
     grid-template-columns:1fr 1fr;
@@ -492,17 +505,8 @@ to{opacity:1;transform:translateY(0);}
 
 <div class="card">
 <div class="chips">
-
-<label class="chip">
-<input type="checkbox" id="nightFee">
-🌙 Night +$5
-</label>
-
-<label class="chip">
-<input type="checkbox" id="dirtRoad">
-🛣 Dirt +$5
-</label>
-
+<button class="chip toggle-chip" id="nightFeeBtn" onclick="toggleChip(this,'nightFee')">🌙 Night +$5</button>
+<button class="chip toggle-chip" id="dirtRoadBtn" onclick="toggleChip(this,'dirtRoad')">🛣 Dirt +$5</button>
 </div>
 </div>
 
@@ -536,13 +540,13 @@ Quick Favorites
 <div id="fareBreakdown"></div>
 </div>
 
+<button class="map-toggle-btn" onclick="toggleMap()" id="mapToggleBtn">🗺 Show Map</button>
+<div id="map"></div>
+
 </div>
 
 
-</div>
-
-
-<div id="ferryTab" style="display:none;padding:14px 14px 130px;">
+</div> style="display:none;padding:14px 14px 130px;">
 
   <div id="rushIndicatorCard" style="background:#17181d;border:1px solid #2a2a2a;border-radius:18px;padding:16px;margin-bottom:10px;">
     <div style="opacity:.55;font-size:13px;margin-bottom:4px;">Статус</div>
@@ -580,11 +584,6 @@ Quick Favorites
   <div id="notifyStatus" style="font-size:12px;opacity:.5;text-align:center;margin-top:6px;"></div>
 
 </div>
-
-<button class="map-toggle-btn" onclick="toggleMap()" id="mapToggleBtn">🗺 Show Map</button>
-<div id="map"></div>
-
-
 
 <div class="sticky-bar">
 <button class="primary" onclick="calculateFare()">Calculate</button>
@@ -790,15 +789,15 @@ splash.remove();
 }
 },1200);
 
-const watched = [
-'destination',
-'passengers',
-'dogs',
-'bikes',
-'bags',
-'nightFee',
-'dirtRoad'
-];
+const chipState = { nightFee: false, dirtRoad: false };
+
+function toggleChip(btn, id) {
+    chipState[id] = !chipState[id];
+    btn.classList.toggle('on', chipState[id]);
+    try { calculateFare(); } catch(e) {}
+}
+
+const watched = ['destination','passengers','dogs','bikes','bags'];
 
 watched.forEach(id=>{
 
@@ -962,22 +961,51 @@ async function scrapeLive(){
   return arrivals.length>0?arrivals:null;
 }
 
+async function scrapeHyLine(){
+  let html=null;
+  for(const mk of PROXIES){
+    try{
+      const r=await fetch(mk('https://www.hylinecruises.com/schedules/'),{signal:AbortSignal.timeout(9000)});
+      if(r.ok){html=await r.text();break;}
+    }catch(e){}
+  }
+  if(!html)return null;
+  const text=html.replace(/<[^>]+>/g,' ').replace(/&[a-z#\d]+;/gi,' ').replace(/\s+/g,' ');
+  // Find Hyannis → Nantucket direction block
+  const block=text.match(/Hyannis.{0,50}Nantucket[\s\S]{0,6000}?(?=Nantucket.{0,50}Hyannis|$)/i)?.[0];
+  if(!block)return null;
+  // Extract times like "7:10 AM" or "7:10AM"
+  const times=[...block.matchAll(/\b(\d{1,2}:\d{2}\s*(?:AM|PM|am|pm))\b/g)]
+    .map(m=>m[1].replace(/\s*(am)$/i,'AM').replace(/\s*(pm)$/i,'PM').trim());
+  const unique=[...new Set(times)];
+  return unique.length?unique.map(t=>({time:t,line:'Hy-Line',from:'Hyannis',type:'High-Speed',source:'hyline'})):null;
+}
+
 async function refreshFerryLive(){
   const btn=document.getElementById('refreshFerryBtn');
   const icon=document.getElementById('refreshIcon');
   const lbl=document.getElementById('refreshLabel');
   icon.innerText='⏳'; lbl.innerText='Подключаюсь...'; btn.disabled=true;
   try{
-    const raw=await scrapeLive();
-    if(raw&&raw.length>0){
-      const td=ferryTargetDate(ferryDayOffset);
-      ferryLiveCache[dateKey(td)]=raw.map(a=>({...a,dateObj:parseFT(a.time,td)})).sort((a,b)=>a.dateObj-b.dateObj);
+    const td=ferryTargetDate(ferryDayOffset);
+    // Try Hy-Line first (user-preferred), then fallback to nantucketferries.com
+    const [hyRaw, allRaw] = await Promise.allSettled([scrapeHyLine(), scrapeLive()]);
+    const hy  = hyRaw.status==='fulfilled'  ? hyRaw.value  : null;
+    const all = allRaw.status==='fulfilled' ? allRaw.value : null;
+
+    // Merge: start with nantucketferries data, replace/add Hy-Line from their own site
+    let merged = all ? [...all.filter(a=>!a.line.toLowerCase().includes('hy'))] : [];
+    if(hy&&hy.length) merged = [...merged, ...hy];
+    else if(all)      merged = [...merged, ...(all.filter(a=>a.line.toLowerCase().includes('hy')))];
+
+    if(merged.length>0){
+      ferryLiveCache[dateKey(td)]=merged.map(a=>({...a,dateObj:parseFT(a.time,td)})).sort((a,b)=>a.dateObj-b.dateObj);
       renderFerryTab('live');
-      icon.innerText='✅'; lbl.innerText='Обновлено live!';
+      icon.innerText='✅'; lbl.innerText=hy?'Live (Hy-Line + общий)':'Обновлено live!';
     } else { icon.innerText='📋'; lbl.innerText='Встроенные данные'; }
   }catch(e){ icon.innerText='⚠️'; lbl.innerText='Нет связи'; }
   btn.disabled=false;
-  setTimeout(()=>{ icon.innerText='🔄'; lbl.innerText='Live-обновление'; },3000);
+  setTimeout(()=>{ icon.innerText='🔄'; lbl.innerText='Live-обновление'; },4000);
 }
 
 function renderFerryTab(forceSource){
@@ -1243,11 +1271,8 @@ async function calculateFare() {
 
     const bagCharge = bags * 2;
 
-    const nightCharge =
-        document.getElementById('nightFee').checked ? 5 : 0;
-
-    const dirtCharge =
-        document.getElementById('dirtRoad').checked ? 5 : 0;
+    const nightCharge = chipState.nightFee ? 5 : 0;
+    const dirtCharge  = chipState.dirtRoad  ? 5 : 0;
 
     let destinationZone = null;
     let lat = null;
@@ -1428,17 +1453,24 @@ function initAutocomplete(){
 }
 
 function fetchSuggestions(query){
+  const nanBounds = new google.maps.LatLngBounds(
+    new google.maps.LatLng(41.230, -70.240),
+    new google.maps.LatLng(41.340, -69.950)
+  );
   acService.getPlacePredictions({
-    input: query + ' Nantucket MA',
+    input: query,
     sessionToken: sessionToken,
-    locationBias: { center: new google.maps.LatLng(41.283,-70.099), radius: 12000 },
+    bounds: nanBounds,
+    strictBounds: true,
     componentRestrictions: { country:'us' },
     types: ['geocode','establishment']
   }, (predictions, status)=>{
     if(status !== google.maps.places.PlacesServiceStatus.OK || !predictions){ hideDropdown(); return; }
-    // Keep only Nantucket results
-    const nan = predictions.filter(p=>p.description.toLowerCase().includes('nantucket'));
-    renderDropdown(nan.length ? nan : predictions.slice(0,4));
+    // Filter by secondary_text to ensure results are in Nantucket (not just streets named "Nantucket")
+    const nan = predictions.filter(p =>
+      (p.structured_formatting?.secondary_text||'').toLowerCase().includes('nantucket')
+    );
+    renderDropdown((nan.length ? nan : predictions).slice(0,5));
   });
 }
 
