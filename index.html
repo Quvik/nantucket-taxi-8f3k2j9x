@@ -458,7 +458,14 @@ to{opacity:1;transform:translateY(0);}
 <div class="card zone-card" onclick="openZonePicker()">
 <div class="zone-label" style="display:flex;align-items:center;justify-content:space-between;">
   <span>Current Zone</span>
-  <span id="zoneSourceIcon" style="font-size:13px;opacity:.5;font-weight:600;letter-spacing:.5px;">📍 GPS</span>
+  <div style="display:flex;align-items:center;gap:10px;">
+    <span id="weatherWidget" style="font-size:13px;font-weight:700;opacity:.85;display:flex;align-items:center;gap:4px;">
+      <span id="wxIcon">—</span>
+      <span id="wxTemp"></span>
+      <span id="wxWind" style="opacity:.6;font-weight:600;"></span>
+    </span>
+    <span id="zoneSourceIcon" style="font-size:13px;opacity:.5;font-weight:600;letter-spacing:.5px;">📍 GPS</span>
+  </div>
 </div>
 <div class="zone-value" id="currentZone">Detecting...</div>
 </div>
@@ -1213,6 +1220,8 @@ window.addEventListener('load',()=>{
   document.getElementById('ferryDateLabel').innerText=ferryLabel(new Date());
   updateFerryWidget();
   setInterval(updateFerryWidget, 30000);
+  loadWeather();
+  setInterval(loadWeather, 15*60*1000);
 });
 
 function updateFerryWidget(){
@@ -1240,6 +1249,33 @@ function updateFerryWidget(){
   widget.style.borderColor = hot ? '#ff9f0a' : '#2a2a2a';
 }
 
+// ── Weather widget (Open-Meteo, no API key) ──────────────────
+const WX_ICONS = {
+  0:'☀️', 1:'🌤', 2:'⛅', 3:'☁️',
+  45:'🌫', 48:'🌫',
+  51:'🌦', 53:'🌦', 55:'🌧',
+  61:'🌧', 63:'🌧', 65:'🌧',
+  71:'🌨', 73:'🌨', 75:'🌨', 77:'🌨',
+  80:'🌦', 81:'🌦', 82:'🌧',
+  85:'🌨', 86:'🌨',
+  95:'⛈', 96:'⛈', 99:'⛈'
+};
+
+async function loadWeather(){
+  try{
+    const url='https://api.open-meteo.com/v1/forecast?latitude=41.2835&longitude=-70.0995&current=temperature_2m,weathercode,windspeed_10m&temperature_unit=fahrenheit&windspeed_unit=mph&timezone=America%2FNew_York';
+    const r=await fetch(url,{signal:AbortSignal.timeout(8000)});
+    if(!r.ok)return;
+    const d=await r.json();
+    const c=d.current;
+    const icon=WX_ICONS[c.weathercode]??'🌡';
+    const temp=Math.round(c.temperature_2m)+'°F';
+    const wind=Math.round(c.windspeed_10m)+'mph';
+    document.getElementById('wxIcon').innerText=icon;
+    document.getElementById('wxTemp').innerText=temp;
+    document.getElementById('wxWind').innerText='💨'+wind;
+  }catch(e){}
+}
 
 function resetAll(){
     haptic([30, 50, 30]);
