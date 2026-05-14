@@ -791,14 +791,6 @@ splash.remove();
 }
 },1200);
 
-const chipState = { nightFee: false, dirtRoad: false };
-
-function toggleChip(btn, id) {
-    chipState[id] = !chipState[id];
-    btn.classList.toggle('on', chipState[id]);
-    try { calculateFare(); } catch(e) {}
-}
-
 const watched = ['destination','passengers','dogs','bikes','bags'];
 
 watched.forEach(id=>{
@@ -1001,9 +993,16 @@ async function refreshFerryLive(){
     else if(all)      merged = [...merged, ...(all.filter(a=>a.line.toLowerCase().includes('hy')))];
 
     if(merged.length>0){
-      ferryLiveCache[dateKey(td)]=merged.map(a=>({...a,dateObj:parseFT(a.time,td)})).sort((a,b)=>a.dateObj-b.dateObj);
-      renderFerryTab('live');
-      icon.innerText='✅'; lbl.innerText=hy?'Live (Hy-Line + общий)':'Обновлено live!';
+      const now=new Date();
+      const parsed=merged.map(a=>({...a,dateObj:parseFT(a.time,td)})).sort((a,b)=>a.dateObj-b.dateObj);
+      const upcoming=parsed.filter(a=>a.dateObj>now);
+      if(upcoming.length>0){
+        ferryLiveCache[dateKey(td)]=parsed;
+        renderFerryTab('live');
+        icon.innerText='✅'; lbl.innerText=hy?'Live (Hy-Line + общий)':'Обновлено live!';
+      } else {
+        icon.innerText='📋'; lbl.innerText='Все рейсы прошли — встроенные данные';
+      }
     } else { icon.innerText='📋'; lbl.innerText='Встроенные данные'; }
   }catch(e){ icon.innerText='⚠️'; lbl.innerText='Нет связи'; }
   btn.disabled=false;
@@ -1237,6 +1236,13 @@ function openWaze() {
 
 // AUTOCOMPLETE — handled by initAutocomplete() below
 
+const chipState = { nightFee: false, dirtRoad: false };
+
+function toggleChip(btn, id) {
+    chipState[id] = !chipState[id];
+    btn.classList.toggle('on', chipState[id]);
+    try { calculateFare(); } catch(e) {}
+}
 
 async function calculateFare() {
 
