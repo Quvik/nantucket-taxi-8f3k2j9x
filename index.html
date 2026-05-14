@@ -505,9 +505,9 @@ to{opacity:1;transform:translateY(0);}
 <div class="counter-box">
 <div class="counter-title">Passengers</div>
 <div class="counter-controls">
-<button class="counter-btn" onmousedown="startHold('passengers',-1)" ontouchstart="startHold('passengers',-1)" onmouseup="stopHold()" onmouseleave="stopHold()" ontouchend="stopHold()">−</button>
+<button class="counter-btn" onclick="changeValue('passengers',-1)">−</button>
 <div class="counter-value passenger-big" id="passengersValue">1</div>
-<button class="counter-btn" onmousedown="startHold('passengers',1)" ontouchstart="startHold('passengers',1)" onmouseup="stopHold()" onmouseleave="stopHold()" ontouchend="stopHold()">+</button>
+<button class="counter-btn" onclick="changeValue('passengers',1)">+</button>
 </div>
 <input type="hidden" id="passengers" value="1">
 </div>
@@ -516,9 +516,9 @@ to{opacity:1;transform:translateY(0);}
 <div class="counter-box">
 <div class="counter-title">🐶 Dogs</div>
 <div class="counter-controls">
-<button class="counter-btn" onmousedown="startHold('dogs',-1)" ontouchstart="startHold('dogs',-1)" onmouseup="stopHold()" onmouseleave="stopHold()" ontouchend="stopHold()">−</button>
+<button class="counter-btn" onclick="changeValue('dogs',-1)">−</button>
 <div class="counter-value" id="dogsValue">0</div>
-<button class="counter-btn" onmousedown="startHold('dogs',1)" ontouchstart="startHold('dogs',1)" onmouseup="stopHold()" onmouseleave="stopHold()" ontouchend="stopHold()">+</button>
+<button class="counter-btn" onclick="changeValue('dogs',1)">+</button>
 </div>
 <input type="hidden" id="dogs" value="0">
 </div>
@@ -530,9 +530,9 @@ to{opacity:1;transform:translateY(0);}
 <div class="counter-box">
 <div class="counter-title">🚲 Bikes</div>
 <div class="counter-controls">
-<button class="counter-btn" onmousedown="startHold('bikes',-1)" ontouchstart="startHold('bikes',-1)" onmouseup="stopHold()" onmouseleave="stopHold()" ontouchend="stopHold()">−</button>
+<button class="counter-btn" onclick="changeValue('bikes',-1)">−</button>
 <div class="counter-value" id="bikesValue">0</div>
-<button class="counter-btn" onmousedown="startHold('bikes',1)" ontouchstart="startHold('bikes',1)" onmouseup="stopHold()" onmouseleave="stopHold()" ontouchend="stopHold()">+</button>
+<button class="counter-btn" onclick="changeValue('bikes',1)">+</button>
 </div>
 <input type="hidden" id="bikes" value="0">
 </div>
@@ -541,9 +541,9 @@ to{opacity:1;transform:translateY(0);}
 <div class="counter-box">
 <div class="counter-title">🧳 Bags</div>
 <div class="counter-controls">
-<button class="counter-btn" onmousedown="startHold('bags',-1)" ontouchstart="startHold('bags',-1)" onmouseup="stopHold()" onmouseleave="stopHold()" ontouchend="stopHold()">−</button>
+<button class="counter-btn" onclick="changeValue('bags',-1)">−</button>
 <div class="counter-value" id="bagsValue">0</div>
-<button class="counter-btn" onmousedown="startHold('bags',1)" ontouchstart="startHold('bags',1)" onmouseup="stopHold()" onmouseleave="stopHold()" ontouchend="stopHold()">+</button>
+<button class="counter-btn" onclick="changeValue('bags',1)">+</button>
 </div>
 <input type="hidden" id="bags" value="0">
 </div>
@@ -1338,23 +1338,8 @@ function toggleMap(){
     if(!visible) map.invalidateSize();
 }
 
-let holdTimer = null, holdInterval = null;
-
-function startHold(id, delta){
-  haptic(10);
-  changeValue(id, delta);
-  holdTimer = setTimeout(()=>{
-    holdInterval = setInterval(()=>{ haptic(6); changeValue(id, delta); }, 80);
-  }, 450);
-}
-
-function stopHold(){
-  clearTimeout(holdTimer);
-  clearInterval(holdInterval);
-  holdTimer = null; holdInterval = null;
-}
-
 function changeValue(id, delta){
+  haptic(10);
 
 const input = document.getElementById(id);
 const display = document.getElementById(id + 'Value');
@@ -1362,7 +1347,7 @@ const display = document.getElementById(id + 'Value');
 let current = parseInt(input.value || 0);
 
 const limits = {
-passengers:[1,6],
+passengers:[1,14],
 dogs:[0,3],
 bikes:[0,3],
 bags:[0,4]
