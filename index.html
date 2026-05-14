@@ -518,7 +518,7 @@ Quick Favorites
 <button class="quick-btn" onclick="setDestination('The Wauwinet')">🌊 Wauwinet</button>
 <button class="quick-btn" onclick="setDestination('Cisco Brewers')">🍺 Cisco Brewers</button>
 <button class="quick-btn" onclick="setDestination('Siasconset Beach')">🏖 Sconset</button>
-<button class="quick-btn" onclick="setDestination('Stop & Shop')">🛒 Stop & Shop</button>
+<button class="quick-btn" onclick="setDestination('Surfside Beach')">🏄 Surfside</button>
 <button class="quick-btn" onclick="setDestination('Madaket Beach')">🌅 Madaket</button>
 <button class="quick-btn" onclick="setDestination('Nantucket Cottage Hospital')">🏥 Hospital</button>
 <button class="quick-btn" onclick="setDestination('The Nantucket Hotel')">🏨 Nantucket Hotel</button>
@@ -674,15 +674,12 @@ fetch('zones.kml')
 
     zonesGeoJSON = toGeoJSON.kml(kml);
 
-    const layer = L.geoJSON(zonesGeoJSON, {
-        style: {
-            color: '#00bfff',
-            weight: 2,
-            fillOpacity: 0.2
-        }
-    }).addTo(map);
-
-    map.fitBounds(layer.getBounds());
+    try {
+        const layer = L.geoJSON(zonesGeoJSON, {
+            style: { color: '#00bfff', weight: 2, fillOpacity: 0.2 }
+        }).addTo(map);
+        map.fitBounds(layer.getBounds());
+    } catch(e) {}
 
     detectCurrentLocation();
 });
@@ -955,7 +952,7 @@ async function scrapeLive(){
     let m;
     while((m=rx.exec(block[0]))!==null){
       const raw=m[2].replace(/\./g,'').trim();
-      const t=raw.replace(/a m$/i,'AM').replace(/p m$/i,'PM').replace(/\s+/g,' ').trim();
+      const t=raw.replace(/\s*am$/i,'AM').replace(/\s*pm$/i,'PM').replace(/\s+/g,' ').trim();
       arrivals.push({time:t,line:m[3].trim(),from:fromPort,type:ferryType,source:'live'});
     }
   }
@@ -1128,15 +1125,8 @@ function checkFerryNotifications(){
     });
 }
 
-window.addEventListener('load',async()=>{
+window.addEventListener('load',()=>{
   document.getElementById('ferryDateLabel').innerText=ferryLabel(new Date());
-  try{
-    const raw=await scrapeLive();
-    if(raw&&raw.length>0){
-      const td=ferryTargetDate(0);
-      ferryLiveCache[dateKey(td)]=raw.map(a=>({...a,dateObj:parseFT(a.time,td)})).sort((a,b)=>a.dateObj-b.dateObj);
-    }
-  }catch(e){}
 });
 
 
