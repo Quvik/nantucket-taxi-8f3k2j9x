@@ -1242,6 +1242,7 @@ function updateFerryWidget(){
 
 
 function resetAll(){
+    haptic([30, 50, 30]);
     // Clear destination
     document.getElementById('destination').value = '';
     lastDestinationAddress = '';
@@ -1284,9 +1285,10 @@ function toggleMap(){
 let holdTimer = null, holdInterval = null;
 
 function startHold(id, delta){
+  haptic(10);
   changeValue(id, delta);
   holdTimer = setTimeout(()=>{
-    holdInterval = setInterval(()=>changeValue(id, delta), 80);
+    holdInterval = setInterval(()=>{ haptic(6); changeValue(id, delta); }, 80);
   }, 450);
 }
 
@@ -1329,6 +1331,7 @@ display.innerText = current;
 
 
 function setDestination(placeName) {
+    haptic(10);
     document.getElementById('destination').value = placeName;
     lastDestinationAddress = placeName;
 }
@@ -1364,16 +1367,20 @@ function openWaze() {
 
 // AUTOCOMPLETE — handled by initAutocomplete() below
 
+// Haptic feedback — works on Android; iOS Safari ignores silently
+function haptic(pattern){ try{ navigator.vibrate(pattern); }catch(e){} }
+
 const chipState = { nightFee: false, dirtRoad: false };
 
 function toggleChip(btn, id) {
+    haptic(12);
     chipState[id] = !chipState[id];
     btn.classList.toggle('on', chipState[id]);
     try { calculateFare(); } catch(e) {}
 }
 
 async function calculateFare() {
-
+    haptic(15);
     const address = document.getElementById('destination').value.trim();
 
     if (!address) {
