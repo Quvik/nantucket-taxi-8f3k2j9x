@@ -535,46 +535,37 @@ Quick Favorites
 </div>
 
 
-<div id="ferryTab" style="display:none;padding:14px;">
+<div id="ferryTab" style="display:none;padding:14px 14px 130px;">
 
-<div class="card">
+  <div id="rushIndicatorCard" style="background:#17181d;border:1px solid #2a2a2a;border-radius:18px;padding:16px;margin-bottom:10px;">
+    <div style="opacity:.55;font-size:13px;margin-bottom:4px;">Статус</div>
+    <div style="font-size:20px;font-weight:800;">⏳ Загрузка...</div>
+  </div>
 
-<div style="font-size:32px;font-weight:800;margin-bottom:20px;">
-⛴ Next Arrivals To Nantucket
-</div>
+  <div style="display:flex;gap:10px;margin-bottom:10px;align-items:stretch;">
+    <button id="refreshFerryBtn" onclick="refreshFerryLive()" style="flex:1;background:linear-gradient(135deg,#0A84FF,#005ecb);color:white;border:none;border-radius:16px;padding:14px;font-size:16px;font-weight:800;display:flex;align-items:center;justify-content:center;gap:8px;">
+      <span id="refreshIcon">🔄</span>
+      <span id="refreshLabel">Live-обновление</span>
+    </button>
+    <div style="display:flex;gap:6px;">
+      <button class="counter-btn" onclick="shiftFerryDay(-1)" style="font-size:20px;width:48px;border-radius:14px;">‹</button>
+      <button class="counter-btn" onclick="shiftFerryDay(1)"  style="font-size:20px;width:48px;border-radius:14px;">›</button>
+    </div>
+  </div>
 
-<div id="rushIndicatorCard"
-style="
-background:#17181d;
-border:1px solid #2a2a2a;
-border-radius:18px;
-padding:18px;
-margin-bottom:24px;
-">
-Loading ferry activity...
-</div>
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+    <div style="font-size:18px;font-weight:800;" id="ferryDateLabel">Сегодня</div>
+    <div id="ferrySourceBadge" style="font-size:11px;padding:4px 10px;border-radius:20px;background:#1e1e28;color:#aaa;"></div>
+  </div>
 
-<div id="steamshipArrivalCard"></div>
+  <div id="ferryArrivalsContainer">
+    <div style="text-align:center;padding:40px;opacity:.4;">Загрузка...</div>
+  </div>
 
-<br>
-
-<div id="hylineArrivalCard"></div>
-
-<br>
-
-<button class="quick-btn"
-onclick="window.open('https://www.steamshipauthority.com/traveling_today/status','_blank')">
-Steamship Status
-</button>
-
-<br><br>
-
-<button class="quick-btn"
-onclick="window.open('https://hylinecruises.com/schedules/','_blank')">
-Hy-Line Schedule
-</button>
-
-</div>
+  <div style="display:flex;gap:10px;margin-top:12px;">
+    <button class="quick-btn" style="flex:1;" onclick="window.open('https://www.steamshipauthority.com/traveling_today/status','_blank')">🚢 Steamship</button>
+    <button class="quick-btn" style="flex:1;" onclick="window.open('https://hylinecruises.com/schedules/','_blank')">🚤 Hy-Line</button>
+  </div>
 
 </div>
 
@@ -813,279 +804,263 @@ el.addEventListener('change',autoCalculate);
 
 
 function showTab(tabId, btn){
-
-document.getElementById('taxiTab').style.display='none';
-document.getElementById('ferryTab').style.display='none';
-
-document.getElementById(tabId).style.display='block';
-
-document.querySelectorAll('.tab-btn').forEach(b=>{
-b.classList.remove('active-tab');
-});
-
-btn.classList.add('active-tab');
+  document.getElementById('taxiTab').style.display='none';
+  document.getElementById('ferryTab').style.display='none';
+  document.getElementById(tabId).style.display='block';
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active-tab'));
+  btn.classList.add('active-tab');
+  if(tabId==='ferryTab'){ renderFerryTab(); startFerryTick(); }
+  else { stopFerryTick(); }
 }
 
+// ═══════════════════════════════════════════════════════════
+//  FERRY ENGINE — встроенное расписание + live scrape
+// ═══════════════════════════════════════════════════════════
+const FERRY_BUILTIN = [
+  {
+    from:"2026-05-13", to:"2026-06-10", label:"May 13 – Jun 10",
+    arrivals:[
+      {time:"7:10 AM",  line:"Hy-Line",   from:"Hyannis",     type:"High-Speed"},
+      {time:"9:15 AM",  line:"Steamship", from:"Hyannis",     type:"High-Speed"},
+      {time:"9:30 AM",  line:"Hy-Line",   from:"Hyannis",     type:"High-Speed", note:"отдельные дни"},
+      {time:"10:30 AM", line:"Hy-Line",   from:"Hyannis",     type:"High-Speed"},
+      {time:"12:00 PM", line:"Steamship", from:"Hyannis",     type:"High-Speed"},
+      {time:"12:20 PM", line:"Hy-Line",   from:"Hyannis",     type:"High-Speed"},
+      {time:"1:45 PM",  line:"Hy-Line",   from:"Hyannis",     type:"High-Speed"},
+      {time:"3:00 PM",  line:"Steamship", from:"Hyannis",     type:"High-Speed"},
+      {time:"3:25 PM",  line:"Hy-Line",   from:"Hyannis",     type:"High-Speed"},
+      {time:"5:15 PM",  line:"Hy-Line",   from:"Hyannis",     type:"High-Speed"},
+      {time:"6:00 PM",  line:"Steamship", from:"Hyannis",     type:"High-Speed"},
+      {time:"6:40 PM",  line:"Hy-Line",   from:"Hyannis",     type:"High-Speed"},
+      {time:"8:30 PM",  line:"Steamship", from:"Hyannis",     type:"High-Speed"},
+      {time:"9:00 PM",  line:"Hy-Line",   from:"Hyannis",     type:"High-Speed"},
+      {time:"8:45 AM",  line:"Steamship", from:"Hyannis",     type:"Traditional", days:[0,6]},
+      {time:"11:30 AM", line:"Steamship", from:"Hyannis",     type:"Traditional", days:[0,6]},
+      {time:"2:15 PM",  line:"Steamship", from:"Hyannis",     type:"Traditional", days:[0,6]},
+      {time:"5:00 PM",  line:"Steamship", from:"Hyannis",     type:"Traditional", days:[0,6]},
+      {time:"7:45 PM",  line:"Steamship", from:"Hyannis",     type:"Traditional", days:[0,6]},
+      {time:"10:45 AM", line:"Seastreak", from:"New Bedford",  type:"High-Speed"},
+      {time:"4:00 PM",  line:"Seastreak", from:"New Bedford",  type:"High-Speed"},
+    ]
+  },
+  {
+    from:"2026-06-11", to:"2026-09-07", label:"Jun 11 – Sep 7",
+    arrivals:[
+      {time:"7:10 AM",  line:"Hy-Line",   from:"Hyannis",     type:"High-Speed"},
+      {time:"9:15 AM",  line:"Steamship", from:"Hyannis",     type:"High-Speed"},
+      {time:"9:30 AM",  line:"Hy-Line",   from:"Hyannis",     type:"High-Speed"},
+      {time:"10:15 AM", line:"Hy-Line",   from:"Hyannis",     type:"High-Speed"},
+      {time:"10:10 AM", line:"Freedom",   from:"Harwich Port",type:"Fast Ferry"},
+      {time:"10:45 AM", line:"Seastreak", from:"New Bedford",  type:"High-Speed"},
+      {time:"11:30 AM", line:"Steamship", from:"Hyannis",     type:"Traditional"},
+      {time:"12:20 PM", line:"Hy-Line",   from:"Hyannis",     type:"High-Speed"},
+      {time:"1:30 PM",  line:"Steamship", from:"Hyannis",     type:"High-Speed"},
+      {time:"1:45 PM",  line:"Hy-Line",   from:"Hyannis",     type:"High-Speed"},
+      {time:"2:45 PM",  line:"Steamship", from:"Hyannis",     type:"Traditional"},
+      {time:"3:25 PM",  line:"Hy-Line",   from:"Hyannis",     type:"High-Speed"},
+      {time:"4:00 PM",  line:"Seastreak", from:"New Bedford",  type:"High-Speed"},
+      {time:"5:00 PM",  line:"Steamship", from:"Hyannis",     type:"High-Speed"},
+      {time:"5:15 PM",  line:"Hy-Line",   from:"Hyannis",     type:"High-Speed"},
+      {time:"6:00 PM",  line:"Steamship", from:"Hyannis",     type:"High-Speed"},
+      {time:"6:40 PM",  line:"Hy-Line",   from:"Hyannis",     type:"High-Speed"},
+      {time:"7:45 PM",  line:"Steamship", from:"Hyannis",     type:"Traditional"},
+      {time:"8:05 PM",  line:"Hy-Line",   from:"Hyannis",     type:"High-Speed"},
+      {time:"8:30 PM",  line:"Steamship", from:"Hyannis",     type:"High-Speed"},
+      {time:"9:00 PM",  line:"Hy-Line",   from:"Hyannis",     type:"High-Speed"},
+      {time:"10:15 PM", line:"Steamship", from:"Hyannis",     type:"Traditional"},
+    ]
+  },
+  {
+    from:"2026-09-08", to:"2026-10-31", label:"Sep 8 – Oct 31",
+    arrivals:[
+      {time:"7:10 AM",  line:"Hy-Line",   from:"Hyannis",     type:"High-Speed"},
+      {time:"9:15 AM",  line:"Steamship", from:"Hyannis",     type:"High-Speed"},
+      {time:"9:30 AM",  line:"Hy-Line",   from:"Hyannis",     type:"High-Speed"},
+      {time:"12:00 PM", line:"Steamship", from:"Hyannis",     type:"High-Speed"},
+      {time:"12:20 PM", line:"Hy-Line",   from:"Hyannis",     type:"High-Speed"},
+      {time:"1:45 PM",  line:"Hy-Line",   from:"Hyannis",     type:"High-Speed"},
+      {time:"3:00 PM",  line:"Steamship", from:"Hyannis",     type:"High-Speed"},
+      {time:"3:25 PM",  line:"Hy-Line",   from:"Hyannis",     type:"High-Speed"},
+      {time:"5:15 PM",  line:"Hy-Line",   from:"Hyannis",     type:"High-Speed"},
+      {time:"6:00 PM",  line:"Steamship", from:"Hyannis",     type:"High-Speed"},
+      {time:"6:40 PM",  line:"Hy-Line",   from:"Hyannis",     type:"High-Speed"},
+      {time:"8:30 PM",  line:"Steamship", from:"Hyannis",     type:"High-Speed"},
+      {time:"9:00 PM",  line:"Hy-Line",   from:"Hyannis",     type:"High-Speed"},
+    ]
+  }
+];
 
+let ferryDayOffset=0, ferryTickId=null, ferryLiveCache={};
 
-let steamshipArrivals = [];
-let hylineArrivals = [];
-
-async function loadFerrySchedules(){
-
-try{
-
-const response = await fetch('./ferries.json');
-
-const data = await response.json();
-
-steamshipArrivals = data.steamship || [];
-hylineArrivals = data.hyline || [];
-
-}catch(e){
-
-console.log('Unable to load ferries.json');
+function ferryTargetDate(off){ const d=new Date(); d.setDate(d.getDate()+(off||0)); return d; }
+function dateKey(d){ return d.toISOString().slice(0,10); }
+function ferryLabel(d){
+  const diff=Math.round((new Date(dateKey(d))-new Date(dateKey(new Date())))/86400000);
+  if(diff===0) return 'Сегодня'; if(diff===1) return 'Завтра'; if(diff===-1) return 'Вчера';
+  return d.toLocaleDateString('ru-RU',{weekday:'short',day:'numeric',month:'short'});
 }
+function parseFT(t,base){
+  const[ts,mod]=t.trim().split(' '); let[h,m]=ts.split(':').map(Number);
+  if(mod==='PM'&&h!==12)h+=12; if(mod==='AM'&&h===12)h=0;
+  const d=new Date(base); d.setHours(h,m,0,0); return d;
 }
-
-
-function parseTime(str){
-
-const now = new Date();
-
-const [time,modifier] = str.split(' ');
-
-let [hours,minutes] = time.split(':').map(Number);
-
-if(modifier === 'PM' && hours !== 12) hours += 12;
-if(modifier === 'AM' && hours === 12) hours = 0;
-
-const d = new Date(now);
-
-d.setHours(hours);
-d.setMinutes(minutes);
-d.setSeconds(0);
-
-return d;
+function fmtCD(ms){
+  if(ms<=0)return'Прибыл'; const m=Math.floor(ms/60000),h=Math.floor(m/60);
+  return h>0?`${h}ч ${m%60}м`:`${m} мин`;
 }
+function lineEmoji(l){return l.includes('Steam')?'🚢':l.includes('Hy')?'🚤':l.includes('Sea')?'⛴':l.includes('Free')?'🛥':'⛵';}
+function lineColor(l){return l.includes('Steam')?'#0A84FF':l.includes('Hy')?'#30d158':l.includes('Sea')?'#ff9f0a':l.includes('Free')?'#bf5af2':'#aaa';}
 
-function formatCountdown(target){
-
-const now = new Date();
-
-const diff = target - now;
-
-if(diff <= 0) return 'Arriving';
-
-const mins = Math.floor(diff / 60000);
-
-const h = Math.floor(mins / 60);
-const m = mins % 60;
-
-if(h > 0){
-return `${h}h ${m}m`;
-}
-
-return `${m} min`;
-}
-
-function getNextArrival(list){
-
-const now = new Date();
-
-for(const t of list){
-
-const parsed = parseTime(t);
-
-if(parsed > now){
-return {
-time:t,
-date:parsed
-};
-}
-}
-
-return null;
-}
-
-
-function updateRushIndicator(steamshipNext, hylineNext){
-
-const card =
-document.getElementById('rushIndicatorCard');
-
-const now = new Date();
-
-const steamMin =
-Math.floor((steamshipNext.date - now)/60000);
-
-const hyMin =
-Math.floor((hylineNext.date - now)/60000);
-
-let content = '';
-
-if(steamMin <= 25 && steamMin > 0){
-
-content = `
-<div style="font-size:30px;font-weight:800;color:#ff453a;">
-🚨 Ferry Rush Soon
-</div>
-
-<div style="margin-top:10px;font-size:20px;">
-Steamship arriving in ${steamMin} min
-</div>
-
-<div style="margin-top:8px;color:#aaa;">
-Suggested location: Steamship Terminal
-</div>
-`;
-
-}else if(hyMin <= 15 && hyMin > 0){
-
-content = `
-<div style="font-size:30px;font-weight:800;color:#ffd60a;">
-⚠️ Hy-Line Rush
-</div>
-
-<div style="margin-top:10px;font-size:20px;">
-Hy-Line arriving in ${hyMin} min
-</div>
-
-<div style="margin-top:8px;color:#aaa;">
-Suggested location: Straight Wharf
-</div>
-`;
-
-}else{
-
-const nextMin = Math.min(steamMin, hyMin);
-
-content = `
-<div style="font-size:30px;font-weight:800;color:#30d158;">
-🟢 Quiet Period
-</div>
-
-<div style="margin-top:10px;font-size:20px;">
-Next arrival in ${nextMin} min
-</div>
-
-<div style="margin-top:8px;color:#aaa;">
-Good time to stay in Town
-</div>
-`;
+function builtinArrivals(targetDate){
+  const key=dateKey(targetDate);
+  const season=FERRY_BUILTIN.find(s=>key>=s.from&&key<=s.to);
+  if(!season)return null;
+  const dow=targetDate.getDay();
+  return season.arrivals
+    .filter(a=>!a.days||a.days.includes(dow))
+    .map(a=>({...a,dateObj:parseFT(a.time,targetDate),source:'builtin'}))
+    .sort((a,b)=>a.dateObj-b.dateObj);
 }
 
-card.innerHTML = content;
+const PROXIES=[
+  u=>`https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
+  u=>`https://corsproxy.io/?${encodeURIComponent(u)}`,
+  u=>`https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`,
+];
+async function scrapeLive(){
+  let html=null;
+  for(const mk of PROXIES){
+    try{ const r=await fetch(mk('https://www.nantucketferries.com'),{signal:AbortSignal.timeout(8000)});
+      if(r.ok){html=await r.text();break;} }catch(e){}
+  }
+  if(!html)return null;
+  const clean=html.replace(/<[^>]+>/g,' ').replace(/&[a-z]+;/gi,' ');
+  const arrivals=[];
+  function extractArr(block,fromPort,ferryType){
+    if(!block)return;
+    const rx=/(\d{1,2}:\d{2}\s*[ap]\.m\.)\s*[-–]\s*(\d{1,2}:\d{2}\s*[ap]\.m\.)\s*\(([^)]+)\)/gi;
+    let m;
+    while((m=rx.exec(block[0]))!==null){
+      const raw=m[2].replace(/\./g,'').trim();
+      const t=raw.replace(/a m$/i,'AM').replace(/p m$/i,'PM').replace(/\s+/g,' ').trim();
+      arrivals.push({time:t,line:m[3].trim(),from:fromPort,type:ferryType,source:'live'});
+    }
+  }
+  extractArr(clean.match(/Hyannis to Nantucket[\s\S]{0,4000}?(?=Nantucket to Hyannis)/i),'Hyannis','High-Speed');
+  extractArr(clean.match(/New Bedford to Nantucket[\s\S]{0,2000}?(?=Nantucket to New|FROM)/i),'New Bedford','High-Speed');
+  extractArr(clean.match(/Harwich[\s\S]{0,1000}?(?=Nantucket to Harwich|FROM)/i),'Harwich Port','Fast Ferry');
+  return arrivals.length>0?arrivals:null;
 }
 
-async function loadSteamshipArrival(){
-
-const container =
-document.getElementById('steamshipArrivalCard');
-
-const next =
-getNextArrival(steamshipArrivals);
-
-let status = 'On Time';
-
-try{
-
-const proxy =
-'https://api.allorigins.win/raw?url=';
-
-const target =
-encodeURIComponent(
-'https://www.steamshipauthority.com/traveling_today/status'
-);
-
-const response =
-await fetch(proxy + target);
-
-const text =
-await response.text();
-
-if(text.toLowerCase().includes('delayed')){
-status = 'Delayed';
+async function refreshFerryLive(){
+  const btn=document.getElementById('refreshFerryBtn');
+  const icon=document.getElementById('refreshIcon');
+  const lbl=document.getElementById('refreshLabel');
+  icon.innerText='⏳'; lbl.innerText='Подключаюсь...'; btn.disabled=true;
+  try{
+    const raw=await scrapeLive();
+    if(raw&&raw.length>0){
+      const td=ferryTargetDate(ferryDayOffset);
+      ferryLiveCache[dateKey(td)]=raw.map(a=>({...a,dateObj:parseFT(a.time,td)})).sort((a,b)=>a.dateObj-b.dateObj);
+      renderFerryTab('live');
+      icon.innerText='✅'; lbl.innerText='Обновлено live!';
+    } else { icon.innerText='📋'; lbl.innerText='Встроенные данные'; }
+  }catch(e){ icon.innerText='⚠️'; lbl.innerText='Нет связи'; }
+  btn.disabled=false;
+  setTimeout(()=>{ icon.innerText='🔄'; lbl.innerText='Live-обновление'; },3000);
 }
 
-if(text.toLowerCase().includes('boarding')){
-status = 'Boarding';
+function renderFerryTab(forceSource){
+  const td=ferryTargetDate(ferryDayOffset);
+  document.getElementById('ferryDateLabel').innerText=ferryLabel(td);
+  const key=dateKey(td);
+  let arrivals=null, source='builtin';
+  if(ferryLiveCache[key]){ arrivals=ferryLiveCache[key]; source='live'; }
+  else { arrivals=builtinArrivals(td); source='builtin'; }
+  const badge=document.getElementById('ferrySourceBadge');
+  if(source==='live'){ badge.style.background='#0a2a0a'; badge.style.color='#30d158'; badge.innerText='🟢 Live'; }
+  else { badge.style.background='#1e1e28'; badge.style.color='#aaa'; badge.innerText='📋 Встроенные'; }
+  if(!arrivals||!arrivals.length){
+    document.getElementById('ferryArrivalsContainer').innerHTML=`<div style="text-align:center;padding:32px;opacity:.5;">Нет данных. <a href="https://www.nantucketferries.com" target="_blank" style="color:#0A84FF;">nantucketferries.com</a></div>`;
+    document.getElementById('rushIndicatorCard').innerHTML=`<div style="opacity:.5;font-size:13px;">Статус</div><div style="font-size:18px;font-weight:800;margin-top:4px;">📅 Нет расписания</div>`;
+    return;
+  }
+  const now=new Date();
+  const upcoming=arrivals.filter(a=>a.dateObj>now);
+  const past=arrivals.filter(a=>a.dateObj<=now);
+  renderRushCard(upcoming,now);
+  let html='';
+  const season=FERRY_BUILTIN.find(s=>{const k=dateKey(td);return k>=s.from&&k<=s.to;});
+  if(season&&source==='builtin') html+=`<div style="font-size:11px;color:#0A84FF;font-weight:700;margin-bottom:8px;opacity:.8;">📋 ${season.label}</div>`;
+  if(upcoming.length){
+    html+=`<div style="font-size:11px;font-weight:700;opacity:.4;letter-spacing:1px;margin-bottom:8px;">СЛЕДУЮЩИЕ ПРИБЫТИЯ</div>`;
+    upcoming.forEach((a,i)=>{
+      const isNext=i===0, mins=Math.floor((a.dateObj-now)/60000), hot=mins<=20;
+      html+=`<div class="fa-row" data-iso="${a.dateObj.toISOString()}" style="background:${isNext?(hot?'#2a1200':'#0f1f14'):'#17181c'};border:1px solid ${isNext?(hot?'#ff9f0a':'#30d158'):'#252528'};border-radius:15px;padding:13px 15px;margin-bottom:9px;display:flex;align-items:center;justify-content:space-between;">
+        <div style="display:flex;align-items:center;gap:11px;">
+          <div style="font-size:24px;">${lineEmoji(a.line)}</div>
+          <div>
+            <div style="font-size:18px;font-weight:800;">${a.time}</div>
+            <div style="font-size:13px;color:${lineColor(a.line)};font-weight:600;">${a.line}</div>
+            <div style="font-size:11px;opacity:.5;">из ${a.from} · ${a.type}${a.note?` · ${a.note}`:''}</div>
+          </div>
+        </div>
+        <div style="text-align:right;min-width:60px;">
+          <div class="cd-val" style="font-size:15px;font-weight:800;color:${hot&&isNext?'#ff9f0a':'white'};">${fmtCD(a.dateObj-now)}</div>
+          ${isNext?`<div style="font-size:10px;font-weight:800;color:${hot?'#ff9f0a':'#30d158'};margin-top:3px;">${hot?'⚡СКОРО':'▶ NEXT'}</div>`:''}
+        </div>
+      </div>`;
+    });
+  }
+  if(past.length){
+    html+=`<div style="font-size:11px;font-weight:700;opacity:.3;letter-spacing:1px;margin:14px 0 8px;">УЖЕ ПРИБЫЛИ</div>`;
+    past.slice().reverse().forEach(a=>{
+      html+=`<div style="background:#111;border:1px solid #1e1e1e;border-radius:13px;padding:10px 14px;margin-bottom:7px;opacity:.35;display:flex;align-items:center;justify-content:space-between;">
+        <div style="display:flex;align-items:center;gap:9px;"><div style="font-size:18px;">${lineEmoji(a.line)}</div><div><div style="font-size:15px;font-weight:700;text-decoration:line-through;">${a.time}</div><div style="font-size:11px;color:${lineColor(a.line)};">${a.line} · из ${a.from}</div></div></div>
+        <div style="font-size:12px;opacity:.6;">✓</div></div>`;
+    });
+  }
+  document.getElementById('ferryArrivalsContainer').innerHTML=html;
 }
 
-if(text.toLowerCase().includes('cancelled')){
-status = 'Cancelled';
+function renderRushCard(upcoming,now){
+  const card=document.getElementById('rushIndicatorCard');
+  if(!upcoming||!upcoming.length){ card.innerHTML=`<div style="opacity:.5;font-size:13px;">Статус</div><div style="font-size:20px;font-weight:800;margin-top:4px;">🌙 Больше паромов нет</div>`; return; }
+  const next=upcoming[0],mins=Math.floor((next.dateObj-now)/60000);
+  let icon,color,msg,sub;
+  if(mins<=20){icon='🚨';color='#ff453a';msg=`Паром через ${mins} мин!`;sub=`${lineEmoji(next.line)} ${next.line} · ${next.time} из ${next.from}`;}
+  else if(mins<=45){icon='⚠️';color='#ffd60a';msg=`Паром через ${Math.floor(mins/60)?Math.floor(mins/60)+'ч ':''}${mins%60}мин`;sub=`${lineEmoji(next.line)} ${next.line} · ${next.time}`;}
+  else{icon='🟢';color='#30d158';const h=Math.floor(mins/60),m=mins%60;msg=`Спокойно · ${h?h+'ч ':''}${m}м`;sub=`${lineEmoji(next.line)} ${next.line} прибудет в ${next.time}`;}
+  card.innerHTML=`<div style="opacity:.5;font-size:13px;">Статус</div><div style="font-size:22px;font-weight:900;color:${color};margin-top:4px;">${icon} ${msg}</div><div style="font-size:13px;opacity:.7;margin-top:5px;">${sub}</div>`;
 }
 
-}catch(e){}
-
-window.steamshipNextData = next;
-
-window.hylineNextData = next;
-if(window.steamshipNextData){updateRushIndicator(window.steamshipNextData,next);} 
-
-container.innerHTML = `
-<div style="font-size:26px;font-weight:800;margin-bottom:10px;">
-🚢 Steamship
-</div>
-
-<div class="ferry-row">
-<span>Arrives Nantucket</span>
-<span>${next.time}</span>
-</div>
-
-<div class="ferry-row">
-<span>Status</span>
-<span>${status}</span>
-</div>
-
-<div class="ferry-row">
-<span>Countdown</span>
-<span>${formatCountdown(next.date)}</span>
-</div>
-`;
+function startFerryTick(){
+  stopFerryTick();
+  ferryTickId=setInterval(()=>{
+    const now=new Date();
+    document.querySelectorAll('.fa-row').forEach(row=>{
+      const d=new Date(row.getAttribute('data-iso'));
+      const el=row.querySelector('.cd-val');
+      if(el)el.innerText=fmtCD(d-now);
+      if(d<=now)renderFerryTab();
+    });
+    const td=ferryTargetDate(ferryDayOffset);
+    const arr=ferryLiveCache[dateKey(td)]||builtinArrivals(td)||[];
+    renderRushCard(arr.filter(a=>a.dateObj>now),now);
+  },30000);
 }
+function stopFerryTick(){ if(ferryTickId)clearInterval(ferryTickId); ferryTickId=null; }
+function shiftFerryDay(d){ ferryDayOffset=Math.max(0,ferryDayOffset+d); renderFerryTab(); }
 
-function loadHylineArrival(){
-
-const container =
-document.getElementById('hylineArrivalCard');
-
-const next =
-getNextArrival(hylineArrivals);
-
-container.innerHTML = `
-<div style="font-size:26px;font-weight:800;margin-bottom:10px;">
-🚤 Hy-Line
-</div>
-
-<div class="ferry-row">
-<span>Arrives Nantucket</span>
-<span>${next.time}</span>
-</div>
-
-<div class="ferry-row">
-<span>Status</span>
-<span>On Time</span>
-</div>
-
-<div class="ferry-row">
-<span>Countdown</span>
-<span>${formatCountdown(next.date)}</span>
-</div>
-`;
-}
-
-window.addEventListener('load', async ()=>{
-
-await loadFerrySchedules();
-
-
-loadSteamshipArrival();
-loadHylineArrival();
-
-setInterval(loadSteamshipArrival,300000);
-setInterval(loadHylineArrival,60000);
-
+window.addEventListener('load',async()=>{
+  document.getElementById('ferryDateLabel').innerText=ferryLabel(new Date());
+  try{
+    const raw=await scrapeLive();
+    if(raw&&raw.length>0){
+      const td=ferryTargetDate(0);
+      ferryLiveCache[dateKey(td)]=raw.map(a=>({...a,dateObj:parseFT(a.time,td)})).sort((a,b)=>a.dateObj-b.dateObj);
+    }
+  }catch(e){}
 });
 
 
@@ -1319,195 +1294,130 @@ async function calculateFare() {
 
 
 <script>
-// ── Nantucket bbox ──────────────────────────────────────────────
-const NAN_BOUNDS = {
-  minLat: 41.230, maxLat: 41.340,
-  minLng: -70.240, maxLng: -69.950
-};
-function isOnNantucket(lat, lng) {
-  return lat >= NAN_BOUNDS.minLat && lat <= NAN_BOUNDS.maxLat &&
-         lng >= NAN_BOUNDS.minLng && lng <= NAN_BOUNDS.maxLng;
+// ── Nantucket bbox ──────────────────────────────────────────
+const NAN_BOUNDS = { minLat:41.230, maxLat:41.340, minLng:-70.240, maxLng:-69.950 };
+function isOnNantucket(lat,lng){
+  return lat>=NAN_BOUNDS.minLat&&lat<=NAN_BOUNDS.maxLat&&lng>=NAN_BOUNDS.minLng&&lng<=NAN_BOUNDS.maxLng;
 }
 
-let acService, placesService, sessionToken;
-let acDebounceTimer = null;
-let acDropdown = null;
+let acService, placesService, sessionToken, acDropdown, acDebounceTimer;
 
-function initAutocomplete() {
+function initAutocomplete(){
   const input = document.getElementById('destination');
 
-  acService    = new google.maps.places.AutocompleteService();
-  placesService= new google.maps.places.PlacesService(
-    document.createElement('div')
-  );
-  sessionToken = new google.maps.places.AutocompleteSessionToken();
+  acService     = new google.maps.places.AutocompleteService();
+  placesService = new google.maps.places.PlacesService(document.createElement('div'));
+  sessionToken  = new google.maps.places.AutocompleteSessionToken();
 
-  // Build custom dropdown
+  // Build custom dark dropdown
   acDropdown = document.createElement('div');
   acDropdown.id = 'ac-dropdown';
   acDropdown.style.cssText = `
-    position:absolute; z-index:9999; width:100%;
-    background:#1c1c1e; border:1px solid #333; border-radius:14px;
-    overflow:hidden; display:none; margin-top:4px;
-    box-shadow:0 8px 32px rgba(0,0,0,.6);
+    position:absolute;z-index:9999;width:100%;left:0;top:100%;
+    background:#1c1c1e;border:1px solid #333;border-radius:14px;
+    overflow:hidden;display:none;margin-top:4px;
+    box-shadow:0 8px 32px rgba(0,0,0,.7);
   `;
-  input.parentElement.style.position = 'relative';
-  input.parentElement.appendChild(acDropdown);
+  const wrap = input.parentElement;
+  wrap.style.position = 'relative';
+  wrap.appendChild(acDropdown);
 
-  // ── Input handler with debounce ─────────────────────────────
-  input.addEventListener('input', () => {
+  // Input → debounced search
+  input.addEventListener('input', ()=>{
     window.selectedPlace = null;
     clearTimeout(acDebounceTimer);
-
     const raw = input.value.trim();
-    if (raw.length < 2) { hideDropdown(); return; }
-
-    acDebounceTimer = setTimeout(() => fetchSuggestions(raw), 300);
-  });
-
-  // Close dropdown on outside click
-  document.addEventListener('click', e => {
-    if (!input.contains(e.target) && !acDropdown.contains(e.target))
+    // Reset fare display when cleared
+    if(!raw){
       hideDropdown();
-  });
-
-  // Prevent Enter from reloading page
-  input.addEventListener('keydown', e => {
-    if (e.key === 'Enter') e.preventDefault();
-  });
-
-  // Clear result when field emptied
-  input.addEventListener('input', () => {
-    if (!input.value.trim()) {
-      try {
-        document.getElementById('destinationZone').innerText = '-';
-        document.getElementById('fare').innerText = '$ -';
-        document.getElementById('fareBreakdown').innerHTML = '';
-      } catch(e){}
+      try{
+        document.getElementById('destinationZone').innerText='-';
+        document.getElementById('fare').innerText='$ -';
+        document.getElementById('fareBreakdown').innerHTML='';
+      }catch(e){}
+      return;
     }
+    if(raw.length < 2){ hideDropdown(); return; }
+    acDebounceTimer = setTimeout(()=>fetchSuggestions(raw), 320);
   });
+
+  // Close on outside tap/click
+  document.addEventListener('click', e=>{
+    if(!input.contains(e.target)&&!acDropdown.contains(e.target)) hideDropdown();
+  });
+
+  // Prevent Enter from reloading page on mobile
+  input.addEventListener('keydown', e=>{ if(e.key==='Enter') e.preventDefault(); });
 }
 
-function fetchSuggestions(query) {
-  // Always append "Nantucket" so Google biases to the island
-  const searchQuery = query + ' Nantucket MA';
-
-  const nantucketCenter = new google.maps.LatLng(41.283, -70.099);
-
+function fetchSuggestions(query){
   acService.getPlacePredictions({
-    input: searchQuery,
+    input: query + ' Nantucket MA',
     sessionToken: sessionToken,
-    locationBias: {
-      center: nantucketCenter,
-      radius: 12000   // 12km — covers the whole island
-    },
-    componentRestrictions: { country: 'us' },
-    types: ['geocode', 'establishment']
-  }, (predictions, status) => {
-    if (status !== google.maps.places.PlacesServiceStatus.OK || !predictions) {
-      hideDropdown(); return;
-    }
-
-    // Filter: only keep predictions that mention Nantucket
-    const nanPredictions = predictions.filter(p =>
-      p.description.toLowerCase().includes('nantucket')
-    );
-
-    const toShow = nanPredictions.length ? nanPredictions : predictions.slice(0, 3);
-    renderDropdown(toShow);
+    locationBias: { center: new google.maps.LatLng(41.283,-70.099), radius: 12000 },
+    componentRestrictions: { country:'us' },
+    types: ['geocode','establishment']
+  }, (predictions, status)=>{
+    if(status !== google.maps.places.PlacesServiceStatus.OK || !predictions){ hideDropdown(); return; }
+    // Keep only Nantucket results
+    const nan = predictions.filter(p=>p.description.toLowerCase().includes('nantucket'));
+    renderDropdown(nan.length ? nan : predictions.slice(0,4));
   });
 }
 
-function renderDropdown(predictions) {
-  acDropdown.innerHTML = '';
-
-  if (!predictions.length) { hideDropdown(); return; }
-
-  predictions.forEach((pred, i) => {
+function renderDropdown(predictions){
+  acDropdown.innerHTML='';
+  if(!predictions.length){ hideDropdown(); return; }
+  predictions.forEach((pred,i)=>{
     const item = document.createElement('div');
-    item.style.cssText = `
-      padding:13px 16px; cursor:pointer; font-size:15px; color:white;
-      border-bottom:1px solid #2a2a2a; display:flex; align-items:center; gap:10px;
-    `;
-
-    // Main text (place name) + secondary (address)
+    item.style.cssText=`padding:13px 16px;cursor:pointer;font-size:15px;color:white;
+      ${i<predictions.length-1?'border-bottom:1px solid #2a2a2a;':''}
+      display:flex;align-items:center;gap:10px;`;
     const main = pred.structured_formatting?.main_text || pred.description;
-    const secondary = (pred.structured_formatting?.secondary_text || '')
-      .replace(/,?\s*Nantucket,?\s*MA\s*\d*,?\s*USA/gi, '')
-      .replace(/,?\s*Nantucket,?\s*MA/gi, '')
-      .trim();
-
-    item.innerHTML = `
-      <span style="font-size:18px;">📍</span>
+    const sec  = (pred.structured_formatting?.secondary_text||'')
+      .replace(/,?\s*Nantucket,?\s*MA\s*\d*,?\s*USA/gi,'')
+      .replace(/,?\s*Nantucket,?\s*MA/gi,'').trim();
+    item.innerHTML=`<span style="font-size:18px;">📍</span>
       <div>
         <div style="font-weight:700;">${main}</div>
-        ${secondary ? `<div style="font-size:12px;opacity:.55;margin-top:2px;">${secondary}</div>` : ''}
+        ${sec?`<div style="font-size:12px;opacity:.5;margin-top:2px;">${sec}</div>`:''}
       </div>`;
-
-    if (i === predictions.length - 1) item.style.borderBottom = 'none';
-
-    item.addEventListener('mousedown', e => {
-      e.preventDefault(); // don't blur input
-      selectPrediction(pred);
-    });
-    item.addEventListener('touchstart', e => {
-      e.preventDefault();
-      selectPrediction(pred);
-    }, { passive: false });
-
+    // Both mouse and touch
+    const pick = e=>{ e.preventDefault(); selectPrediction(pred); };
+    item.addEventListener('mousedown', pick);
+    item.addEventListener('touchstart', pick, {passive:false});
     acDropdown.appendChild(item);
   });
-
-  acDropdown.style.display = 'block';
+  acDropdown.style.display='block';
 }
 
-function selectPrediction(pred) {
+function selectPrediction(pred){
   const input = document.getElementById('destination');
-
-  // Get full place details to confirm it's on Nantucket
   placesService.getDetails({
     placeId: pred.place_id,
-    fields: ['geometry', 'name', 'formatted_address'],
+    fields: ['geometry','name','formatted_address'],
     sessionToken: sessionToken
-  }, (place, status) => {
-    if (status !== google.maps.places.PlacesServiceStatus.OK || !place?.geometry) {
-      // Fallback: just set name and let calculateFare use photon
-      input.value = pred.structured_formatting?.main_text || pred.description;
-      hideDropdown();
-      return;
+  }, (place,status)=>{
+    sessionToken = new google.maps.places.AutocompleteSessionToken(); // reset
+    if(status!==google.maps.places.PlacesServiceStatus.OK||!place?.geometry){
+      input.value = pred.structured_formatting?.main_text||pred.description;
+      hideDropdown(); return;
     }
-
-    const lat = place.geometry.location.lat();
-    const lng = place.geometry.location.lng();
-
-    // Verify it's actually on Nantucket island
-    if (!isOnNantucket(lat, lng)) {
-      // Not on island — try searching again with stricter query
-      input.value = pred.structured_formatting?.main_text || pred.description;
-      hideDropdown();
-      return;
+    const lat=place.geometry.location.lat(), lng=place.geometry.location.lng();
+    if(!isOnNantucket(lat,lng)){
+      // Not on island — still set text so user sees what happened, but don't store place
+      input.value = pred.structured_formatting?.main_text||pred.description;
+      hideDropdown(); return;
     }
-
-    // ✅ Valid Nantucket place
     window.selectedPlace = place;
-    input.value = place.name ||
-                  pred.structured_formatting?.main_text ||
-                  pred.description;
-
-    // New session token for next search
-    sessionToken = new google.maps.places.AutocompleteSessionToken();
+    input.value = place.name || pred.structured_formatting?.main_text || pred.description;
     hideDropdown();
-
-    // Auto-calculate fare
-    try { calculateFare(); } catch(e) {}
+    try{ calculateFare(); }catch(e){}
   });
 }
 
-function hideDropdown() {
-  if (acDropdown) acDropdown.style.display = 'none';
-}
+function hideDropdown(){ if(acDropdown) acDropdown.style.display='none'; }
 </script>
-
 
 <script async defer
 src="https://maps.googleapis.com/maps/api/js?key=AIzaSyChh4QTDtpcj9u_QwchPjZ5jE9B1VIl1wM&libraries=places&callback=initAutocomplete">
