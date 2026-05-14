@@ -400,6 +400,33 @@ from{opacity:0;transform:translateY(6px);}
 to{opacity:1;transform:translateY(0);}
 }
 
+.zone-picker-overlay{
+  position:fixed;inset:0;z-index:99998;
+  background:rgba(0,0,0,0.65);
+  display:flex;align-items:flex-end;
+}
+.zone-picker-sheet{
+  width:100%;background:#17181c;
+  border-radius:24px 24px 0 0;
+  max-height:72vh;overflow-y:auto;
+  -webkit-overflow-scrolling:touch;
+  padding:0 0 32px;
+  animation:slideUp .25s ease;
+}
+@keyframes slideUp{
+  from{transform:translateY(100%);}
+  to{transform:translateY(0);}
+}
+.zone-picker-item{
+  padding:15px 18px;font-size:17px;font-weight:600;
+  border-bottom:1px solid #222;cursor:pointer;
+  display:flex;align-items:center;justify-content:space-between;
+}
+.zone-picker-item:active{ background:#222; }
+.zone-picker-item.selected{ color:#0A84FF; }
+.zone-card{ cursor:pointer; }
+.zone-card:active{ opacity:.8; }
+
 </style>
 
 </head>
@@ -420,8 +447,11 @@ to{opacity:1;transform:translateY(0);}
 
 <div id="topbar"><div id="taxiTab">
 
-<div class="card zone-card">
-<div class="zone-label">Current Zone</div>
+<div class="card zone-card" onclick="openZonePicker()">
+<div class="zone-label" style="display:flex;align-items:center;justify-content:space-between;">
+  <span>Current Zone</span>
+  <span id="zoneSourceIcon" style="font-size:13px;opacity:.5;font-weight:600;letter-spacing:.5px;">📍 GPS</span>
+</div>
 <div class="zone-value" id="currentZone">Detecting...</div>
 </div>
 
@@ -697,15 +727,14 @@ function detectCurrentLocation() {
 
         L.marker([lat, lng]).addTo(map);
 
-        currentZoneName = findZone(point);
+        const detected = findZone(point) === 'Cross Town' ? 'Town' : findZone(point);
+        gpsZoneName = detected;
 
-        // Safety fallback
-        if (currentZoneName === 'Cross Town') {
-            currentZoneName = 'Town';
+        // Only apply if user hasn't overridden manually
+        if(!zoneIsManual){
+            currentZoneName = detected;
+            document.getElementById('currentZone').innerText = currentZoneName || 'Unknown';
         }
-
-        document.getElementById('currentZone').innerText =
-            currentZoneName || 'Unknown';
 
     }, err => {
         alert('Allow location access');
@@ -1194,6 +1223,14 @@ function resetAll(){
     document.getElementById('destinationZone').innerText = '-';
     document.getElementById('fare').innerText = '$ -';
     document.getElementById('fareBreakdown').innerHTML = '';
+    // Restore GPS zone if it was overridden manually
+    if(zoneIsManual){
+        zoneIsManual = false;
+        currentZoneName = gpsZoneName;
+        document.getElementById('currentZone').innerText = gpsZoneName || 'Detecting...';
+        document.getElementById('zoneSourceIcon').innerText = '📍 GPS';
+        document.getElementById('zoneSourceIcon').style.color = '';
+    }
 }
 
 function toggleMap(){
@@ -1588,6 +1625,72 @@ function positionDropdown(){
 }
 
 function hideDropdown(){ if(acDropdown) acDropdown.style.display='none'; }
+</script>
+
+<script>
+// ── Manual zone picker ───────────────────────────────────────
+let gpsZoneName = null; // последняя зона от GPS
+let zoneIsManual = false;
+
+// Все зоны из fareTable (уникальные, отсортированные)
+const ALL_ZONES = [...new Set(
+  Object.keys(fareTable).flatMap(k => k.split('-'))
+)].filter(z => z !== 'Cross Town').sort();
+
+function openZonePicker(){
+  const overlay = document.createElement('div');
+  overlay.className = 'zone-picker-overlay';
+  overlay.id = 'zonePickerOverlay';
+  overlay.addEventListener('click', e=>{ if(e.target===overlay) closeZonePicker(); });
+
+  const sheet = document.createElement('div');
+  sheet.className = 'zone-picker-sheet';
+
+  // Header
+  sheet.innerHTML = `
+    <div style="text-align:center;padding:12px 0 4px;">
+      <div style="width:40px;height:4px;background:#333;border-radius:2px;margin:0 auto 14px;"></div>
+      <div style="font-size:18px;font-weight:800;margin-bottom:12px;">Current Zone</div>
+    </div>
+    <div class="zone-picker-item ${!zoneIsManual?'selected':''}" onclick="setZoneManual(null)">
+      <span>📍 Use GPS</span>
+      ${!zoneIsManual?'<span style="font-size:20px;">✓</span>':''}
+    </div>
+    ${ALL_ZONES.map(z=>`
+      <div class="zone-picker-item ${zoneIsManual&&currentZoneName===z?'selected':''}" onclick="setZoneManual('${z.replace(/'/g,"\\'")}')">
+        <span>${z}</span>
+        ${zoneIsManual&&currentZoneName===z?'<span style="font-size:20px;">✓</span>':''}
+      </div>
+    `).join('')}
+  `;
+
+  overlay.appendChild(sheet);
+  document.body.appendChild(overlay);
+}
+
+function closeZonePicker(){
+  const el = document.getElementById('zonePickerOverlay');
+  if(el) el.remove();
+}
+
+function setZoneManual(zone){
+  closeZonePicker();
+  if(zone === null){
+    // Вернуть GPS
+    zoneIsManual = false;
+    currentZoneName = gpsZoneName;
+    document.getElementById('currentZone').innerText = gpsZoneName || 'Detecting...';
+    document.getElementById('zoneSourceIcon').innerText = '📍 GPS';
+    document.getElementById('zoneSourceIcon').style.color = '';
+  } else {
+    zoneIsManual = true;
+    currentZoneName = zone;
+    document.getElementById('currentZone').innerText = zone;
+    document.getElementById('zoneSourceIcon').innerText = '✋ Manual';
+    document.getElementById('zoneSourceIcon').style.color = '#ff9f0a';
+  }
+  try{ calculateFare(); }catch(e){}
+}
 </script>
 
 <script async defer
