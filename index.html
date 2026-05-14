@@ -1001,7 +1001,7 @@ async function refreshFerryLive(){
         renderFerryTab('live');
         icon.innerText='✅'; lbl.innerText=hy?'Live (Hy-Line + общий)':'Обновлено live!';
       } else {
-        icon.innerText='📋'; lbl.innerText='Все рейсы прошли — встроенные данные';
+        icon.innerText='📋'; lbl.innerText='Live недоступен — встроенные данные';
       }
     } else { icon.innerText='📋'; lbl.innerText='Встроенные данные'; }
   }catch(e){ icon.innerText='⚠️'; lbl.innerText='Нет связи'; }
@@ -1419,18 +1419,23 @@ function initAutocomplete(){
   placesService = new google.maps.places.PlacesService(document.createElement('div'));
   sessionToken  = new google.maps.places.AutocompleteSessionToken();
 
-  // Build custom dark dropdown
+  // Build custom dark dropdown — attached to body so it overlays everything
   acDropdown = document.createElement('div');
   acDropdown.id = 'ac-dropdown';
   acDropdown.style.cssText = `
-    position:absolute;z-index:9999;width:100%;left:0;top:100%;
+    position:fixed;z-index:99999;
     background:#1c1c1e;border:1px solid #333;border-radius:14px;
-    overflow:hidden;display:none;margin-top:4px;
-    box-shadow:0 8px 32px rgba(0,0,0,.7);
+    overflow:hidden;display:none;
+    box-shadow:0 8px 32px rgba(0,0,0,.85);
   `;
-  const wrap = input.parentElement;
-  wrap.style.position = 'relative';
-  wrap.appendChild(acDropdown);
+  document.body.appendChild(acDropdown);
+
+  function positionDropdown(){
+    const r = input.getBoundingClientRect();
+    acDropdown.style.top   = (r.bottom + 4) + 'px';
+    acDropdown.style.left  = r.left + 'px';
+    acDropdown.style.width = r.width + 'px';
+  }
 
   // Input → debounced search
   input.addEventListener('input', ()=>{
@@ -1505,6 +1510,7 @@ function renderDropdown(predictions){
     item.addEventListener('touchstart', pick, {passive:false});
     acDropdown.appendChild(item);
   });
+  positionDropdown();
   acDropdown.style.display='block';
 }
 
