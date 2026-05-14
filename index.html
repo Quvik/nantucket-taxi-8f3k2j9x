@@ -104,26 +104,45 @@ select {
 }
 
 .quick-scroll {
-    display:flex;
-    gap:10px;
-    overflow-x:auto;
-    padding-bottom:4px;
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:8px;
 }
 
 .quick-btn {
-    min-width:130px;
     background:#24252b;
     color:white;
     border:none;
-    border-radius:16px;
-    padding:16px;
-    font-size:16px;
+    border-radius:14px;
+    padding:14px 10px;
+    font-size:15px;
     font-weight:700;
+    text-align:left;
+    display:flex;
+    align-items:center;
+    gap:8px;
 }
 
 #map {
     height:36vh;
     margin-bottom:100px;
+    display:none;
+}
+
+.map-toggle-btn {
+    width:100%;
+    background:#1b1c22;
+    color:#0A84FF;
+    border:1px solid #2a2a2a;
+    border-radius:14px;
+    padding:12px;
+    font-size:15px;
+    font-weight:700;
+    margin-bottom:12px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:8px;
 }
 
 .sticky-bar {
@@ -217,15 +236,6 @@ font-size:18px;
 font-weight:700;
 }
 
-.quick-btn{
-min-width:110px !important;
-padding:14px !important;
-font-size:15px !important;
-}
-
-.quick-scroll{
-padding-bottom:8px;
-}
 
 .card{
 padding:12px !important;
@@ -502,19 +512,16 @@ Quick Favorites
 </div>
 
 <div class="quick-scroll">
-
 <button class="quick-btn" onclick="setDestination('Airport')">✈️ Airport</button>
-
 <button class="quick-btn" onclick="setDestination('Steamship Ferry')">⛴ Ferry</button>
-
 <button class="quick-btn" onclick="setDestination('White Elephant')">🏨 White Elephant</button>
-
-<button class="quick-btn" onclick="setDestination('Cisco Brewers')">🍺 Cisco</button>
-
 <button class="quick-btn" onclick="setDestination('The Wauwinet')">🌊 Wauwinet</button>
-
+<button class="quick-btn" onclick="setDestination('Cisco Brewers')">🍺 Cisco Brewers</button>
+<button class="quick-btn" onclick="setDestination('Siasconset Beach')">🏖 Sconset</button>
+<button class="quick-btn" onclick="setDestination('Stop & Shop')">🛒 Stop & Shop</button>
+<button class="quick-btn" onclick="setDestination('Madaket Beach')">🌅 Madaket</button>
+<button class="quick-btn" onclick="setDestination('Nantucket Cottage Hospital')">🏥 Hospital</button>
 <button class="quick-btn" onclick="setDestination('The Nantucket Hotel')">🏨 Nantucket Hotel</button>
-
 </div>
 </div>
 
@@ -567,8 +574,14 @@ Quick Favorites
     <button class="quick-btn" style="flex:1;" onclick="window.open('https://hylinecruises.com/schedules/','_blank')">🚤 Hy-Line</button>
   </div>
 
+  <button id="notifyBtn" onclick="toggleFerryNotifications()" style="margin-top:10px;width:100%;background:#1b1c22;border:1px solid #2a2a2a;color:#fff;border-radius:16px;padding:14px;font-size:16px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:8px;">
+    🔔 Enable Ferry Alerts
+  </button>
+  <div id="notifyStatus" style="font-size:12px;opacity:.5;text-align:center;margin-top:6px;"></div>
+
 </div>
 
+<button class="map-toggle-btn" onclick="toggleMap()" id="mapToggleBtn">🗺 Show Map</button>
 <div id="map"></div>
 
 
@@ -1052,6 +1065,69 @@ function startFerryTick(){
 function stopFerryTick(){ if(ferryTickId)clearInterval(ferryTickId); ferryTickId=null; }
 function shiftFerryDay(d){ ferryDayOffset=Math.max(0,ferryDayOffset+d); renderFerryTab(); }
 
+// ── Ferry Notifications ─────────────────────────────────────
+let ferryNotifyEnabled = false;
+let ferryNotifyTickId = null;
+const NOTIFY_THRESHOLDS = [30, 15]; // минуты
+let notifiedFerries = new Set();
+
+async function toggleFerryNotifications(){
+    const btn = document.getElementById('notifyBtn');
+    const status = document.getElementById('notifyStatus');
+
+    if(ferryNotifyEnabled){
+        ferryNotifyEnabled = false;
+        clearInterval(ferryNotifyTickId);
+        ferryNotifyTickId = null;
+        notifiedFerries.clear();
+        btn.innerHTML = '🔔 Enable Ferry Alerts';
+        btn.style.borderColor = '#2a2a2a';
+        status.textContent = '';
+        return;
+    }
+
+    if(!('Notification' in window)){
+        status.textContent = 'Notifications not supported in this browser';
+        return;
+    }
+
+    const perm = await Notification.requestPermission();
+    if(perm !== 'granted'){
+        status.textContent = 'Permission denied — enable in browser settings';
+        return;
+    }
+
+    ferryNotifyEnabled = true;
+    btn.innerHTML = '🔕 Disable Ferry Alerts';
+    btn.style.borderColor = '#0A84FF';
+    status.textContent = 'Alerts on: 30 min & 15 min before each ferry';
+    checkFerryNotifications();
+    ferryNotifyTickId = setInterval(checkFerryNotifications, 60000);
+}
+
+function checkFerryNotifications(){
+    if(!ferryNotifyEnabled) return;
+    const td = ferryTargetDate(0);
+    const arrivals = ferryLiveCache[dateKey(td)] || builtinArrivals(td) || [];
+    const now = new Date();
+
+    arrivals.forEach(a => {
+        const mins = Math.floor((a.dateObj - now) / 60000);
+        NOTIFY_THRESHOLDS.forEach(threshold => {
+            const key = `${a.dateObj.toISOString()}-${threshold}`;
+            if(mins <= threshold && mins > threshold - 2 && !notifiedFerries.has(key)){
+                notifiedFerries.add(key);
+                new Notification(`${lineEmoji(a.line)} Ferry in ${threshold} min`, {
+                    body: `${a.line} from ${a.from} arrives at ${a.time}`,
+                    icon: 'https://cdn-icons-png.flaticon.com/512/3448/3448339.png',
+                    badge: 'https://cdn-icons-png.flaticon.com/512/3448/3448339.png',
+                    tag: key
+                });
+            }
+        });
+    });
+}
+
 window.addEventListener('load',async()=>{
   document.getElementById('ferryDateLabel').innerText=ferryLabel(new Date());
   try{
@@ -1063,6 +1139,15 @@ window.addEventListener('load',async()=>{
   }catch(e){}
 });
 
+
+function toggleMap(){
+    const mapEl = document.getElementById('map');
+    const btn = document.getElementById('mapToggleBtn');
+    const visible = mapEl.style.display === 'block';
+    mapEl.style.display = visible ? 'none' : 'block';
+    btn.textContent = visible ? '🗺 Show Map' : '🗺 Hide Map';
+    if(!visible) map.invalidateSize();
+}
 
 function changeValue(id, delta){
 
@@ -1265,21 +1350,23 @@ async function calculateFare() {
     document.getElementById('fare').innerText =
         `$${totalFare}`;
 
-    document.getElementById('fareBreakdown').innerHTML =
-`
-<div class="fare-row"><span>Base Fare</span><span>$${baseFare}</span></div>
-<div class="fare-row"><span>Passengers</span><span>$${passengerCharge}</span></div>
-<div class="fare-row"><span>Dogs</span><span>$${dogCharge}</span></div>
-<div class="fare-row"><span>Bikes</span><span>$${bikeCharge}</span></div>
-<div class="fare-row"><span>Bags</span><span>$${bagCharge}</span></div>
-<div class="fare-row"><span>Night Fee</span><span>$${nightCharge}</span></div>
-<div class="fare-row"><span>Dirt Road</span><span>$${dirtCharge}</span></div>
+    const extras = [
+        ['Passengers +' + extraPassengers, passengerCharge],
+        ['Dogs ×' + dogs, dogCharge],
+        ['Bikes ×' + bikes, bikeCharge],
+        ['Bags ×' + bags, bagCharge],
+        ['Night', nightCharge],
+        ['Dirt Road', dirtCharge],
+    ].filter(([,v]) => v > 0);
 
-<div class="total-row">
-<span>Total</span>
-<span>$${totalFare}</span>
-</div>
-`;
+    const extraRows = extras.map(([label, val]) =>
+        `<div class="fare-row"><span>${label}</span><span>+$${val}</span></div>`
+    ).join('');
+
+    document.getElementById('fareBreakdown').innerHTML =
+`<div class="fare-row" style="margin-top:8px;"><span>Base (${currentZoneName} → ${destinationZone})</span><span>$${baseFare}</span></div>
+${extraRows}
+<div class="total-row"><span>Total</span><span>$${totalFare}</span></div>`;
 
     if (lat && lng) {
 
