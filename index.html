@@ -276,7 +276,7 @@ font-size:18px !important;
 }
 
 .compact-row{
-margin-top:8px !important;
+gap:10px;
 }
 
 
@@ -482,84 +482,63 @@ to{opacity:1;transform:translateY(0);}
 </div>
 
 
-<div class="compact-row">
+<div class="card" style="display:flex;flex-direction:column;gap:10px;">
 
+<div class="compact-row" style="margin-top:0!important;">
 <div class="compact-item">
 <div class="counter-box">
-
 <div class="counter-title">Passengers</div>
-
 <div class="counter-controls">
 <button class="counter-btn" onmousedown="startHold('passengers',-1)" ontouchstart="startHold('passengers',-1)" onmouseup="stopHold()" onmouseleave="stopHold()" ontouchend="stopHold()">−</button>
 <div class="counter-value passenger-big" id="passengersValue">1</div>
 <button class="counter-btn" onmousedown="startHold('passengers',1)" ontouchstart="startHold('passengers',1)" onmouseup="stopHold()" onmouseleave="stopHold()" ontouchend="stopHold()">+</button>
 </div>
-
 <input type="hidden" id="passengers" value="1">
-
 </div>
 </div>
-
 <div class="compact-item">
 <div class="counter-box">
-
 <div class="counter-title">🐶 Dogs</div>
-
 <div class="counter-controls">
 <button class="counter-btn" onmousedown="startHold('dogs',-1)" ontouchstart="startHold('dogs',-1)" onmouseup="stopHold()" onmouseleave="stopHold()" ontouchend="stopHold()">−</button>
 <div class="counter-value" id="dogsValue">0</div>
 <button class="counter-btn" onmousedown="startHold('dogs',1)" ontouchstart="startHold('dogs',1)" onmouseup="stopHold()" onmouseleave="stopHold()" ontouchend="stopHold()">+</button>
 </div>
-
 <input type="hidden" id="dogs" value="0">
-
 </div>
 </div>
-
 </div>
 
-<div class="compact-row">
-
+<div class="compact-row" style="margin-top:0!important;">
 <div class="compact-item">
 <div class="counter-box">
-
 <div class="counter-title">🚲 Bikes</div>
-
 <div class="counter-controls">
 <button class="counter-btn" onmousedown="startHold('bikes',-1)" ontouchstart="startHold('bikes',-1)" onmouseup="stopHold()" onmouseleave="stopHold()" ontouchend="stopHold()">−</button>
 <div class="counter-value" id="bikesValue">0</div>
 <button class="counter-btn" onmousedown="startHold('bikes',1)" ontouchstart="startHold('bikes',1)" onmouseup="stopHold()" onmouseleave="stopHold()" ontouchend="stopHold()">+</button>
 </div>
-
 <input type="hidden" id="bikes" value="0">
-
 </div>
 </div>
-
 <div class="compact-item">
 <div class="counter-box">
-
 <div class="counter-title">🧳 Bags</div>
-
 <div class="counter-controls">
 <button class="counter-btn" onmousedown="startHold('bags',-1)" ontouchstart="startHold('bags',-1)" onmouseup="stopHold()" onmouseleave="stopHold()" ontouchend="stopHold()">−</button>
 <div class="counter-value" id="bagsValue">0</div>
 <button class="counter-btn" onmousedown="startHold('bags',1)" ontouchstart="startHold('bags',1)" onmouseup="stopHold()" onmouseleave="stopHold()" ontouchend="stopHold()">+</button>
 </div>
-
 <input type="hidden" id="bags" value="0">
-
 </div>
 </div>
-
 </div>
 
-
-<div class="card">
-<div class="chips">
+<div class="chips" style="margin-top:2px;">
 <button class="chip toggle-chip" id="nightFeeBtn" onclick="toggleChip(this,'nightFee')">🌙 Night +$5</button>
 <button class="chip toggle-chip" id="dirtRoadBtn" onclick="toggleChip(this,'dirtRoad')">🛣 Dirt +$5</button>
 </div>
+
 </div>
 
 <div class="quick-scroll" style="margin-bottom:12px;padding:0 0 4px;">
