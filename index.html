@@ -465,6 +465,20 @@ to{opacity:1;transform:translateY(0);}
 <input class="search-input" id="destination" placeholder="Search Nantucket address or hotel..."/>
 </div>
 
+<div id="ferryWidget" onclick="showTab('ferryTab', document.querySelectorAll('.tab-btn')[1])" style="cursor:pointer;background:#17181c;border:1px solid #2a2a2a;border-radius:16px;padding:12px 16px;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;">
+  <div style="display:flex;align-items:center;gap:10px;">
+    <div style="font-size:22px;" id="fwEmoji">⛴</div>
+    <div>
+      <div style="font-size:12px;opacity:.5;font-weight:600;letter-spacing:.5px;">СЛЕДУЮЩИЙ ПАРОМ</div>
+      <div style="font-size:16px;font-weight:800;" id="fwTitle">Загрузка...</div>
+    </div>
+  </div>
+  <div style="text-align:right;">
+    <div style="font-size:18px;font-weight:900;" id="fwCountdown">—</div>
+    <div style="font-size:11px;opacity:.4;">› Ferries</div>
+  </div>
+</div>
+
 
 <div class="compact-row">
 
@@ -1069,6 +1083,7 @@ async function refreshFerryLive(){
 }
 
 function renderFerryTab(forceSource){
+  try{ updateFerryWidget(); }catch(e){}
   const td=ferryTargetDate(ferryDayOffset);
   document.getElementById('ferryDateLabel').innerText=ferryLabel(td);
   const key=dateKey(td);
@@ -1215,7 +1230,34 @@ function checkFerryNotifications(){
 
 window.addEventListener('load',()=>{
   document.getElementById('ferryDateLabel').innerText=ferryLabel(new Date());
+  updateFerryWidget();
+  setInterval(updateFerryWidget, 30000);
 });
+
+function updateFerryWidget(){
+  const now = new Date();
+  const td = ferryTargetDate(0);
+  const arrivals = ferryLiveCache[dateKey(td)] || builtinArrivals(td) || [];
+  const next = arrivals.find(a => a.dateObj > now);
+  const widget = document.getElementById('ferryWidget');
+  if(!widget) return;
+  if(!next){
+    document.getElementById('fwEmoji').innerText = '🌙';
+    document.getElementById('fwTitle').innerText = 'Паромов больше нет';
+    document.getElementById('fwCountdown').innerText = '—';
+    widget.style.borderColor = '#2a2a2a';
+    return;
+  }
+  const mins = Math.floor((next.dateObj - now) / 60000);
+  const hot = mins <= 20;
+  const h = Math.floor(mins / 60), m = mins % 60;
+  const cd = h > 0 ? `${h}ч ${m}м` : `${mins} мин`;
+  document.getElementById('fwEmoji').innerText = lineEmoji(next.line);
+  document.getElementById('fwTitle').innerText = `${next.line} · ${next.time}`;
+  document.getElementById('fwCountdown').innerText = cd;
+  document.getElementById('fwCountdown').style.color = hot ? '#ff9f0a' : 'white';
+  widget.style.borderColor = hot ? '#ff9f0a' : '#2a2a2a';
+}
 
 
 function resetAll(){
