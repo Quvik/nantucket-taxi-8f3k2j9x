@@ -955,6 +955,9 @@ async function scrapeLive(){
   return arrivals.length>0?arrivals:null;
 }
 
+// Returns true if a line name belongs to Hy-Line (any variant)
+function isHyLineFerry(name){ return /hy[\s-]?line/i.test(name); }
+
 async function scrapeHyLine(){
   let html=null;
   for(const mk of PROXIES){
@@ -965,12 +968,12 @@ async function scrapeHyLine(){
   }
   if(!html)return null;
   const text=html.replace(/<[^>]+>/g,' ').replace(/&[a-z#\d]+;/gi,' ').replace(/\s+/g,' ');
-  // Find Hyannis → Nantucket direction block
-  const block=text.match(/Hyannis.{0,50}Nantucket[\s\S]{0,6000}?(?=Nantucket.{0,50}Hyannis|$)/i)?.[0];
+  // Find the Hyannis → Nantucket direction block (stop before the return direction)
+  const block=text.match(/Hyannis.{0,80}Nantucket[\s\S]{0,8000}?(?=Nantucket.{0,80}Hyannis|$)/i)?.[0];
   if(!block)return null;
-  // Extract times like "7:10 AM" or "7:10AM"
-  const times=[...block.matchAll(/\b(\d{1,2}:\d{2}\s*(?:AM|PM|am|pm))\b/g)]
-    .map(m=>m[1].replace(/\s*(am)$/i,'AM').replace(/\s*(pm)$/i,'PM').trim());
+  // Extract times like "7:10 AM", "7:10am", "7:10AM"
+  const times=[...block.matchAll(/\b(\d{1,2}:\d{2})\s*(AM|PM|am|pm)\b/g)]
+    .map(m=>`${m[1]} ${m[2].toUpperCase()}`);
   const unique=[...new Set(times)];
   return unique.length?unique.map(t=>({time:t,line:'Hy-Line',from:'Hyannis',type:'High-Speed',source:'hyline'})):null;
 }
@@ -982,15 +985,16 @@ async function refreshFerryLive(){
   icon.innerText='⏳'; lbl.innerText='Подключаюсь...'; btn.disabled=true;
   try{
     const td=ferryTargetDate(ferryDayOffset);
-    // Try Hy-Line first (user-preferred), then fallback to nantucketferries.com
+    // Fetch both sources in parallel
     const [hyRaw, allRaw] = await Promise.allSettled([scrapeHyLine(), scrapeLive()]);
-    const hy  = hyRaw.status==='fulfilled'  ? hyRaw.value  : null;
-    const all = allRaw.status==='fulfilled' ? allRaw.value : null;
+    const hy  = hyRaw.status==='fulfilled'  && hyRaw.value?.length  ? hyRaw.value  : null;
+    const all = allRaw.status==='fulfilled' && allRaw.value?.length ? allRaw.value : null;
 
-    // Merge: start with nantucketferries data, replace/add Hy-Line from their own site
-    let merged = all ? [...all.filter(a=>!a.line.toLowerCase().includes('hy'))] : [];
-    if(hy&&hy.length) merged = [...merged, ...hy];
-    else if(all)      merged = [...merged, ...(all.filter(a=>a.line.toLowerCase().includes('hy')))];
+    // Non-Hy-Line ferries (Steamship, Seastreak, Freedom) always from nantucketferries.com
+    const nonHy = all ? all.filter(a=>!isHyLineFerry(a.line)) : [];
+    // Hy-Line: prefer hylinecruises.com, fall back to nantucketferries.com if unavailable
+    const hyLine = hy ? hy : (all ? all.filter(a=>isHyLineFerry(a.line)) : []);
+    const merged = [...nonHy, ...hyLine];
 
     if(merged.length>0){
       const now=new Date();
@@ -999,11 +1003,13 @@ async function refreshFerryLive(){
       if(upcoming.length>0){
         ferryLiveCache[dateKey(td)]=parsed;
         renderFerryTab('live');
-        icon.innerText='✅'; lbl.innerText=hy?'Live (Hy-Line + общий)':'Обновлено live!';
+        const hySource = hy ? 'hylinecruises.com' : (all ? 'nantucketferries.com' : '—');
+        icon.innerText='✅';
+        lbl.innerText=`Live · Hy-Line: ${hySource}`;
       } else {
-        icon.innerText='📋'; lbl.innerText='Live недоступен — встроенные данные';
+        icon.innerText='📋'; lbl.innerText='Все паромы уже прибыли';
       }
-    } else { icon.innerText='📋'; lbl.innerText='Встроенные данные'; }
+    } else { icon.innerText='📋'; lbl.innerText='Нет live данных'; }
   }catch(e){ icon.innerText='⚠️'; lbl.innerText='Нет связи'; }
   btn.disabled=false;
   setTimeout(()=>{ icon.innerText='🔄'; lbl.innerText='Live-обновление'; },4000);
