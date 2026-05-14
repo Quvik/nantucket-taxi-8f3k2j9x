@@ -1422,7 +1422,8 @@ function toggleChip(btn, id) {
     haptic(12);
     chipState[id] = !chipState[id];
     btn.classList.toggle('on', chipState[id]);
-    try { calculateFare(); } catch(e) {}
+    if(document.getElementById('destination').value.trim())
+        try { calculateFare(); } catch(e) {}
 }
 
 async function calculateFare() {
