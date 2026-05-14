@@ -117,23 +117,29 @@ select {
 }
 
 .quick-scroll {
-    display:grid;
-    grid-template-columns:1fr 1fr;
+    display:flex;
+    flex-direction:row;
     gap:8px;
+    overflow-x:auto;
+    -webkit-overflow-scrolling:touch;
+    scrollbar-width:none;
+    padding-bottom:2px;
 }
+.quick-scroll::-webkit-scrollbar { display:none; }
 
 .quick-btn {
     background:#24252b;
     color:white;
     border:none;
     border-radius:14px;
-    padding:14px 10px;
+    padding:12px 14px;
     font-size:15px;
     font-weight:700;
-    text-align:left;
+    white-space:nowrap;
+    flex-shrink:0;
     display:flex;
     align-items:center;
-    gap:8px;
+    gap:7px;
 }
 
 #map {
@@ -540,12 +546,7 @@ to{opacity:1;transform:translateY(0);}
 </div>
 </div>
 
-<div class="card">
-<div style="font-size:22px;font-weight:800;margin-bottom:12px;">
-Quick Favorites
-</div>
-
-<div class="quick-scroll">
+<div class="quick-scroll" style="margin-bottom:12px;padding:0 0 4px;">
 <button class="quick-btn" onclick="setDestination('Airport')">✈️ Airport</button>
 <button class="quick-btn" onclick="setDestination('Steamship Ferry')">⛴ Ferry</button>
 <button class="quick-btn" onclick="setDestination('White Elephant')">🏨 White Elephant</button>
@@ -556,7 +557,11 @@ Quick Favorites
 <button class="quick-btn" onclick="setDestination('Madaket Beach')">🌅 Madaket</button>
 <button class="quick-btn" onclick="setDestination('Nantucket Cottage Hospital')">🏥 Hospital</button>
 <button class="quick-btn" onclick="setDestination('The Nantucket Hotel')">🏨 Nantucket Hotel</button>
-</div>
+<button class="quick-btn" onclick="setDestination('Jetties Beach')">🏖 Jetties</button>
+<button class="quick-btn" onclick="setDestination('Millie\'s')">🌮 Millie's</button>
+<button class="quick-btn" onclick="setDestination('Galley Beach')">🌅 Galley Beach</button>
+<button class="quick-btn" onclick="setDestination('Lola 41')">🍽 Lola 41</button>
+<button class="quick-btn" onclick="setDestination('Stop & Shop')">🛒 Stop & Shop</button>
 </div>
 
 <div class="card">
