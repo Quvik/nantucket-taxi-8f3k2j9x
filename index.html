@@ -762,16 +762,48 @@ fetch('places.json')
 
 
 
+let autoCalcTimeout = null;
+let isCalculatingFare = false;
+
+function resetFarePreview(){
+
+document.getElementById('destinationZone').innerText = '-';
+document.getElementById('fare').innerText = '$ -';
+document.getElementById('fareBreakdown').innerHTML = '';
+
+window.selectedPlace = null;
+}
+
 function autoCalculate(){
 
 const destination =
 document.getElementById('destination').value.trim();
 
-if(destination.length < 3) return;
+clearTimeout(autoCalcTimeout);
+
+if(destination.length < 3){
+
+resetFarePreview();
+return;
+}
+
+autoCalcTimeout = setTimeout(async ()=>{
+
+if(isCalculatingFare) return;
 
 try{
-calculateFare();
-}catch(e){}
+
+isCalculatingFare = true;
+
+await calculateFare();
+
+}catch(e){
+console.log(e);
+}finally{
+isCalculatingFare = false;
+}
+
+}, 350);
 }
 
 window.addEventListener('load',()=>{
@@ -1516,7 +1548,12 @@ async function calculateFare() {
 
     if (lat && lng) {
 
-        L.marker([lat, lng]).addTo(map);
+        if(window.destinationMarker){
+            map.removeLayer(window.destinationMarker);
+        }
+
+        window.destinationMarker =
+            L.marker([lat, lng]).addTo(map);
 
         map.setView([lat, lng], 14);
     }
@@ -1547,6 +1584,13 @@ function initAutocomplete() {
     });
 
     autocomplete.setBounds(nantucketBounds);
+
+        input.addEventListener('input', ()=>{
+
+        if(input.value.trim().length < 3){
+            window.selectedPlace = null;
+        }
+    });
 
     autocomplete.addListener('place_changed', () => {
 
