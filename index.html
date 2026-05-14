@@ -1739,7 +1739,7 @@ const GMAPS_KEY = 'AIzaSyChh4QTDtpcj9u_QwchPjZ5jE9B1VIl1wM';
 let svLat = null, svLng = null, svMode = 'street';
 
 function showAddressPreview(lat, lng, label){
-  svLat = lat; svLng = lng;
+  svLat = lat; svLng = lng; svMode = 'street';
   renderAddressPreview(label);
 }
 
@@ -1751,9 +1751,12 @@ function renderAddressPreview(label){
   if(!svLat) return;
   if(svMode === 'street'){
     img.src = `https://maps.googleapis.com/maps/api/streetview?size=600x360&location=${svLat},${svLng}&fov=80&pitch=5&key=${GMAPS_KEY}`;
+    btn.textContent = '🗺 Map';
+  } else if(svMode === 'map'){
+    img.src = `https://maps.googleapis.com/maps/api/staticmap?center=${svLat},${svLng}&zoom=16&size=600x360&maptype=roadmap&markers=color:red%7Csize:large%7C${svLat},${svLng}&key=${GMAPS_KEY}`;
     btn.textContent = '🛰 Satellite';
   } else {
-    img.src = `https://maps.googleapis.com/maps/api/staticmap?center=${svLat},${svLng}&zoom=18&size=600x360&maptype=satellite&markers=color:red%7C${svLat},${svLng}&key=${GMAPS_KEY}`;
+    img.src = `https://maps.googleapis.com/maps/api/staticmap?center=${svLat},${svLng}&zoom=18&size=600x360&maptype=satellite&markers=color:red%7Csize:large%7C${svLat},${svLng}&key=${GMAPS_KEY}`;
     btn.textContent = '📷 Street View';
   }
   if(label) lbl.textContent = label;
@@ -1766,7 +1769,7 @@ function hideStreetView(){
 }
 
 function toggleStreetViewMode(){
-  svMode = svMode === 'street' ? 'satellite' : 'street';
+  svMode = svMode === 'street' ? 'map' : svMode === 'map' ? 'satellite' : 'street';
   renderAddressPreview(null);
 }
 </script>
