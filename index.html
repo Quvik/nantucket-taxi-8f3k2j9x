@@ -841,14 +841,24 @@ el.addEventListener('change',autoCalculate);
 });
 
 
+let lastFerryRefresh = 0;
+const FERRY_REFRESH_INTERVAL = 5 * 60 * 1000; // 5 минут
+
 function showTab(tabId, btn){
   document.getElementById('taxiTab').style.display='none';
   document.getElementById('ferryTab').style.display='none';
   document.getElementById(tabId).style.display='block';
   document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active-tab'));
   btn.classList.add('active-tab');
-  if(tabId==='ferryTab'){ renderFerryTab(); startFerryTick(); }
-  else { stopFerryTick(); }
+  if(tabId==='ferryTab'){
+    renderFerryTab();
+    startFerryTick();
+    // Auto-refresh live data if not refreshed in last 5 minutes
+    if(Date.now() - lastFerryRefresh > FERRY_REFRESH_INTERVAL){
+      lastFerryRefresh = Date.now();
+      refreshFerryLive();
+    }
+  } else { stopFerryTick(); }
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -1014,6 +1024,7 @@ async function scrapeHyLine(){
 }
 
 async function refreshFerryLive(){
+  lastFerryRefresh = Date.now();
   const btn=document.getElementById('refreshFerryBtn');
   const icon=document.getElementById('refreshIcon');
   const lbl=document.getElementById('refreshLabel');
