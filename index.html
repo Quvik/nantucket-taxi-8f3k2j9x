@@ -964,7 +964,8 @@ function parseFT(t,base){
   const d=new Date(base); d.setHours(h,m,0,0); return d;
 }
 function fmtCD(ms){
-  if(ms<=0)return'Прибыл'; const m=Math.floor(ms/60000),h=Math.floor(m/60);
+  if(ms<0){ const m=Math.floor(-ms/60000); return m===0?'Прибыл':`${m} мин назад`; }
+  const m=Math.floor(ms/60000),h=Math.floor(m/60);
   return h>0?`${h}ч ${m%60}м`:`${m} мин`;
 }
 function lineEmoji(l){return l.includes('Steam')?'🚢':l.includes('Hy')?'🚤':l.includes('Sea')?'⛴':l.includes('Free')?'🛥':'⛵';}
@@ -1095,9 +1096,10 @@ function renderFerryTab(forceSource){
     document.getElementById('rushIndicatorCard').innerHTML=`<div style="opacity:.5;font-size:13px;">Статус</div><div style="font-size:18px;font-weight:800;margin-top:4px;">📅 Нет расписания</div>`;
     return;
   }
+  const GRACE_MS=20*60*1000;
   const now=new Date();
-  const upcoming=arrivals.filter(a=>a.dateObj>now);
-  const past=arrivals.filter(a=>a.dateObj<=now);
+  const upcoming=arrivals.filter(a=>a.dateObj>now-GRACE_MS);
+  const past=arrivals.filter(a=>a.dateObj<=now-GRACE_MS);
   renderRushCard(upcoming,now);
   let html='';
   const season=FERRY_BUILTIN.find(s=>{const k=dateKey(td);return k>=s.from&&k<=s.to;});
@@ -1105,8 +1107,15 @@ function renderFerryTab(forceSource){
   if(upcoming.length){
     html+=`<div style="font-size:11px;font-weight:700;opacity:.4;letter-spacing:1px;margin-bottom:8px;">СЛЕДУЮЩИЕ ПРИБЫТИЯ</div>`;
     upcoming.forEach((a,i)=>{
-      const isNext=i===0, mins=Math.floor((a.dateObj-now)/60000), hot=mins<=20;
-      html+=`<div class="fa-row" data-iso="${a.dateObj.toISOString()}" style="background:${isNext?(hot?'#2a1200':'#0f1f14'):'#17181c'};border:1px solid ${isNext?(hot?'#ff9f0a':'#30d158'):'#252528'};border-radius:15px;padding:13px 15px;margin-bottom:9px;display:flex;align-items:center;justify-content:space-between;">
+      const isNext=i===0, mins=Math.floor((a.dateObj-now)/60000);
+      const isLate=mins<0, hot=!isLate&&mins<=20;
+      const bg=isLate?'#1a1000':(isNext?(hot?'#2a1200':'#0f1f14'):'#17181c');
+      const br=isLate?'#ff9f0a':(isNext?(hot?'#ff9f0a':'#30d158'):'#252528');
+      const cdColor=isLate?'#ff9f0a':(hot&&isNext?'#ff9f0a':'white');
+      let badge='';
+      if(isLate) badge=`<div style="font-size:10px;font-weight:800;color:#ff9f0a;margin-top:3px;">⏱ ЗАДЕРЖКА</div>`;
+      else if(isNext) badge=`<div style="font-size:10px;font-weight:800;color:${hot?'#ff9f0a':'#30d158'};margin-top:3px;">${hot?'⚡СКОРО':'▶ NEXT'}</div>`;
+      html+=`<div class="fa-row" data-iso="${a.dateObj.toISOString()}" style="background:${bg};border:1px solid ${br};border-radius:15px;padding:13px 15px;margin-bottom:9px;display:flex;align-items:center;justify-content:space-between;">
         <div style="display:flex;align-items:center;gap:11px;">
           <div style="font-size:24px;">${lineEmoji(a.line)}</div>
           <div>
@@ -1116,8 +1125,8 @@ function renderFerryTab(forceSource){
           </div>
         </div>
         <div style="text-align:right;min-width:60px;">
-          <div class="cd-val" style="font-size:15px;font-weight:800;color:${hot&&isNext?'#ff9f0a':'white'};">${fmtCD(a.dateObj-now)}</div>
-          ${isNext?`<div style="font-size:10px;font-weight:800;color:${hot?'#ff9f0a':'#30d158'};margin-top:3px;">${hot?'⚡СКОРО':'▶ NEXT'}</div>`:''}
+          <div class="cd-val" style="font-size:15px;font-weight:800;color:${cdColor};">${fmtCD(a.dateObj-now)}</div>
+          ${badge}
         </div>
       </div>`;
     });
@@ -1138,7 +1147,8 @@ function renderRushCard(upcoming,now){
   if(!upcoming||!upcoming.length){ card.innerHTML=`<div style="opacity:.5;font-size:13px;">Статус</div><div style="font-size:20px;font-weight:800;margin-top:4px;">🌙 Больше паромов нет</div>`; return; }
   const next=upcoming[0],mins=Math.floor((next.dateObj-now)/60000);
   let icon,color,msg,sub;
-  if(mins<=20){icon='🚨';color='#ff453a';msg=`Паром через ${mins} мин!`;sub=`${lineEmoji(next.line)} ${next.line} · ${next.time} из ${next.from}`;}
+  if(mins<0){icon='⏱';color='#ff9f0a';msg=`Задержка · ${Math.abs(mins)} мин назад`;sub=`${lineEmoji(next.line)} ${next.line} · ${next.time} из ${next.from}`;}
+  else if(mins<=20){icon='🚨';color='#ff453a';msg=`Паром через ${mins} мин!`;sub=`${lineEmoji(next.line)} ${next.line} · ${next.time} из ${next.from}`;}
   else if(mins<=45){icon='⚠️';color='#ffd60a';msg=`Паром через ${Math.floor(mins/60)?Math.floor(mins/60)+'ч ':''}${mins%60}мин`;sub=`${lineEmoji(next.line)} ${next.line} · ${next.time}`;}
   else{icon='🟢';color='#30d158';const h=Math.floor(mins/60),m=mins%60;msg=`Спокойно · ${h?h+'ч ':''}${m}м`;sub=`${lineEmoji(next.line)} ${next.line} прибудет в ${next.time}`;}
   card.innerHTML=`<div style="opacity:.5;font-size:13px;">Статус</div><div style="font-size:22px;font-weight:900;color:${color};margin-top:4px;">${icon} ${msg}</div><div style="font-size:13px;opacity:.7;margin-top:5px;">${sub}</div>`;
@@ -1152,11 +1162,11 @@ function startFerryTick(){
       const d=new Date(row.getAttribute('data-iso'));
       const el=row.querySelector('.cd-val');
       if(el)el.innerText=fmtCD(d-now);
-      if(d<=now)renderFerryTab();
+      if(d<=now-20*60*1000)renderFerryTab();
     });
     const td=ferryTargetDate(ferryDayOffset);
     const arr=ferryLiveCache[dateKey(td)]||builtinArrivals(td)||[];
-    renderRushCard(arr.filter(a=>a.dateObj>now),now);
+    renderRushCard(arr.filter(a=>a.dateObj>now-20*60*1000),now);
   },30000);
 }
 function stopFerryTick(){ if(ferryTickId)clearInterval(ferryTickId); ferryTickId=null; }
@@ -1237,7 +1247,7 @@ function updateFerryWidget(){
   const now = new Date();
   const td = ferryTargetDate(0);
   const arrivals = ferryLiveCache[dateKey(td)] || builtinArrivals(td) || [];
-  const next = arrivals.find(a => a.dateObj > now);
+  const next = arrivals.find(a => a.dateObj > now - 20*60*1000);
   const widget = document.getElementById('ferryWidget');
   if(!widget) return;
   if(!next){
@@ -1248,14 +1258,14 @@ function updateFerryWidget(){
     return;
   }
   const mins = Math.floor((next.dateObj - now) / 60000);
-  const hot = mins <= 20;
-  const h = Math.floor(mins / 60), m = mins % 60;
-  const cd = h > 0 ? `${h}ч ${m}м` : `${mins} мин`;
+  const isLate = mins < 0;
+  const hot = !isLate && mins <= 20;
+  const cd = isLate ? `${Math.abs(mins)} мин назад` : (Math.floor(mins/60)>0 ? `${Math.floor(mins/60)}ч ${mins%60}м` : `${mins} мин`);
   document.getElementById('fwEmoji').innerText = lineEmoji(next.line);
-  document.getElementById('fwTitle').innerText = `${next.line} · ${next.time}`;
+  document.getElementById('fwTitle').innerText = `${next.line} · ${next.time}${isLate?' ⏱':''}`;
   document.getElementById('fwCountdown').innerText = cd;
-  document.getElementById('fwCountdown').style.color = hot ? '#ff9f0a' : 'white';
-  widget.style.borderColor = hot ? '#ff9f0a' : '#2a2a2a';
+  document.getElementById('fwCountdown').style.color = (hot||isLate) ? '#ff9f0a' : 'white';
+  widget.style.borderColor = (hot||isLate) ? '#ff9f0a' : '#2a2a2a';
 }
 
 // ── Weather widget (Open-Meteo, no API key) ──────────────────
