@@ -475,10 +475,11 @@ to{opacity:1;transform:translateY(0);}
 </div>
 
 <div id="streetViewCard" style="display:none;border-radius:16px;overflow:hidden;margin-bottom:12px;position:relative;">
-  <img id="streetViewImg" src="" alt="" style="width:100%;height:180px;object-fit:cover;display:block;"/>
-  <div id="streetViewLabel" style="position:absolute;bottom:0;left:0;right:0;background:linear-gradient(transparent,rgba(0,0,0,.75));padding:10px 14px 10px;font-size:13px;font-weight:600;color:white;"></div>
-  <button onclick="hideStreetView()" style="position:absolute;top:8px;right:8px;background:rgba(0,0,0,.55);border:none;color:white;border-radius:50%;width:28px;height:28px;font-size:16px;line-height:28px;text-align:center;cursor:pointer;">×</button>
-  <button onclick="toggleStreetViewMode()" id="svModeBtn" style="position:absolute;top:8px;left:8px;background:rgba(0,0,0,.55);border:none;color:white;border-radius:20px;padding:4px 10px;font-size:12px;font-weight:700;cursor:pointer;">🛰 Satellite</button>
+  <img id="streetViewImg" src="" alt="" style="width:100%;height:220px;object-fit:cover;display:none;"/>
+  <div id="addressMapDiv" style="width:100%;height:220px;display:none;"></div>
+  <div id="streetViewLabel" style="position:absolute;bottom:0;left:0;right:0;background:linear-gradient(transparent,rgba(0,0,0,.75));padding:10px 14px 10px;font-size:13px;font-weight:600;color:white;pointer-events:none;"></div>
+  <button onclick="hideStreetView()" style="position:absolute;top:8px;right:8px;background:rgba(0,0,0,.55);border:none;color:white;border-radius:50%;width:28px;height:28px;font-size:16px;line-height:28px;text-align:center;cursor:pointer;z-index:1000;">×</button>
+  <button onclick="toggleStreetViewMode()" id="svModeBtn" style="position:absolute;top:8px;left:8px;background:rgba(0,0,0,.55);border:none;color:white;border-radius:20px;padding:4px 10px;font-size:12px;font-weight:700;cursor:pointer;z-index:1000;">📷 Street View</button>
 </div>
 
 <div id="ferryWidget" onclick="showTab('ferryTab', document.querySelectorAll('.tab-btn')[1])" style="cursor:pointer;background:#17181c;border:1px solid #2a2a2a;border-radius:16px;padding:12px 16px;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;">
@@ -1736,31 +1737,53 @@ function hideDropdown(){ if(acDropdown) acDropdown.style.display='none'; }
 
 // ── Street View / Satellite preview ─────────────────────────
 const GMAPS_KEY = 'AIzaSyChh4QTDtpcj9u_QwchPjZ5jE9B1VIl1wM';
-let svLat = null, svLng = null, svMode = 'street';
+let svLat = null, svLng = null, svMode = 'map';
+let previewMap = null, previewMarker = null;
 
 function showAddressPreview(lat, lng, label){
-  svLat = lat; svLng = lng; svMode = 'street';
+  svLat = lat; svLng = lng; svMode = 'map';
   renderAddressPreview(label);
 }
 
 function renderAddressPreview(label){
-  const card = document.getElementById('streetViewCard');
-  const img  = document.getElementById('streetViewImg');
-  const lbl  = document.getElementById('streetViewLabel');
-  const btn  = document.getElementById('svModeBtn');
+  const card   = document.getElementById('streetViewCard');
+  const img    = document.getElementById('streetViewImg');
+  const mapDiv = document.getElementById('addressMapDiv');
+  const lbl    = document.getElementById('streetViewLabel');
+  const btn    = document.getElementById('svModeBtn');
   if(!svLat) return;
-  if(svMode === 'street'){
-    img.src = `https://maps.googleapis.com/maps/api/streetview?size=600x360&location=${svLat},${svLng}&fov=80&pitch=5&key=${GMAPS_KEY}`;
-    btn.textContent = '🗺 Map';
-  } else if(svMode === 'map'){
-    img.src = `https://maps.googleapis.com/maps/api/staticmap?center=${svLat},${svLng}&zoom=16&size=600x360&maptype=roadmap&markers=color:red%7Csize:large%7C${svLat},${svLng}&key=${GMAPS_KEY}`;
-    btn.textContent = '🛰 Satellite';
-  } else {
-    img.src = `https://maps.googleapis.com/maps/api/staticmap?center=${svLat},${svLng}&zoom=18&size=600x360&maptype=satellite&markers=color:red%7Csize:large%7C${svLat},${svLng}&key=${GMAPS_KEY}`;
-    btn.textContent = '📷 Street View';
-  }
   if(label) lbl.textContent = label;
   card.style.display = 'block';
+
+  if(svMode === 'map'){
+    img.style.display    = 'none';
+    mapDiv.style.display = 'block';
+    btn.textContent      = '📷 Street View';
+    setTimeout(()=>{
+      if(!previewMap){
+        previewMap = L.map('addressMapDiv', {zoomControl:true, attributionControl:false})
+          .setView([svLat, svLng], 16);
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
+          {maxZoom:19, subdomains:'abcd'}).addTo(previewMap);
+        previewMarker = L.marker([svLat, svLng]).addTo(previewMap);
+      } else {
+        previewMap.setView([svLat, svLng], 16);
+        previewMarker.setLatLng([svLat, svLng]);
+        previewMap.invalidateSize();
+      }
+    }, 50);
+    return;
+  }
+
+  img.style.display    = 'block';
+  mapDiv.style.display = 'none';
+  if(svMode === 'street'){
+    img.src         = `https://maps.googleapis.com/maps/api/streetview?size=600x360&location=${svLat},${svLng}&fov=80&pitch=5&key=${GMAPS_KEY}`;
+    btn.textContent = '🛰 Satellite';
+  } else {
+    img.src         = `https://maps.googleapis.com/maps/api/staticmap?center=${svLat},${svLng}&zoom=18&size=600x360&maptype=satellite&markers=color:red%7Csize:large%7C${svLat},${svLng}&key=${GMAPS_KEY}`;
+    btn.textContent = '🗺 Map';
+  }
 }
 
 function hideStreetView(){
@@ -1769,7 +1792,7 @@ function hideStreetView(){
 }
 
 function toggleStreetViewMode(){
-  svMode = svMode === 'street' ? 'map' : svMode === 'map' ? 'satellite' : 'street';
+  svMode = svMode === 'map' ? 'street' : svMode === 'street' ? 'satellite' : 'map';
   renderAddressPreview(null);
 }
 </script>
