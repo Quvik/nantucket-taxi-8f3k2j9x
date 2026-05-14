@@ -1769,21 +1769,23 @@ function renderAddressPreview(label){
     expandBtn.style.display = 'flex';
     setTimeout(()=>{
       if(!previewMap){
-        previewMap = L.map('addressMapDiv', {zoomControl:false, attributionControl:false})
-          .setView([svLat, svLng], 16);
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
-          {maxZoom:19, subdomains:'abcd'}).addTo(previewMap);
-        L.control.zoom({position:'bottomleft'}).addTo(previewMap);
-        const pinIcon = L.divIcon({
-          className: '',
-          html: `<svg width='24' height='32' viewBox='0 0 24 32' xmlns='http://www.w3.org/2000/svg'><path d='M12 0C5.37 0 0 5.37 0 12c0 7.5 12 20 12 20S24 19.5 24 12 18.63 0 12 0z' fill='#E84335' stroke='rgba(0,0,0,.15)' stroke-width='1'/><circle cx='12' cy='12' r='5' fill='white'/></svg>`,
-          iconSize: [24, 32], iconAnchor: [12, 32]
+        previewMap = new google.maps.Map(document.getElementById('addressMapDiv'), {
+          center: {lat: svLat, lng: svLng},
+          zoom: 16,
+          mapTypeControl: false,
+          streetViewControl: false,
+          fullscreenControl: false,
+          zoomControlOptions: {position: google.maps.ControlPosition.LEFT_BOTTOM}
         });
-        previewMarker = L.marker([svLat, svLng], {icon: pinIcon}).addTo(previewMap);
+        previewMarker = new google.maps.Marker({
+          position: {lat: svLat, lng: svLng},
+          map: previewMap
+        });
       } else {
-        previewMap.setView([svLat, svLng], 16);
-        previewMarker.setLatLng([svLat, svLng]);
-        previewMap.invalidateSize();
+        previewMap.setCenter({lat: svLat, lng: svLng});
+        previewMap.setZoom(16);
+        previewMarker.setPosition({lat: svLat, lng: svLng});
+        google.maps.event.trigger(previewMap, 'resize');
       }
     }, 50);
     return;
@@ -1817,7 +1819,12 @@ function toggleMapFullscreen(){
     expandBtn.innerHTML     = _EXPAND_SVG;
     expandBtn.style.display = 'flex';
   }
-  setTimeout(()=> previewMap && previewMap.invalidateSize(), 150);
+  setTimeout(()=>{
+    if(previewMap){
+      google.maps.event.trigger(previewMap, 'resize');
+      previewMap.setCenter({lat: svLat, lng: svLng});
+    }
+  }, 150);
 }
 
 function hideStreetView(){
