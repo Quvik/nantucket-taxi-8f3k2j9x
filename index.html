@@ -1155,7 +1155,7 @@ function openWaze() {
 
 
 
-// AUTOCOMPLETE — handled by Google Places (initAutocomplete below)
+// AUTOCOMPLETE — handled by initAutocomplete() below
 
 
 async function calculateFare() {
@@ -1319,85 +1319,192 @@ async function calculateFare() {
 
 
 <script>
-let autocomplete;
+// ── Nantucket bbox ──────────────────────────────────────────────
+const NAN_BOUNDS = {
+  minLat: 41.230, maxLat: 41.340,
+  minLng: -70.240, maxLng: -69.950
+};
+function isOnNantucket(lat, lng) {
+  return lat >= NAN_BOUNDS.minLat && lat <= NAN_BOUNDS.maxLat &&
+         lng >= NAN_BOUNDS.minLng && lng <= NAN_BOUNDS.maxLng;
+}
+
+let acService, placesService, sessionToken;
+let acDebounceTimer = null;
+let acDropdown = null;
 
 function initAutocomplete() {
+  const input = document.getElementById('destination');
 
-    const input = document.getElementById('destination');
+  acService    = new google.maps.places.AutocompleteService();
+  placesService= new google.maps.places.PlacesService(
+    document.createElement('div')
+  );
+  sessionToken = new google.maps.places.AutocompleteSessionToken();
 
-    const nantucketBounds = new google.maps.LatLngBounds(
-        new google.maps.LatLng(41.230, -70.240),
-        new google.maps.LatLng(41.340, -69.950)
+  // Build custom dropdown
+  acDropdown = document.createElement('div');
+  acDropdown.id = 'ac-dropdown';
+  acDropdown.style.cssText = `
+    position:absolute; z-index:9999; width:100%;
+    background:#1c1c1e; border:1px solid #333; border-radius:14px;
+    overflow:hidden; display:none; margin-top:4px;
+    box-shadow:0 8px 32px rgba(0,0,0,.6);
+  `;
+  input.parentElement.style.position = 'relative';
+  input.parentElement.appendChild(acDropdown);
+
+  // ── Input handler with debounce ─────────────────────────────
+  input.addEventListener('input', () => {
+    window.selectedPlace = null;
+    clearTimeout(acDebounceTimer);
+
+    const raw = input.value.trim();
+    if (raw.length < 2) { hideDropdown(); return; }
+
+    acDebounceTimer = setTimeout(() => fetchSuggestions(raw), 300);
+  });
+
+  // Close dropdown on outside click
+  document.addEventListener('click', e => {
+    if (!input.contains(e.target) && !acDropdown.contains(e.target))
+      hideDropdown();
+  });
+
+  // Prevent Enter from reloading page
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Enter') e.preventDefault();
+  });
+
+  // Clear result when field emptied
+  input.addEventListener('input', () => {
+    if (!input.value.trim()) {
+      try {
+        document.getElementById('destinationZone').innerText = '-';
+        document.getElementById('fare').innerText = '$ -';
+        document.getElementById('fareBreakdown').innerHTML = '';
+      } catch(e){}
+    }
+  });
+}
+
+function fetchSuggestions(query) {
+  // Always append "Nantucket" so Google biases to the island
+  const searchQuery = query + ' Nantucket MA';
+
+  const nantucketCenter = new google.maps.LatLng(41.283, -70.099);
+
+  acService.getPlacePredictions({
+    input: searchQuery,
+    sessionToken: sessionToken,
+    locationBias: {
+      center: nantucketCenter,
+      radius: 12000   // 12km — covers the whole island
+    },
+    componentRestrictions: { country: 'us' },
+    types: ['geocode', 'establishment']
+  }, (predictions, status) => {
+    if (status !== google.maps.places.PlacesServiceStatus.OK || !predictions) {
+      hideDropdown(); return;
+    }
+
+    // Filter: only keep predictions that mention Nantucket
+    const nanPredictions = predictions.filter(p =>
+      p.description.toLowerCase().includes('nantucket')
     );
 
-    autocomplete = new google.maps.places.Autocomplete(input, {
-        types: ['geocode','establishment'],
-        componentRestrictions: { country:'us' },
-        bounds: nantucketBounds,
-        strictBounds: false,
-        fields: ['geometry','name','formatted_address']
+    const toShow = nanPredictions.length ? nanPredictions : predictions.slice(0, 3);
+    renderDropdown(toShow);
+  });
+}
+
+function renderDropdown(predictions) {
+  acDropdown.innerHTML = '';
+
+  if (!predictions.length) { hideDropdown(); return; }
+
+  predictions.forEach((pred, i) => {
+    const item = document.createElement('div');
+    item.style.cssText = `
+      padding:13px 16px; cursor:pointer; font-size:15px; color:white;
+      border-bottom:1px solid #2a2a2a; display:flex; align-items:center; gap:10px;
+    `;
+
+    // Main text (place name) + secondary (address)
+    const main = pred.structured_formatting?.main_text || pred.description;
+    const secondary = (pred.structured_formatting?.secondary_text || '')
+      .replace(/,?\s*Nantucket,?\s*MA\s*\d*,?\s*USA/gi, '')
+      .replace(/,?\s*Nantucket,?\s*MA/gi, '')
+      .trim();
+
+    item.innerHTML = `
+      <span style="font-size:18px;">📍</span>
+      <div>
+        <div style="font-weight:700;">${main}</div>
+        ${secondary ? `<div style="font-size:12px;opacity:.55;margin-top:2px;">${secondary}</div>` : ''}
+      </div>`;
+
+    if (i === predictions.length - 1) item.style.borderBottom = 'none';
+
+    item.addEventListener('mousedown', e => {
+      e.preventDefault(); // don't blur input
+      selectPrediction(pred);
     });
+    item.addEventListener('touchstart', e => {
+      e.preventDefault();
+      selectPrediction(pred);
+    }, { passive: false });
 
-    autocomplete.setBounds(nantucketBounds);
+    acDropdown.appendChild(item);
+  });
 
-    autocomplete.addListener('place_changed', () => {
-        const place = autocomplete.getPlace();
-        if (!place || !place.geometry) return;
-        window.selectedPlace = place;
-        // Auto-calculate when place selected from dropdown
-        try { calculateFare(); } catch(e) {}
-    });
+  acDropdown.style.display = 'block';
+}
 
-    // ── Clean up dropdown text (remove ", Nantucket, MA, USA") ──
-    // Use a debounced MutationObserver that disconnects while patching
-    // to avoid infinite loops
-    let observerBusy = false;
-    const observer = new MutationObserver(() => {
-        if (observerBusy) return;
+function selectPrediction(pred) {
+  const input = document.getElementById('destination');
 
-        const items = document.querySelectorAll('.pac-item');
-        if (!items.length) return;
+  // Get full place details to confirm it's on Nantucket
+  placesService.getDetails({
+    placeId: pred.place_id,
+    fields: ['geometry', 'name', 'formatted_address'],
+    sessionToken: sessionToken
+  }, (place, status) => {
+    if (status !== google.maps.places.PlacesServiceStatus.OK || !place?.geometry) {
+      // Fallback: just set name and let calculateFare use photon
+      input.value = pred.structured_formatting?.main_text || pred.description;
+      hideDropdown();
+      return;
+    }
 
-        observerBusy = true;
-        observer.disconnect(); // stop watching while we patch
+    const lat = place.geometry.location.lat();
+    const lng = place.geometry.location.lng();
 
-        items.forEach(item => {
-            // Strip ", Nantucket, MA, USA" noise from text nodes only
-            item.querySelectorAll('.pac-item-query, .pac-secondary-text').forEach(el => {
-                el.textContent = el.textContent
-                    .replace(/,?\s*Nantucket,?\s*MA,?\s*USA/gi, '')
-                    .trim();
-            });
-        });
+    // Verify it's actually on Nantucket island
+    if (!isOnNantucket(lat, lng)) {
+      // Not on island — try searching again with stricter query
+      input.value = pred.structured_formatting?.main_text || pred.description;
+      hideDropdown();
+      return;
+    }
 
-        // Resume after a short delay so Google can finish its own DOM work
-        setTimeout(() => {
-            observer.observe(document.body, { childList: true, subtree: true });
-            observerBusy = false;
-        }, 200);
-    });
+    // ✅ Valid Nantucket place
+    window.selectedPlace = place;
+    input.value = place.name ||
+                  pred.structured_formatting?.main_text ||
+                  pred.description;
 
-    observer.observe(document.body, { childList: true, subtree: true });
+    // New session token for next search
+    sessionToken = new google.maps.places.AutocompleteSessionToken();
+    hideDropdown();
 
-    // ── Clear selectedPlace when user edits field manually ──
-    let clearTimer;
-    input.addEventListener('input', () => {
-        window.selectedPlace = null;
-        clearTimeout(clearTimer);
-        // If field emptied — reset fare display
-        if (!input.value.trim()) {
-            clearTimer = setTimeout(() => {
-                document.getElementById('destinationZone').innerText = '-';
-                document.getElementById('fare').innerText = '$ -';
-                document.getElementById('fareBreakdown').innerHTML = '';
-            }, 300);
-        }
-    });
+    // Auto-calculate fare
+    try { calculateFare(); } catch(e) {}
+  });
+}
 
-    // ── Prevent form submit on Enter (causes page reload on mobile) ──
-    input.addEventListener('keydown', e => {
-        if (e.key === 'Enter') e.preventDefault();
-    });
+function hideDropdown() {
+  if (acDropdown) acDropdown.style.display = 'none';
 }
 </script>
 
