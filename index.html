@@ -452,6 +452,7 @@ to{opacity:1;transform:translateY(0);}
 <div class="top-tabs">
 <button class="tab-btn active-tab" onclick="showTab('taxiTab', this)">🚕 Taxi</button>
 <button class="tab-btn" onclick="showTab('ferryTab', this)">⛴ Ferries</button>
+<button class="tab-btn" onclick="showTab('flightTab', this)">✈️ Flights</button>
 </div>
 
 <div id="topbar"><div id="taxiTab">
@@ -498,6 +499,19 @@ to{opacity:1;transform:translateY(0);}
   </div>
 </div>
 
+<div id="flightWidget" onclick="showTab('flightTab', document.querySelectorAll('.tab-btn')[2])" style="cursor:pointer;background:#17181c;border:1px solid #2a2a2a;border-radius:16px;padding:12px 16px;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;">
+  <div style="display:flex;align-items:center;gap:10px;">
+    <div style="font-size:22px;" id="fltEmoji">✈️</div>
+    <div>
+      <div style="font-size:12px;opacity:.5;font-weight:600;letter-spacing:.5px;">СЛЕДУЮЩИЙ РЕЙС</div>
+      <div style="font-size:16px;font-weight:800;" id="fltTitle">Загрузка...</div>
+    </div>
+  </div>
+  <div style="text-align:right;">
+    <div style="font-size:18px;font-weight:900;" id="fltCountdown">—</div>
+    <div style="font-size:11px;opacity:.4;">› Flights</div>
+  </div>
+</div>
 
 <div class="card" style="display:flex;flex-direction:column;gap:10px;">
 
@@ -631,6 +645,38 @@ to{opacity:1;transform:translateY(0);}
     🔔 Enable Ferry Alerts
   </button>
   <div id="notifyStatus" style="font-size:12px;opacity:.5;text-align:center;margin-top:6px;"></div>
+
+</div>
+
+<div id="flightTab" style="display:none;padding:14px 14px 130px;">
+
+  <div id="flightRushCard" style="background:#17181d;border:1px solid #2a2a2a;border-radius:18px;padding:16px;margin-bottom:10px;">
+    <div style="opacity:.55;font-size:13px;margin-bottom:4px;">Статус</div>
+    <div style="font-size:20px;font-weight:800;" id="flightStatusLine">⏳ Загрузка...</div>
+    <div style="font-size:13px;opacity:.6;margin-top:4px;" id="flightStatusSub"></div>
+  </div>
+
+  <div style="display:flex;gap:10px;margin-bottom:10px;align-items:stretch;">
+    <button id="refreshFlightBtn" onclick="refreshFlightsLive()" style="flex:1;background:linear-gradient(135deg,#0A84FF,#005ecb);color:white;border:none;border-radius:16px;padding:14px;font-size:16px;font-weight:800;display:flex;align-items:center;justify-content:center;gap:8px;">
+      <span id="refreshFlightIcon">📡</span>
+      <span id="refreshFlightLabel">ADS-B Live</span>
+    </button>
+    <button onclick="window.open('https://flightaware.com/live/airport/KACK','_blank')" style="background:#1e1e28;border:1px solid #2a2a2a;color:white;border:none;border-radius:16px;padding:14px;font-size:14px;font-weight:700;cursor:pointer;">FA ↗</button>
+  </div>
+
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+    <div style="font-size:18px;font-weight:800;">Сегодня</div>
+    <div id="flightSourceBadge" style="font-size:11px;padding:4px 10px;border-radius:20px;background:#1e1e28;color:#aaa;">📋 Встроенные</div>
+  </div>
+
+  <div id="flightArrivalsContainer">
+    <div style="text-align:center;padding:40px;opacity:.4;">Загрузка...</div>
+  </div>
+
+  <div style="display:flex;gap:10px;margin-top:12px;">
+    <button class="quick-btn" style="flex:1;" onclick="window.open('https://flightaware.com/live/airport/KACK/arrivals','_blank')">✈️ FlightAware</button>
+    <button class="quick-btn" style="flex:1;" onclick="window.open('https://www.flightradar24.com/airport/ack','_blank')">📡 FR24</button>
+  </div>
 
 </div>
 
@@ -864,18 +910,30 @@ const FERRY_REFRESH_INTERVAL = 5 * 60 * 1000; // 5 минут
 function showTab(tabId, btn){
   document.getElementById('taxiTab').style.display='none';
   document.getElementById('ferryTab').style.display='none';
+  document.getElementById('flightTab').style.display='none';
   document.getElementById(tabId).style.display='block';
   document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active-tab'));
   btn.classList.add('active-tab');
   if(tabId==='ferryTab'){
     renderFerryTab();
     startFerryTick();
-    // Auto-refresh live data if not refreshed in last 5 minutes
     if(Date.now() - lastFerryRefresh > FERRY_REFRESH_INTERVAL){
       lastFerryRefresh = Date.now();
       refreshFerryLive();
     }
-  } else { stopFerryTick(); }
+    stopFlightTick();
+  } else if(tabId==='flightTab'){
+    renderFlightTab();
+    startFlightTick();
+    stopFerryTick();
+    if(Date.now() - lastFlightRefresh > FLIGHT_REFRESH_INTERVAL){
+      lastFlightRefresh = Date.now();
+      refreshFlightsLive();
+    }
+  } else {
+    stopFerryTick();
+    stopFlightTick();
+  }
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -1245,6 +1303,8 @@ window.addEventListener('load',()=>{
   document.getElementById('ferryDateLabel').innerText=ferryLabel(new Date());
   updateFerryWidget();
   setInterval(updateFerryWidget, 30000);
+  updateFlightWidget();
+  setInterval(updateFlightWidget, 30000);
   loadWeather();
   setInterval(loadWeather, 15*60*1000);
 });
@@ -1273,6 +1333,328 @@ function updateFerryWidget(){
   document.getElementById('fwCountdown').style.color = (hot||isLate) ? '#ff9f0a' : 'white';
   widget.style.borderColor = (hot||isLate) ? '#ff9f0a' : '#2a2a2a';
 }
+
+// ═══════════════════════════════════════════════════════════
+//  FLIGHT ENGINE — ADS-B live + встроенное расписание
+// ═══════════════════════════════════════════════════════════
+
+const FLIGHT_GRACE_MS = 30 * 60 * 1000; // 30 мин после прилёта
+const FLIGHT_REFRESH_INTERVAL = 3 * 60 * 1000; // 3 минуты
+let lastFlightRefresh = 0;
+let flightLiveData = null; // [{callsign, airline, from, etaMin, distNm, alt, gs, lat, lon}]
+let flightTickId = null;
+
+// Approximate summer schedule for ACK arrivals
+// Times are approximate — use ADS-B Live or FlightAware for exact times
+const FLIGHT_BUILTIN = [
+  {
+    from:'2026-05-01', to:'2026-10-31', label:'Летний сезон (примерно)',
+    arrivals:[
+      // Cape Air (BOS) - multiple daily
+      {time:'6:55 AM', airline:'Cape Air', from:'BOS', seats:9},
+      {time:'8:05 AM', airline:'Cape Air', from:'BOS', seats:9},
+      {time:'9:20 AM', airline:'Cape Air', from:'BOS', seats:9},
+      {time:'10:35 AM', airline:'Cape Air', from:'BOS', seats:9},
+      {time:'11:50 AM', airline:'Cape Air', from:'BOS', seats:9},
+      {time:'1:05 PM', airline:'Cape Air', from:'BOS', seats:9},
+      {time:'2:20 PM', airline:'Cape Air', from:'BOS', seats:9},
+      {time:'3:35 PM', airline:'Cape Air', from:'BOS', seats:9},
+      {time:'4:50 PM', airline:'Cape Air', from:'BOS', seats:9},
+      {time:'6:10 PM', airline:'Cape Air', from:'BOS', seats:9},
+      {time:'7:25 PM', airline:'Cape Air', from:'BOS', seats:9},
+      {time:'8:30 PM', airline:'Cape Air', from:'BOS', seats:9},
+      // Cape Air (HYA)
+      {time:'7:40 AM', airline:'Cape Air', from:'HYA', seats:9},
+      {time:'12:30 PM', airline:'Cape Air', from:'HYA', seats:9},
+      {time:'5:15 PM', airline:'Cape Air', from:'HYA', seats:9},
+      // JetBlue (BOS)
+      {time:'7:55 AM', airline:'JetBlue', from:'BOS', seats:150},
+      {time:'1:30 PM', airline:'JetBlue', from:'BOS', seats:150},
+      {time:'6:45 PM', airline:'JetBlue', from:'BOS', seats:150},
+      // JetBlue (JFK)
+      {time:'9:10 AM', airline:'JetBlue', from:'JFK', seats:150, days:[0,5,6]},
+      {time:'2:50 PM', airline:'JetBlue', from:'JFK', seats:150, days:[0,5,6]},
+      // American (PHL)
+      {time:'8:25 AM', airline:'American', from:'PHL', seats:76},
+      {time:'5:40 PM', airline:'American', from:'PHL', seats:76},
+      // American (CLT)
+      {time:'11:00 AM', airline:'American', from:'CLT', seats:76, days:[0,5,6]},
+      {time:'7:15 PM', airline:'American', from:'CLT', seats:76, days:[0,5,6]},
+      // Delta (JFK)
+      {time:'8:00 AM', airline:'Delta', from:'JFK', seats:76},
+      {time:'2:15 PM', airline:'Delta', from:'JFK', seats:76},
+      {time:'6:30 PM', airline:'Delta', from:'JFK', seats:76},
+      // Delta (BOS)
+      {time:'10:45 AM', airline:'Delta', from:'BOS', seats:76, days:[0,5,6]},
+      // United (EWR)
+      {time:'8:45 AM', airline:'United', from:'EWR', seats:76},
+      {time:'5:00 PM', airline:'United', from:'EWR', seats:76},
+      // United (ORD)
+      {time:'12:20 PM', airline:'United', from:'ORD', seats:76, days:[0,5,6]},
+    ]
+  }
+];
+
+function airlineInfo(name){
+  if(!name) return {emoji:'✈️', color:'#aaa'};
+  if(name.includes('Cape Air')) return {emoji:'🐦', color:'#0A84FF'};
+  if(name.includes('JetBlue'))  return {emoji:'💙', color:'#00B2EF'};
+  if(name.includes('American')) return {emoji:'🦅', color:'#ff453a'};
+  if(name.includes('Delta'))    return {emoji:'🔺', color:'#9B2335'};
+  if(name.includes('United'))   return {emoji:'🔵', color:'#005DAA'};
+  if(name.includes('Silver'))   return {emoji:'🥈', color:'#aaa'};
+  return {emoji:'✈️', color:'#aaa'};
+}
+
+function airlineFromCallsign(cs){
+  if(!cs) return {name:'Неизвестно', emoji:'✈️', color:'#aaa'};
+  const c=cs.trim().toUpperCase();
+  if(c.startsWith('CPZ')||c.startsWith('KAP')) return {name:'Cape Air',   emoji:'🐦', color:'#0A84FF'};
+  if(c.startsWith('JBU'))                       return {name:'JetBlue',    emoji:'💙', color:'#00B2EF'};
+  if(c.startsWith('AAL'))                       return {name:'American',   emoji:'🦅', color:'#ff453a'};
+  if(c.startsWith('DAL'))                       return {name:'Delta',      emoji:'🔺', color:'#9B2335'};
+  if(c.startsWith('UAL'))                       return {name:'United',     emoji:'🔵', color:'#005DAA'};
+  if(c.startsWith('SIL'))                       return {name:'Silver',     emoji:'🥈', color:'#aaa'};
+  return {name: cs.trim(), emoji:'✈️', color:'#aaa'};
+}
+
+function distNm(lat1,lon1,lat2,lon2){
+  const R=3440.065, dLat=(lat2-lat1)*Math.PI/180, dLon=(lon2-lon1)*Math.PI/180;
+  const a=Math.sin(dLat/2)**2+Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)**2;
+  return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
+}
+
+function builtinFlightArrivals(targetDate){
+  const key=dateKey(targetDate);
+  const season=FLIGHT_BUILTIN.find(s=>key>=s.from&&key<=s.to);
+  if(!season)return null;
+  const dow=targetDate.getDay();
+  return season.arrivals
+    .filter(a=>!a.days||a.days.includes(dow))
+    .map(a=>({...a, dateObj:parseFT(a.time,targetDate), source:'builtin'}))
+    .sort((a,b)=>a.dateObj-b.dateObj);
+}
+
+async function refreshFlightsLive(){
+  const btn=document.getElementById('refreshFlightBtn');
+  const icon=document.getElementById('refreshFlightIcon');
+  const lbl=document.getElementById('refreshFlightLabel');
+  icon.innerText='⏳'; lbl.innerText='Сканирую...'; btn.disabled=true;
+  try{
+    // ADS-B Exchange / adsb.lol — free, no key needed
+    const resp=await fetch('https://api.adsb.lol/v2/lat/41.2532/lon/-70.0601/dist/50',
+      {signal:AbortSignal.timeout(8000)});
+    if(!resp.ok)throw new Error('no data');
+    const data=await resp.json();
+    const ac=data.ac||[];
+    const ACK_LAT=41.2532, ACK_LON=-70.0601;
+    const approaching=ac
+      .filter(a=>a.lat&&a.lon&&a.gs>30&&(a.alt_baro==null||a.alt_baro<12000))
+      .map(a=>{
+        const d=distNm(a.lat,a.lon,ACK_LAT,ACK_LON);
+        const etaMin=a.gs>0?Math.round(d/a.gs*60):null;
+        const info=airlineFromCallsign(a.flight);
+        return {callsign:(a.flight||'').trim(), airline:info.name, emoji:info.emoji, color:info.color,
+          distNm:d, etaMin, alt:a.alt_baro, gs:a.gs, baro_rate:a.baro_rate,
+          lat:a.lat, lon:a.lon, type:a.t||'', reg:a.r||''};
+      })
+      .filter(a=>a.etaMin!==null&&a.etaMin<=60) // только в пределах 60 минут
+      .sort((a,b)=>a.distNm-b.distNm);
+
+    flightLiveData=approaching;
+    lastFlightRefresh=Date.now();
+    icon.innerText='✅'; lbl.innerText=`Live · ${approaching.length} самолётов`;
+    document.getElementById('flightSourceBadge').style.background='#0a2a0a';
+    document.getElementById('flightSourceBadge').style.color='#30d158';
+    document.getElementById('flightSourceBadge').innerText='🟢 ADS-B Live';
+    renderFlightTab('live');
+  }catch(e){
+    icon.innerText='⚠️'; lbl.innerText='Нет ADS-B данных';
+  }
+  btn.disabled=false;
+  setTimeout(()=>{ icon.innerText='📡'; lbl.innerText='ADS-B Live'; },4000);
+}
+
+function renderFlightTab(source){
+  const now=new Date();
+  const today=new Date();
+  const builtin=builtinFlightArrivals(today)||[];
+  const GRACE=FLIGHT_GRACE_MS;
+
+  let html='';
+
+  // Live ADS-B approaching section
+  if(flightLiveData&&flightLiveData.length>0){
+    html+=`<div style="font-size:11px;font-weight:700;opacity:.4;letter-spacing:1px;margin-bottom:8px;">📡 СЕЙЧАС ЛЕТЯТ К ACK</div>`;
+    flightLiveData.forEach((ac,i)=>{
+      const isNext=i===0;
+      const hot=ac.etaMin<=15;
+      const bg=isNext?(hot?'#2a1200':'#0f1f14'):'#17181c';
+      const br=isNext?(hot?'#ff9f0a':'#30d158'):'#252528';
+      const altStr=ac.alt?`${Math.round(ac.alt/100)*100}ft`:'—';
+      const etaStr=ac.etaMin!=null?(ac.etaMin<=1?'~1 мин':`~${ac.etaMin} мин`):'—';
+      let badge='';
+      if(isNext) badge=`<div style="font-size:10px;font-weight:800;color:${hot?'#ff9f0a':'#30d158'};margin-top:3px;">${hot?'⚡СКОРО':'▶ NEXT'}</div>`;
+      html+=`<div style="background:${bg};border:1px solid ${br};border-radius:15px;padding:13px 15px;margin-bottom:9px;display:flex;align-items:center;justify-content:space-between;">
+        <div style="display:flex;align-items:center;gap:11px;">
+          <div style="font-size:24px;">${ac.emoji}</div>
+          <div>
+            <div style="font-size:18px;font-weight:800;">${ac.callsign||'???'}</div>
+            <div style="font-size:13px;color:${ac.color};font-weight:600;">${ac.airline}</div>
+            <div style="font-size:11px;opacity:.5;">${ac.type} · ${altStr} · ${Math.round(ac.distNm*1.852)} км</div>
+          </div>
+        </div>
+        <div style="text-align:right;min-width:60px;">
+          <div style="font-size:15px;font-weight:800;color:${hot&&isNext?'#ff9f0a':'white'};">${etaStr}</div>
+          ${badge}
+        </div>
+      </div>`;
+    });
+  } else if(flightLiveData&&flightLiveData.length===0){
+    html+=`<div style="background:#17181c;border:1px solid #252528;border-radius:15px;padding:16px;margin-bottom:9px;text-align:center;opacity:.6;">📡 Нет самолётов в радиусе 90 км от ACK</div>`;
+  }
+
+  // Built-in schedule
+  const upcoming=builtin.filter(a=>a.dateObj>now-GRACE);
+  const past=builtin.filter(a=>a.dateObj<=now-GRACE);
+
+  if(builtin.length){
+    html+=`<div style="font-size:11px;font-weight:700;opacity:.4;letter-spacing:1px;margin:14px 0 8px;">📋 РАСПИСАНИЕ (ПРИМЕРНО)</div>`;
+    if(upcoming.length){
+      upcoming.forEach((a,i)=>{
+        const mins=Math.floor((a.dateObj-now)/60000);
+        const isNext=!flightLiveData&&i===0;
+        const isLate=mins<0, hot=!isLate&&mins<=20;
+        const bg='#17181c', br='#252528';
+        const {emoji,color}=airlineInfo(a.airline);
+        const seats=a.seats>=100?`${a.seats} мест`:`${a.seats} мест (мини)`;
+        html+=`<div class="flt-row" data-iso="${a.dateObj.toISOString()}" style="background:${bg};border:1px solid ${br};border-radius:15px;padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;opacity:.85;">
+          <div style="display:flex;align-items:center;gap:10px;">
+            <div style="font-size:22px;">${emoji}</div>
+            <div>
+              <div style="font-size:17px;font-weight:800;">${a.time}</div>
+              <div style="font-size:13px;color:${color};font-weight:600;">${a.airline}</div>
+              <div style="font-size:11px;opacity:.5;">из ${a.from} · ${seats}</div>
+            </div>
+          </div>
+          <div style="text-align:right;min-width:56px;">
+            <div class="flt-cd" style="font-size:14px;font-weight:800;">${fmtCD(a.dateObj-now)}</div>
+          </div>
+        </div>`;
+      });
+    }
+    if(past.length){
+      html+=`<div style="font-size:11px;font-weight:700;opacity:.3;letter-spacing:1px;margin:12px 0 8px;">УЖЕ ПРИЛЕТЕЛИ</div>`;
+      past.slice().reverse().slice(0,5).forEach(a=>{
+        const {emoji,color}=airlineInfo(a.airline);
+        html+=`<div style="background:#111;border:1px solid #1e1e1e;border-radius:13px;padding:10px 14px;margin-bottom:7px;opacity:.3;display:flex;align-items:center;justify-content:space-between;">
+          <div style="display:flex;align-items:center;gap:9px;"><div style="font-size:18px;">${emoji}</div><div><div style="font-size:15px;font-weight:700;text-decoration:line-through;">${a.time}</div><div style="font-size:11px;color:${color};">${a.airline} · из ${a.from}</div></div></div>
+          <div style="font-size:12px;opacity:.6;">✓</div></div>`;
+      });
+    }
+
+    const season=FLIGHT_BUILTIN.find(s=>{const k=dateKey(today);return k>=s.from&&k<=s.to;});
+    if(season) html+=`<div style="font-size:10px;opacity:.3;text-align:center;margin-top:8px;">⚠️ ${season.label} · Проверяй FlightAware для точных времён</div>`;
+  }
+
+  if(!html){
+    html=`<div style="text-align:center;padding:32px;opacity:.5;">Нажми «ADS-B Live» или открой <a href="https://flightaware.com/live/airport/KACK" target="_blank" style="color:#0A84FF;">FlightAware</a></div>`;
+  }
+
+  document.getElementById('flightArrivalsContainer').innerHTML=html;
+  renderFlightStatusCard(upcoming, now);
+  try{ updateFlightWidget(); }catch(e){}
+}
+
+function renderFlightStatusCard(upcoming,now){
+  const sl=document.getElementById('flightStatusLine');
+  const ss=document.getElementById('flightStatusSub');
+  if(!sl)return;
+  // First check ADS-B live data
+  if(flightLiveData&&flightLiveData.length>0){
+    const next=flightLiveData[0];
+    const hot=next.etaMin<=15;
+    sl.style.color=hot?'#ff9f0a':'white';
+    sl.innerText=hot?`🚨 Посадка через ~${next.etaMin} мин!`:`✈️ Подлетает через ~${next.etaMin} мин`;
+    ss.innerText=`${next.emoji} ${next.callsign} · ${next.airline} · ${Math.round(next.distNm*1.852)} км`;
+    return;
+  }
+  if(!upcoming||!upcoming.length){
+    sl.style.color='white';
+    sl.innerText='🌙 Рейсов больше нет';
+    ss.innerText='';
+    return;
+  }
+  const next=upcoming[0], mins=Math.floor((next.dateObj-now)/60000);
+  const {emoji}=airlineInfo(next.airline);
+  if(mins<0){
+    sl.style.color='#ff9f0a'; sl.innerText=`⏱ ${next.airline} мог прилететь`;
+    ss.innerText=`${next.time} · ±30мин (примерно)`;
+  } else if(mins<=20){
+    sl.style.color='#ff453a'; sl.innerText=`🚨 Рейс через ${mins} мин!`;
+    ss.innerText=`${emoji} ${next.airline} из ${next.from} · ${next.time}`;
+  } else if(mins<=45){
+    sl.style.color='#ffd60a'; sl.innerText=`⚠️ Рейс через ${mins} мин`;
+    ss.innerText=`${emoji} ${next.airline} из ${next.from} · ${next.time}`;
+  } else {
+    sl.style.color='#30d158';
+    const h=Math.floor(mins/60),m=mins%60;
+    sl.innerText=`🟢 Спокойно · ${h?h+'ч ':''}${m}м`;
+    ss.innerText=`${emoji} ${next.airline} из ${next.from} прилетит в ${next.time}`;
+  }
+}
+
+function updateFlightWidget(){
+  const now=new Date();
+  const widget=document.getElementById('flightWidget');
+  if(!widget)return;
+  // Prefer live ADS-B
+  if(flightLiveData&&flightLiveData.length>0){
+    const next=flightLiveData[0];
+    const hot=next.etaMin<=15;
+    document.getElementById('fltEmoji').innerText=next.emoji;
+    document.getElementById('fltTitle').innerText=`${next.callsign} · ~${next.etaMin} мин`;
+    document.getElementById('fltCountdown').innerText=`~${next.etaMin} мин`;
+    document.getElementById('fltCountdown').style.color=hot?'#ff9f0a':'white';
+    widget.style.borderColor=hot?'#ff9f0a':'#2a2a2a';
+    return;
+  }
+  const builtin=builtinFlightArrivals(new Date())||[];
+  const next=builtin.find(a=>a.dateObj>now-FLIGHT_GRACE_MS);
+  if(!next){
+    document.getElementById('fltEmoji').innerText='🌙';
+    document.getElementById('fltTitle').innerText='Рейсов больше нет';
+    document.getElementById('fltCountdown').innerText='—';
+    widget.style.borderColor='#2a2a2a';
+    return;
+  }
+  const mins=Math.floor((next.dateObj-now)/60000);
+  const isLate=mins<0, hot=!isLate&&mins<=20;
+  const cd=isLate?`${Math.abs(mins)} мин назад`:(Math.floor(mins/60)>0?`${Math.floor(mins/60)}ч ${mins%60}м`:`${mins} мин`);
+  const {emoji}=airlineInfo(next.airline);
+  document.getElementById('fltEmoji').innerText=emoji;
+  document.getElementById('fltTitle').innerText=`${next.airline} · ${next.time}${isLate?' ⏱':''}`;
+  document.getElementById('fltCountdown').innerText=cd;
+  document.getElementById('fltCountdown').style.color=(hot||isLate)?'#ff9f0a':'white';
+  widget.style.borderColor=(hot||isLate)?'#ff9f0a':'#2a2a2a';
+}
+
+function startFlightTick(){
+  stopFlightTick();
+  flightTickId=setInterval(()=>{
+    const now=new Date();
+    document.querySelectorAll('.flt-row').forEach(row=>{
+      const d=new Date(row.getAttribute('data-iso'));
+      const el=row.querySelector('.flt-cd');
+      if(el)el.innerText=fmtCD(d-now);
+    });
+    const builtin=builtinFlightArrivals(new Date())||[];
+    const upcoming=builtin.filter(a=>a.dateObj>now-FLIGHT_GRACE_MS);
+    renderFlightStatusCard(upcoming,now);
+    updateFlightWidget();
+  },30000);
+}
+function stopFlightTick(){ if(flightTickId)clearInterval(flightTickId); flightTickId=null; }
 
 // ── Weather widget (Open-Meteo, no API key) ──────────────────
 const WX_ICONS = {
