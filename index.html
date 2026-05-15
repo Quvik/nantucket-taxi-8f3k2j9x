@@ -747,6 +747,8 @@ function detectCurrentLocation() {
         const { zone: detected, isCrossTown } = findZoneInfo(point);
         gpsZoneName     = detected;
         gpsIsCrossTown  = isCrossTown;
+        gpsLat          = lat;
+        gpsLng          = lng;
 
         // Only apply if user hasn't overridden manually
         if(!zoneIsManual){
@@ -757,6 +759,18 @@ function detectCurrentLocation() {
     }, err => {
         alert('Allow location access');
     });
+}
+
+// True only when GPS is within 600m of Nantucket Airport terminal (ACK)
+// Distinguishes "at the airport" from "somewhere in the Airport zone"
+function gpsIsAtActualAirport() {
+    if (!gpsLat || !gpsLng) return false;
+    const R = 6371000;
+    const dLat = (gpsLat - 41.2532) * Math.PI / 180;
+    const dLng = (gpsLng - (-70.0601)) * Math.PI / 180;
+    const a = Math.sin(dLat/2)**2 +
+        Math.cos(41.2532 * Math.PI/180) * Math.cos(gpsLat * Math.PI/180) * Math.sin(dLng/2)**2;
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)) < 600;
 }
 
 // Returns { zone: underlying zone name, isCrossTown: bool }
@@ -1522,7 +1536,7 @@ async function calculateFare() {
     const isExplicitAirport = localMatch?.zone === 'Airport';
     const fromZone = (!zoneIsManual && gpsIsCrossTown && isExplicitAirport)
         ? 'Cross Town' : currentZoneName;
-    const toZone = (!zoneIsManual && currentZoneName === 'Airport' && destIsCrossTown)
+    const toZone = (!zoneIsManual && gpsIsAtActualAirport() && destIsCrossTown)
         ? 'Cross Town' : destinationZone;
 
     let baseFare = getFare(fromZone, toZone);
@@ -1856,6 +1870,8 @@ function toggleStreetViewMode(){
 let gpsZoneName    = null;
 let gpsIsCrossTown = false;
 let zoneIsManual   = false;
+let gpsLat         = null;
+let gpsLng         = null;
 
 // Все зоны из fareTable (уникальные, отсортированные)
 const ALL_ZONES = [...new Set(
