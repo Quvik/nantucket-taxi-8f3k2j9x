@@ -744,7 +744,7 @@ function detectCurrentLocation() {
 
         L.marker([lat, lng]).addTo(map);
 
-        const detected = findZone(point) === 'Cross Town' ? 'Town' : findZone(point);
+        const detected = findZone(point);
         gpsZoneName = detected;
 
         // Only apply if user hasn't overridden manually
@@ -770,12 +770,6 @@ function findZone(point) {
 
                 const zoneName =
                     feature.properties.name || "Unknown";
-
-                // Ignore Cross Town overlay zone
-                if (zoneName === 'Cross Town') {
-                    fallbackZone = 'Town';
-                    continue;
-                }
 
                 return zoneName;
             }
