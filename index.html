@@ -744,8 +744,9 @@ function detectCurrentLocation() {
 
         L.marker([lat, lng]).addTo(map);
 
-        const detected = findZone(point);
-        gpsZoneName = detected;
+        const { zone: detected, isCrossTown } = findZoneInfo(point);
+        gpsZoneName     = detected;
+        gpsIsCrossTown  = isCrossTown;
 
         // Only apply if user hasn't overridden manually
         if(!zoneIsManual){
@@ -758,36 +759,29 @@ function detectCurrentLocation() {
     });
 }
 
-function findZone(point) {
-
-    let fallbackZone = null;
-
+// Returns { zone: underlying zone name, isCrossTown: bool }
+// Cross Town is an overlay — iterate all features to find both
+function findZoneInfo(point) {
+    let isCrossTown = false;
+    let underlying  = null;
     for (const feature of zonesGeoJSON.features) {
-
         try {
-
             if (turf.booleanPointInPolygon(point, feature)) {
-
-                const zoneName =
-                    feature.properties.name || "Unknown";
-
-                return zoneName;
+                const name = feature.properties.name || 'Unknown';
+                if (name === 'Cross Town') { isCrossTown = true; }
+                else if (!underlying)       { underlying  = name; }
             }
-
         } catch(e) {}
     }
-
-    return fallbackZone;
+    return { zone: underlying, isCrossTown };
 }
 
+// Always returns the underlying zone (never Cross Town)
+function findZone(point) { return findZoneInfo(point).zone; }
+
 function getFare(fromZone, toZone) {
-    // Cross Town premium only applies for Airport trips; otherwise treat as Town
-    const effFrom = (fromZone === 'Cross Town' && toZone !== 'Airport') ? 'Town' : fromZone;
-    const effTo   = (toZone   === 'Cross Town' && fromZone !== 'Airport') ? 'Town' : toZone;
-
-    const direct = `${effFrom}-${effTo}`;
-    const reverse = `${effTo}-${effFrom}`;
-
+    const direct  = `${fromZone}-${toZone}`;
+    const reverse = `${toZone}-${fromZone}`;
     return fareTable[direct] || fareTable[reverse] || null;
 }
 
@@ -1509,10 +1503,6 @@ async function calculateFare() {
         destinationZone = findZone(point);
     }
 
-    if (destinationZone === 'Cross Town') {
-        destinationZone = 'Town';
-    }
-
     document.getElementById('destinationZone').innerText =
         destinationZone || 'Unknown';
 
@@ -1521,7 +1511,11 @@ async function calculateFare() {
         return;
     }
 
-    let baseFare = getFare(currentZoneName, destinationZone);
+    // Apply Cross Town rate only when GPS is in Cross Town overlay AND destination is Airport
+    const fromZone = (!zoneIsManual && gpsIsCrossTown && destinationZone === 'Airport')
+        ? 'Cross Town' : currentZoneName;
+
+    let baseFare = getFare(fromZone, destinationZone);
 
     if (
         currentZoneName === 'Town' &&
@@ -1849,8 +1843,9 @@ function toggleStreetViewMode(){
 
 <script>
 // ── Manual zone picker ───────────────────────────────────────
-let gpsZoneName = null; // последняя зона от GPS
-let zoneIsManual = false;
+let gpsZoneName    = null;
+let gpsIsCrossTown = false;
+let zoneIsManual   = false;
 
 // Все зоны из fareTable (уникальные, отсортированные)
 const ALL_ZONES = [...new Set(
