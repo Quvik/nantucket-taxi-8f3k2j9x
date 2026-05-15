@@ -665,13 +665,26 @@ to{opacity:1;transform:translateY(0);}
   </div>
 
   <div id="apiKeyPanel" style="display:none;background:#1a1a22;border:1px solid #2a2a2a;border-radius:16px;padding:14px;margin-bottom:12px;">
-    <div style="font-size:13px;font-weight:700;margin-bottom:8px;">🔑 RapidAPI ключ (AeroDataBox)</div>
-    <div style="font-size:11px;opacity:.5;margin-bottom:10px;">Бесплатно: 500 запросов/месяц · <a href="https://rapidapi.com/aedbx-aedbx/api/aerodatabox" target="_blank" style="color:#0A84FF;">Получить ключ ↗</a></div>
-    <div style="display:flex;gap:8px;">
-      <input id="apiKeyInput" type="text" placeholder="Вставь RapidAPI ключ сюда..." style="flex:1;background:#111;border:1px solid #333;border-radius:12px;padding:10px 12px;color:white;font-size:13px;"/>
-      <button onclick="saveApiKey()" style="background:#30d158;border:none;border-radius:12px;padding:10px 14px;color:black;font-weight:800;font-size:13px;cursor:pointer;">Сохранить</button>
+    <div style="font-size:13px;font-weight:700;margin-bottom:10px;">🔑 API для реального расписания</div>
+
+    <div style="background:#111;border:1px solid #222;border-radius:12px;padding:12px;margin-bottom:10px;">
+      <div style="font-size:12px;font-weight:800;color:#30d158;margin-bottom:4px;">⭐ AirLabs — РЕКОМЕНДУЮ</div>
+      <div style="font-size:11px;opacity:.6;margin-bottom:8px;">1000 запросов/месяц бесплатно · <a href="https://airlabs.co" target="_blank" style="color:#0A84FF;">airlabs.co ↗</a></div>
+      <div style="display:flex;gap:8px;">
+        <input id="airlabsKeyInput" type="text" placeholder="AirLabs API key..." style="flex:1;background:#1a1a1a;border:1px solid #333;border-radius:10px;padding:9px 11px;color:white;font-size:13px;"/>
+        <button onclick="saveAirlabsKey()" style="background:#30d158;border:none;border-radius:10px;padding:9px 13px;color:black;font-weight:800;font-size:13px;cursor:pointer;">✓</button>
+      </div>
     </div>
-    <div id="apiKeyStatus" style="font-size:11px;margin-top:6px;opacity:.6;"></div>
+
+    <div style="background:#111;border:1px solid #222;border-radius:12px;padding:12px;">
+      <div style="font-size:12px;font-weight:700;color:#aaa;margin-bottom:4px;">AeroDataBox (RapidAPI)</div>
+      <div style="font-size:11px;opacity:.5;margin-bottom:8px;">500 запросов/месяц · <a href="https://rapidapi.com/aedbx-aedbx/api/aerodatabox" target="_blank" style="color:#0A84FF;">rapidapi.com ↗</a></div>
+      <div style="display:flex;gap:8px;">
+        <input id="apiKeyInput" type="text" placeholder="RapidAPI key..." style="flex:1;background:#1a1a1a;border:1px solid #333;border-radius:10px;padding:9px 11px;color:white;font-size:13px;"/>
+        <button onclick="saveApiKey()" style="background:#636366;border:none;border-radius:10px;padding:9px 13px;color:white;font-weight:800;font-size:13px;cursor:pointer;">✓</button>
+      </div>
+    </div>
+    <div id="apiKeyStatus" style="font-size:11px;margin-top:8px;opacity:.7;text-align:center;"></div>
   </div>
 
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
@@ -1504,12 +1517,22 @@ async function scrapeInfaxFlights(){
 }
 
 // ── AeroDataBox (RapidAPI) ───────────────────────────────────
+function getAirlabsKey(){ return localStorage.getItem('airlabs_key')||''; }
 function getRapidApiKey(){ return localStorage.getItem('rapidapi_key')||''; }
+
+function saveAirlabsKey(){
+  const val=document.getElementById('airlabsKeyInput').value.trim();
+  if(!val){ document.getElementById('apiKeyStatus').innerText='Введи ключ'; return; }
+  localStorage.setItem('airlabs_key',val);
+  document.getElementById('apiKeyStatus').innerText='✅ AirLabs сохранён';
+  document.getElementById('apiKeyStatus').style.color='#30d158';
+  setTimeout(()=>{ toggleApiKeyPanel(); refreshFlightsLive(); },800);
+}
 function saveApiKey(){
   const val=document.getElementById('apiKeyInput').value.trim();
   if(!val){ document.getElementById('apiKeyStatus').innerText='Введи ключ'; return; }
   localStorage.setItem('rapidapi_key',val);
-  document.getElementById('apiKeyStatus').innerText='✅ Сохранено';
+  document.getElementById('apiKeyStatus').innerText='✅ AeroDataBox сохранён';
   document.getElementById('apiKeyStatus').style.color='#30d158';
   setTimeout(()=>{ toggleApiKeyPanel(); refreshFlightsLive(); },800);
 }
@@ -1518,10 +1541,63 @@ function toggleApiKeyPanel(){
   const isOpen=panel.style.display!=='none';
   panel.style.display=isOpen?'none':'block';
   if(!isOpen){
-    const key=getRapidApiKey();
-    document.getElementById('apiKeyInput').value=key;
-    document.getElementById('apiKeyStatus').innerText=key?'Ключ сохранён':'';
+    document.getElementById('airlabsKeyInput').value=getAirlabsKey();
+    document.getElementById('apiKeyInput').value=getRapidApiKey();
+    const hasKey=getAirlabsKey()||getRapidApiKey();
+    document.getElementById('apiKeyStatus').innerText=hasKey?'Ключ(и) сохранены':'';
   }
+}
+
+// ── AirLabs ──────────────────────────────────────────────────
+const AIRLINE_NAMES={
+  '9K':'Cape Air','B6':'JetBlue','AA':'American Airlines',
+  'DL':'Delta','UA':'United','SY':'Sun Country','YX':'Midwest Express',
+  'EV':'ExpressJet','OO':'SkyWest','MQ':'Envoy Air','OH':'PSA Airlines',
+  'YV':'Mesa Airlines','G4':'Allegiant','F9':'Frontier','NK':'Spirit',
+  'WN':'Southwest','AS':'Alaska','HA':'Hawaiian','VX':'Virgin America',
+};
+async function fetchAirLabs(){
+  const key=getAirlabsKey();
+  if(!key)return null;
+  try{
+    const resp=await fetch(
+      `https://airlabs.co/api/v9/schedules?arr_iata=ACK&api_key=${encodeURIComponent(key)}`,
+      {signal:AbortSignal.timeout(10000)}
+    );
+    if(resp.status===401||resp.status===403){
+      document.getElementById('apiKeyStatus').innerText='❌ Неверный AirLabs ключ';
+      document.getElementById('apiKeyStatus').style.color='#ff453a';
+      return null;
+    }
+    if(!resp.ok)return null;
+    const json=await resp.json();
+    const list=json.response||json;
+    if(!Array.isArray(list)||!list.length)return null;
+    const now=new Date();
+    return list.map(f=>{
+      // arr_time is local "HH:MM", arr_time_ts is unix timestamp
+      const ts=f.arr_time_ts;
+      if(!ts)return null;
+      const dateObj=new Date(ts*1000);
+      const hh=dateObj.getHours(), mm=dateObj.getMinutes();
+      const h12=hh===0?12:(hh>12?hh-12:hh), ampm=hh<12?'AM':'PM';
+      const time=`${h12}:${String(mm).padStart(2,'0')} ${ampm}`;
+      const airline=f.airline_name||(AIRLINE_NAMES[f.airline_iata]||f.airline_iata||'');
+      const delayed=f.delayed||f.arr_delayed;
+      let status=f.status||'';
+      if(delayed>0&&status==='scheduled')status=`Задержка ${delayed} мин`;
+      if(status==='landed')status='Прилетел';
+      if(status==='active')status='В пути';
+      if(status==='cancelled')status='Отменён';
+      if(status==='scheduled')status='По расписанию';
+      return {
+        time, dateObj, source:'airlabs',
+        airline, flight:f.flight_iata||'',
+        from:f.dep_iata||'', status,
+        delayed: delayed||0,
+      };
+    }).filter(Boolean).sort((a,b)=>a.dateObj-b.dateObj);
+  }catch(e){return null;}
 }
 
 async function fetchAeroDataBox(){
@@ -1579,14 +1655,17 @@ async function refreshFlightsLive(){
   const badge=document.getElementById('flightSourceBadge');
   icon.innerText='⏳'; lbl.innerText='Загружаю...'; btn.disabled=true;
 
-  const [aeroRes, infaxRes, adsbRes]=await Promise.allSettled([
+  const [airlabsRes, aeroRes, infaxRes, adsbRes]=await Promise.allSettled([
+    fetchAirLabs(),
     fetchAeroDataBox(),
     scrapeInfaxFlights(),
     fetch('https://api.adsb.lol/v2/lat/41.2532/lon/-70.0601/dist/50',{signal:AbortSignal.timeout(8000)}).then(r=>r.ok?r.json():null)
   ]);
 
-  // Priority: AeroDataBox > infax.com > built-in schedule
-  if(aeroRes.status==='fulfilled'&&aeroRes.value?.length){
+  // Priority: AirLabs > AeroDataBox > infax.com > built-in schedule
+  if(airlabsRes.status==='fulfilled'&&airlabsRes.value?.length){
+    flightScheduleData=airlabsRes.value;
+  }else if(aeroRes.status==='fulfilled'&&aeroRes.value?.length){
     flightScheduleData=aeroRes.value;
   }else if(infaxRes.status==='fulfilled'&&infaxRes.value?.length){
     flightScheduleData=infaxRes.value;
@@ -1608,10 +1687,15 @@ async function refreshFlightsLive(){
       .sort((a,b)=>a.distNm-b.distNm);
   }
 
-  const isAero=aeroRes.status==='fulfilled'&&aeroRes.value?.length>0;
+  const isAirlabs=airlabsRes.status==='fulfilled'&&airlabsRes.value?.length>0;
+  const isAero=!isAirlabs&&aeroRes.status==='fulfilled'&&aeroRes.value?.length>0;
   const hasSchedule=flightScheduleData?.length>0;
   const hasAdsb=flightLiveData!==null;
-  if(isAero){
+  if(isAirlabs){
+    badge.style.background='#0a2a0a';badge.style.color='#30d158';
+    badge.innerText='🟢 AirLabs Live';
+    icon.innerText='✅';lbl.innerText=`${flightScheduleData.length} рейсов · Live`;
+  }else if(isAero){
     badge.style.background='#0a2a0a';badge.style.color='#30d158';
     badge.innerText='🟢 AeroDataBox Live';
     icon.innerText='✅';lbl.innerText=`${flightScheduleData.length} рейсов · Live`;
@@ -1636,8 +1720,8 @@ async function refreshFlightsLive(){
 function statusColor(s){
   if(!s)return '#aaa';
   s=s.toLowerCase();
-  if(/on.?time|sched/.test(s))return '#30d158';
-  if(/delay/.test(s))return '#ff9f0a';
+  if(/on.?time|sched|расписан|пути/.test(s))return '#30d158';
+  if(/delay|задержк/.test(s))return '#ff9f0a';
   if(/arr|land|board/.test(s))return '#636366';
   if(/cancel/.test(s))return '#ff453a';
   return '#aaa';
