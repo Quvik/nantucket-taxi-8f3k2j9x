@@ -1571,7 +1571,7 @@ async function fetchAirLabs(){
     }
     if(!resp.ok)return null;
     const json=await resp.json();
-    const list=json.response||json;
+    const list=(json.response||json).filter(f=>f.arr_iata==='ACK');
     if(!Array.isArray(list)||!list.length)return null;
     const now=new Date();
     return list.map(f=>{
@@ -1766,10 +1766,11 @@ function renderFlightTab(source){
     html+=`<div style="background:#17181c;border:1px solid #252528;border-radius:15px;padding:14px;margin-bottom:9px;text-align:center;opacity:.5;font-size:13px;">📡 Нет самолётов в 90 км от ACK</div>`;
   }
 
-  // Schedule section (AeroDataBox > infax > built-in)
+  // Schedule section (AirLabs > AeroDataBox > infax > built-in)
+  const isAirlabsData=flightScheduleData?.length>0&&flightScheduleData[0]?.source==='airlabs';
   const isAeroData=flightScheduleData?.length>0&&flightScheduleData[0]?.source==='aerodatabox';
   if(schedule.length){
-    const label=isAeroData?'📋 РАСПИСАНИЕ СЕГОДНЯ (LIVE)':isInfax?'📋 РАСПИСАНИЕ СЕГОДНЯ (INFAX)':'📋 РАСПИСАНИЕ (ПРИМЕРНО)';
+    const label=isAirlabsData?'✈️ ПРИЛЁТЫ В НАНТАКЕТ (AirLabs)':isAeroData?'📋 РАСПИСАНИЕ СЕГОДНЯ (LIVE)':isInfax?'📋 РАСПИСАНИЕ СЕГОДНЯ (INFAX)':'📋 РАСПИСАНИЕ (ПРИМЕРНО)';
     html+=`<div style="font-size:11px;font-weight:700;opacity:.4;letter-spacing:1px;margin:14px 0 8px;">${label}</div>`;
     upcoming.forEach(a=>{
       const {emoji,color}=airlineInfo(a.airline);
