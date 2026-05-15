@@ -936,9 +936,13 @@ function showTab(tabId, btn){
     renderFlightTab();
     startFlightTick();
     stopFerryTick();
-    if(Date.now() - lastFlightRefresh > FLIGHT_REFRESH_INTERVAL){
-      lastFlightRefresh = Date.now();
+    // Full refresh (AeroDataBox + infax + ADS-B) every 10 min
+    if(Date.now()-lastFlightRefresh>FLIGHT_REFRESH_INTERVAL){
+      lastFlightRefresh=Date.now();
       refreshFlightsLive();
+    } else if(Date.now()-lastAdsbRefresh>ADSB_REFRESH_INTERVAL){
+      // Otherwise just refresh ADS-B
+      refreshAdsbOnly();
     }
   } else {
     stopFerryTick();
@@ -1348,11 +1352,13 @@ function updateFerryWidget(){
 //  FLIGHT ENGINE — ADS-B live + встроенное расписание
 // ═══════════════════════════════════════════════════════════
 
-const FLIGHT_GRACE_MS = 30 * 60 * 1000; // 30 мин после прилёта
-const FLIGHT_REFRESH_INTERVAL = 3 * 60 * 1000; // 3 минуты
+const FLIGHT_GRACE_MS = 30 * 60 * 1000;
+const FLIGHT_REFRESH_INTERVAL = 10 * 60 * 1000; // полный refresh (AeroDataBox) — 10 мин
+const ADSB_REFRESH_INTERVAL   =  2 * 60 * 1000; // только ADS-B — каждые 2 мин
 let lastFlightRefresh = 0;
-let flightLiveData = null;   // ADS-B approaching aircraft
-let flightScheduleData = null; // scraped from infax.com
+let lastAdsbRefresh   = 0;
+let flightLiveData = null;
+let flightScheduleData = null;
 let flightTickId = null;
 
 // Approximate summer schedule for ACK arrivals
@@ -1803,19 +1809,47 @@ function updateFlightWidget(){
   widget.style.borderColor=(hot||isLate)?'#ff9f0a':'#2a2a2a';
 }
 
+async function refreshAdsbOnly(){
+  lastAdsbRefresh=Date.now();
+  try{
+    const resp=await fetch('https://api.adsb.lol/v2/lat/41.2532/lon/-70.0601/dist/50',
+      {signal:AbortSignal.timeout(7000)});
+    if(!resp.ok)return;
+    const data=await resp.json();
+    const ac=data.ac||[];
+    const ACK_LAT=41.2532,ACK_LON=-70.0601;
+    flightLiveData=ac
+      .filter(a=>a.lat&&a.lon&&a.gs>30&&(a.alt_baro==null||a.alt_baro<12000))
+      .map(a=>{
+        const d=distNm(a.lat,a.lon,ACK_LAT,ACK_LON);
+        const etaMin=a.gs>0?Math.round(d/a.gs*60):null;
+        const info=airlineFromCallsign(a.flight);
+        return {callsign:(a.flight||'').trim(),airline:info.name,emoji:info.emoji,color:info.color,
+          distNm:d,etaMin,alt:a.alt_baro,gs:a.gs,lat:a.lat,lon:a.lon,type:a.t||''};
+      })
+      .filter(a=>a.etaMin!==null&&a.etaMin<=60)
+      .sort((a,b)=>a.distNm-b.distNm);
+    renderFlightTab();
+  }catch(e){}
+}
+
 function startFlightTick(){
   stopFlightTick();
   flightTickId=setInterval(()=>{
     const now=new Date();
+    // Update countdown timers
     document.querySelectorAll('.flt-row').forEach(row=>{
       const d=new Date(row.getAttribute('data-iso'));
       const el=row.querySelector('.flt-cd');
       if(el)el.innerText=fmtCD(d-now);
     });
-    const builtin=builtinFlightArrivals(new Date())||[];
-    const upcoming=builtin.filter(a=>a.dateObj>now-FLIGHT_GRACE_MS);
+    // Remove flights that fell outside grace period
+    const schedule=flightScheduleData||builtinFlightArrivals(now)||[];
+    const upcoming=schedule.filter(a=>a.dateObj>now-FLIGHT_GRACE_MS);
     renderFlightStatusCard(upcoming,now);
     updateFlightWidget();
+    // Auto-refresh ADS-B every 2 minutes silently
+    if(Date.now()-lastAdsbRefresh>ADSB_REFRESH_INTERVAL) refreshAdsbOnly();
   },30000);
 }
 function stopFlightTick(){ if(flightTickId)clearInterval(flightTickId); flightTickId=null; }
