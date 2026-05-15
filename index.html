@@ -1341,7 +1341,8 @@ function updateFerryWidget(){
 const FLIGHT_GRACE_MS = 30 * 60 * 1000; // 30 мин после прилёта
 const FLIGHT_REFRESH_INTERVAL = 3 * 60 * 1000; // 3 минуты
 let lastFlightRefresh = 0;
-let flightLiveData = null; // [{callsign, airline, from, etaMin, distNm, alt, gs, lat, lon}]
+let flightLiveData = null;   // ADS-B approaching aircraft
+let flightScheduleData = null; // scraped from infax.com
 let flightTickId = null;
 
 // Approximate summer schedule for ACK arrivals
@@ -1435,66 +1436,138 @@ function builtinFlightArrivals(targetDate){
     .sort((a,b)=>a.dateObj-b.dateObj);
 }
 
+// ── Infax.com scraper ────────────────────────────────────────
+function parseInfaxHTML(html){
+  const doc=new DOMParser().parseFromString(html,'text/html');
+  const now=new Date();
+  const TIME_RX=/\b(\d{1,2}:\d{2})\s*([AaPp][Mm])\b/;
+  const arrivals=[];
+  const tables=doc.querySelectorAll('table');
+  for(const table of tables){
+    const rows=Array.from(table.querySelectorAll('tr')).filter(r=>r.querySelectorAll('td').length>1);
+    if(rows.length<2)continue;
+    let timeCol=-1,airlineCol=-1,flightCol=-1,originCol=-1,statusCol=-1;
+    const hdr=Array.from(rows[0].querySelectorAll('th,td')).map(el=>el.textContent.trim().toLowerCase());
+    hdr.forEach((h,i)=>{
+      if(/time|sched|arr/.test(h)&&timeCol<0)timeCol=i;
+      if(/airline|carrier|air/.test(h)&&airlineCol<0)airlineCol=i;
+      if(/flight|flt/.test(h)&&flightCol<0)flightCol=i;
+      if(/origin|from|city/.test(h)&&originCol<0)originCol=i;
+      if(/status|stat/.test(h)&&statusCol<0)statusCol=i;
+    });
+    const dataRows=(timeCol>=0)?rows.slice(1):rows;
+    for(const row of dataRows){
+      const cells=Array.from(row.querySelectorAll('td')).map(td=>td.textContent.trim());
+      if(!cells.length)continue;
+      let time=null;
+      if(timeCol>=0&&cells[timeCol]){const m=cells[timeCol].match(TIME_RX);if(m)time=`${m[1]} ${m[2].toUpperCase()}`;}
+      if(!time){for(const c of cells){const m=c.match(TIME_RX);if(m){time=`${m[1]} ${m[2].toUpperCase()}`;break;}}}
+      if(!time)continue;
+      const airline=(airlineCol>=0?cells[airlineCol]:'').replace(/\s+/g,' ');
+      const flight=(flightCol>=0?cells[flightCol]:'').replace(/\s+/g,' ');
+      const from=(originCol>=0?cells[originCol]:'').replace(/\s+/g,' ');
+      const status=(statusCol>=0?cells[statusCol]:'').replace(/\s+/g,' ');
+      try{arrivals.push({time,airline,flight,from,status,dateObj:parseFT(time,now),source:'infax'});}catch(e){}
+    }
+    if(arrivals.length>2)break;
+  }
+  return arrivals.length>0?arrivals.sort((a,b)=>a.dateObj-b.dateObj):null;
+}
+
+async function scrapeInfaxFlights(){
+  const url='https://infax.com/webfids/ack/default.aspx?view=a&nav=1';
+  let html=null;
+  try{const r=await fetch(url,{signal:AbortSignal.timeout(9000),headers:{'Accept':'text/html'}});if(r.ok)html=await r.text();}catch(e){}
+  if(!html){
+    for(const mk of PROXIES){
+      try{const r=await fetch(mk(url),{signal:AbortSignal.timeout(8000)});if(r.ok){html=await r.text();break;}}catch(e){}
+    }
+  }
+  if(!html)return null;
+  return parseInfaxHTML(html);
+}
+
 async function refreshFlightsLive(){
   const btn=document.getElementById('refreshFlightBtn');
   const icon=document.getElementById('refreshFlightIcon');
   const lbl=document.getElementById('refreshFlightLabel');
-  icon.innerText='⏳'; lbl.innerText='Сканирую...'; btn.disabled=true;
-  try{
-    // ADS-B Exchange / adsb.lol — free, no key needed
-    const resp=await fetch('https://api.adsb.lol/v2/lat/41.2532/lon/-70.0601/dist/50',
-      {signal:AbortSignal.timeout(8000)});
-    if(!resp.ok)throw new Error('no data');
-    const data=await resp.json();
-    const ac=data.ac||[];
-    const ACK_LAT=41.2532, ACK_LON=-70.0601;
-    const approaching=ac
+  const badge=document.getElementById('flightSourceBadge');
+  icon.innerText='⏳'; lbl.innerText='Загружаю...'; btn.disabled=true;
+
+  const [infaxRes, adsbRes]=await Promise.allSettled([
+    scrapeInfaxFlights(),
+    fetch('https://api.adsb.lol/v2/lat/41.2532/lon/-70.0601/dist/50',{signal:AbortSignal.timeout(8000)}).then(r=>r.ok?r.json():null)
+  ]);
+
+  if(infaxRes.status==='fulfilled'&&infaxRes.value?.length) flightScheduleData=infaxRes.value;
+
+  if(adsbRes.status==='fulfilled'&&adsbRes.value){
+    const ac=adsbRes.value.ac||[];
+    const ACK_LAT=41.2532,ACK_LON=-70.0601;
+    flightLiveData=ac
       .filter(a=>a.lat&&a.lon&&a.gs>30&&(a.alt_baro==null||a.alt_baro<12000))
       .map(a=>{
         const d=distNm(a.lat,a.lon,ACK_LAT,ACK_LON);
         const etaMin=a.gs>0?Math.round(d/a.gs*60):null;
         const info=airlineFromCallsign(a.flight);
-        return {callsign:(a.flight||'').trim(), airline:info.name, emoji:info.emoji, color:info.color,
-          distNm:d, etaMin, alt:a.alt_baro, gs:a.gs, baro_rate:a.baro_rate,
-          lat:a.lat, lon:a.lon, type:a.t||'', reg:a.r||''};
+        return {callsign:(a.flight||'').trim(),airline:info.name,emoji:info.emoji,color:info.color,
+          distNm:d,etaMin,alt:a.alt_baro,gs:a.gs,lat:a.lat,lon:a.lon,type:a.t||''};
       })
-      .filter(a=>a.etaMin!==null&&a.etaMin<=60) // только в пределах 60 минут
+      .filter(a=>a.etaMin!==null&&a.etaMin<=60)
       .sort((a,b)=>a.distNm-b.distNm);
-
-    flightLiveData=approaching;
-    lastFlightRefresh=Date.now();
-    icon.innerText='✅'; lbl.innerText=`Live · ${approaching.length} самолётов`;
-    document.getElementById('flightSourceBadge').style.background='#0a2a0a';
-    document.getElementById('flightSourceBadge').style.color='#30d158';
-    document.getElementById('flightSourceBadge').innerText='🟢 ADS-B Live';
-    renderFlightTab('live');
-  }catch(e){
-    icon.innerText='⚠️'; lbl.innerText='Нет ADS-B данных';
   }
+
+  const hasInfax=flightScheduleData?.length>0;
+  const hasAdsb=flightLiveData!==null;
+  if(hasInfax){
+    badge.style.background='#0a2a0a';badge.style.color='#30d158';
+    badge.innerText=hasAdsb?'🟢 Infax + ADS-B':'🟢 Infax Live';
+    icon.innerText='✅';lbl.innerText=`Infax · ${flightScheduleData.length} рейсов`;
+  }else if(hasAdsb){
+    badge.style.background='#0a2a0a';badge.style.color='#30d158';
+    badge.innerText='🟢 ADS-B Live';
+    icon.innerText='📡';lbl.innerText=`ADS-B · ${flightLiveData.length} самолётов`;
+  }else{
+    badge.style.background='#1e1e28';badge.style.color='#aaa';badge.innerText='📋 Встроенные';
+    icon.innerText='⚠️';lbl.innerText='Нет live данных';
+  }
+  lastFlightRefresh=Date.now();
+  renderFlightTab('live');
   btn.disabled=false;
-  setTimeout(()=>{ icon.innerText='📡'; lbl.innerText='ADS-B Live'; },4000);
+  setTimeout(()=>{icon.innerText='📡';lbl.innerText='ADS-B Live';},4000);
+}
+
+function statusColor(s){
+  if(!s)return '#aaa';
+  s=s.toLowerCase();
+  if(/on.?time|sched/.test(s))return '#30d158';
+  if(/delay/.test(s))return '#ff9f0a';
+  if(/arr|land|board/.test(s))return '#636366';
+  if(/cancel/.test(s))return '#ff453a';
+  return '#aaa';
 }
 
 function renderFlightTab(source){
   const now=new Date();
-  const today=new Date();
-  const builtin=builtinFlightArrivals(today)||[];
   const GRACE=FLIGHT_GRACE_MS;
+  // Prefer infax live data over built-in schedule
+  const schedule=flightScheduleData||builtinFlightArrivals(new Date())||[];
+  const isInfax=!!flightScheduleData;
+  const upcoming=schedule.filter(a=>a.dateObj>now-GRACE);
+  const past=schedule.filter(a=>a.dateObj<=now-GRACE);
 
   let html='';
 
-  // Live ADS-B approaching section
+  // ADS-B approaching section
   if(flightLiveData&&flightLiveData.length>0){
     html+=`<div style="font-size:11px;font-weight:700;opacity:.4;letter-spacing:1px;margin-bottom:8px;">📡 СЕЙЧАС ЛЕТЯТ К ACK</div>`;
     flightLiveData.forEach((ac,i)=>{
-      const isNext=i===0;
-      const hot=ac.etaMin<=15;
+      const isNext=i===0, hot=ac.etaMin<=15;
       const bg=isNext?(hot?'#2a1200':'#0f1f14'):'#17181c';
       const br=isNext?(hot?'#ff9f0a':'#30d158'):'#252528';
       const altStr=ac.alt?`${Math.round(ac.alt/100)*100}ft`:'—';
       const etaStr=ac.etaMin!=null?(ac.etaMin<=1?'~1 мин':`~${ac.etaMin} мин`):'—';
-      let badge='';
-      if(isNext) badge=`<div style="font-size:10px;font-weight:800;color:${hot?'#ff9f0a':'#30d158'};margin-top:3px;">${hot?'⚡СКОРО':'▶ NEXT'}</div>`;
+      const badge=isNext?`<div style="font-size:10px;font-weight:800;color:${hot?'#ff9f0a':'#30d158'};margin-top:3px;">${hot?'⚡СКОРО':'▶ NEXT'}</div>`:'';
       html+=`<div style="background:${bg};border:1px solid ${br};border-radius:15px;padding:13px 15px;margin-bottom:9px;display:flex;align-items:center;justify-content:space-between;">
         <div style="display:flex;align-items:center;gap:11px;">
           <div style="font-size:24px;">${ac.emoji}</div>
@@ -1505,65 +1578,59 @@ function renderFlightTab(source){
           </div>
         </div>
         <div style="text-align:right;min-width:60px;">
-          <div style="font-size:15px;font-weight:800;color:${hot&&isNext?'#ff9f0a':'white'};">${etaStr}</div>
-          ${badge}
+          <div style="font-size:15px;font-weight:800;color:${hot&&isNext?'#ff9f0a':'white'};">${etaStr}</div>${badge}
         </div>
       </div>`;
     });
   } else if(flightLiveData&&flightLiveData.length===0){
-    html+=`<div style="background:#17181c;border:1px solid #252528;border-radius:15px;padding:16px;margin-bottom:9px;text-align:center;opacity:.6;">📡 Нет самолётов в радиусе 90 км от ACK</div>`;
+    html+=`<div style="background:#17181c;border:1px solid #252528;border-radius:15px;padding:14px;margin-bottom:9px;text-align:center;opacity:.5;font-size:13px;">📡 Нет самолётов в 90 км от ACK</div>`;
   }
 
-  // Built-in schedule
-  const upcoming=builtin.filter(a=>a.dateObj>now-GRACE);
-  const past=builtin.filter(a=>a.dateObj<=now-GRACE);
-
-  if(builtin.length){
-    html+=`<div style="font-size:11px;font-weight:700;opacity:.4;letter-spacing:1px;margin:14px 0 8px;">📋 РАСПИСАНИЕ (ПРИМЕРНО)</div>`;
-    if(upcoming.length){
-      upcoming.forEach((a,i)=>{
-        const mins=Math.floor((a.dateObj-now)/60000);
-        const isNext=!flightLiveData&&i===0;
-        const isLate=mins<0, hot=!isLate&&mins<=20;
-        const bg='#17181c', br='#252528';
-        const {emoji,color}=airlineInfo(a.airline);
-        const seats=a.seats>=100?`${a.seats} мест`:`${a.seats} мест (мини)`;
-        html+=`<div class="flt-row" data-iso="${a.dateObj.toISOString()}" style="background:${bg};border:1px solid ${br};border-radius:15px;padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;opacity:.85;">
-          <div style="display:flex;align-items:center;gap:10px;">
-            <div style="font-size:22px;">${emoji}</div>
-            <div>
-              <div style="font-size:17px;font-weight:800;">${a.time}</div>
-              <div style="font-size:13px;color:${color};font-weight:600;">${a.airline}</div>
-              <div style="font-size:11px;opacity:.5;">из ${a.from} · ${seats}</div>
-            </div>
+  // Schedule section (infax or built-in)
+  if(schedule.length){
+    const label=isInfax?'📋 РАСПИСАНИЕ СЕГОДНЯ (INFAX)':'📋 РАСПИСАНИЕ (ПРИМЕРНО)';
+    html+=`<div style="font-size:11px;font-weight:700;opacity:.4;letter-spacing:1px;margin:14px 0 8px;">${label}</div>`;
+    upcoming.forEach(a=>{
+      const {emoji,color}=airlineInfo(a.airline);
+      const sc=statusColor(a.status);
+      const statusBadge=a.status?`<div style="font-size:10px;font-weight:700;color:${sc};margin-top:2px;">${a.status}</div>`:'';
+      const sub=isInfax
+        ?`${a.flight?a.flight+' · ':''}${a.from||''}`
+        :`из ${a.from}${a.seats?' · '+(a.seats>=100?a.seats+' мест':'мини'):''}`;
+      html+=`<div class="flt-row" data-iso="${a.dateObj.toISOString()}" style="background:#17181c;border:1px solid #252528;border-radius:15px;padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div style="font-size:22px;">${emoji}</div>
+          <div>
+            <div style="font-size:17px;font-weight:800;">${a.time}</div>
+            <div style="font-size:13px;color:${color};font-weight:600;">${a.airline||a.flight||'—'}</div>
+            <div style="font-size:11px;opacity:.5;">${sub}</div>
           </div>
-          <div style="text-align:right;min-width:56px;">
-            <div class="flt-cd" style="font-size:14px;font-weight:800;">${fmtCD(a.dateObj-now)}</div>
-          </div>
-        </div>`;
-      });
-    }
+        </div>
+        <div style="text-align:right;min-width:64px;">
+          <div class="flt-cd" style="font-size:14px;font-weight:800;">${fmtCD(a.dateObj-now)}</div>
+          ${statusBadge}
+        </div>
+      </div>`;
+    });
     if(past.length){
       html+=`<div style="font-size:11px;font-weight:700;opacity:.3;letter-spacing:1px;margin:12px 0 8px;">УЖЕ ПРИЛЕТЕЛИ</div>`;
-      past.slice().reverse().slice(0,5).forEach(a=>{
+      past.slice().reverse().slice(0,6).forEach(a=>{
         const {emoji,color}=airlineInfo(a.airline);
         html+=`<div style="background:#111;border:1px solid #1e1e1e;border-radius:13px;padding:10px 14px;margin-bottom:7px;opacity:.3;display:flex;align-items:center;justify-content:space-between;">
-          <div style="display:flex;align-items:center;gap:9px;"><div style="font-size:18px;">${emoji}</div><div><div style="font-size:15px;font-weight:700;text-decoration:line-through;">${a.time}</div><div style="font-size:11px;color:${color};">${a.airline} · из ${a.from}</div></div></div>
-          <div style="font-size:12px;opacity:.6;">✓</div></div>`;
+          <div style="display:flex;align-items:center;gap:9px;"><div style="font-size:18px;">${emoji}</div><div><div style="font-size:15px;font-weight:700;text-decoration:line-through;">${a.time}</div><div style="font-size:11px;color:${color};">${a.airline||a.flight} ${a.from?'· из '+a.from:''}</div></div></div>
+          <div style="font-size:12px;opacity:.6;">${a.status||'✓'}</div></div>`;
       });
     }
-
-    const season=FLIGHT_BUILTIN.find(s=>{const k=dateKey(today);return k>=s.from&&k<=s.to;});
-    if(season) html+=`<div style="font-size:10px;opacity:.3;text-align:center;margin-top:8px;">⚠️ ${season.label} · Проверяй FlightAware для точных времён</div>`;
+    if(!isInfax) html+=`<div style="font-size:10px;opacity:.3;text-align:center;margin-top:8px;">⚠️ Примерное расписание · Нажми ADS-B Live для infax.com</div>`;
   }
 
   if(!html){
-    html=`<div style="text-align:center;padding:32px;opacity:.5;">Нажми «ADS-B Live» или открой <a href="https://flightaware.com/live/airport/KACK" target="_blank" style="color:#0A84FF;">FlightAware</a></div>`;
+    html=`<div style="text-align:center;padding:32px;opacity:.5;">Нажми «ADS-B Live» для актуальных данных<br><br><a href="https://flightaware.com/live/airport/KACK" target="_blank" style="color:#0A84FF;">FlightAware ACK</a></div>`;
   }
 
   document.getElementById('flightArrivalsContainer').innerHTML=html;
-  renderFlightStatusCard(upcoming, now);
-  try{ updateFlightWidget(); }catch(e){}
+  renderFlightStatusCard(upcoming,now);
+  try{updateFlightWidget();}catch(e){}
 }
 
 function renderFlightStatusCard(upcoming,now){
