@@ -1452,6 +1452,7 @@ async function calculateFare() {
     const dirtCharge  = chipState.dirtRoad  ? 5 : 0;
 
     let destinationZone = null;
+    let destIsCrossTown = false;
     let lat = null;
     let lng = null;
 
@@ -1478,7 +1479,9 @@ async function calculateFare() {
 
         const point = turf.point([lng, lat]);
 
-        destinationZone = findZone(point);
+        const { zone: destZ1, isCrossTown: destCT1 } = findZoneInfo(point);
+        destinationZone = destZ1;
+        destIsCrossTown = destCT1;
 
     } else {
 
@@ -1500,7 +1503,9 @@ async function calculateFare() {
 
         const point = turf.point([lng, lat]);
 
-        destinationZone = findZone(point);
+        const { zone: destZ2, isCrossTown: destCT2 } = findZoneInfo(point);
+        destinationZone = destZ2;
+        destIsCrossTown = destCT2;
     }
 
     document.getElementById('destinationZone').innerText =
@@ -1512,13 +1517,15 @@ async function calculateFare() {
     }
 
     // Cross Town rate only when:
-    // 1. GPS is in Cross Town overlay, AND
-    // 2. Destination is explicitly the Airport (from places.json), NOT just any address that falls in Airport zone
+    // 1. GPS is in Cross Town overlay, AND destination is explicitly the Airport (from places.json)
+    // OR: GPS is explicitly the Airport, AND destination geocodes into Cross Town overlay
     const isExplicitAirport = localMatch?.zone === 'Airport';
     const fromZone = (!zoneIsManual && gpsIsCrossTown && isExplicitAirport)
         ? 'Cross Town' : currentZoneName;
+    const toZone = (!zoneIsManual && currentZoneName === 'Airport' && destIsCrossTown)
+        ? 'Cross Town' : destinationZone;
 
-    let baseFare = getFare(fromZone, destinationZone);
+    let baseFare = getFare(fromZone, toZone);
 
     if (
         currentZoneName === 'Town' &&
