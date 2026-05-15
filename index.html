@@ -781,9 +781,12 @@ function findZone(point) {
 }
 
 function getFare(fromZone, toZone) {
+    // Cross Town premium only applies for Airport trips; otherwise treat as Town
+    const effFrom = (fromZone === 'Cross Town' && toZone !== 'Airport') ? 'Town' : fromZone;
+    const effTo   = (toZone   === 'Cross Town' && fromZone !== 'Airport') ? 'Town' : toZone;
 
-    const direct = `${fromZone}-${toZone}`;
-    const reverse = `${toZone}-${fromZone}`;
+    const direct = `${effFrom}-${effTo}`;
+    const reverse = `${effTo}-${effFrom}`;
 
     return fareTable[direct] || fareTable[reverse] || null;
 }
