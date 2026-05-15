@@ -1511,8 +1511,11 @@ async function calculateFare() {
         return;
     }
 
-    // Apply Cross Town rate only when GPS is in Cross Town overlay AND destination is Airport
-    const fromZone = (!zoneIsManual && gpsIsCrossTown && destinationZone === 'Airport')
+    // Cross Town rate only when:
+    // 1. GPS is in Cross Town overlay, AND
+    // 2. Destination is explicitly the Airport (from places.json), NOT just any address that falls in Airport zone
+    const isExplicitAirport = localMatch?.zone === 'Airport';
+    const fromZone = (!zoneIsManual && gpsIsCrossTown && isExplicitAirport)
         ? 'Cross Town' : currentZoneName;
 
     let baseFare = getFare(fromZone, destinationZone);
