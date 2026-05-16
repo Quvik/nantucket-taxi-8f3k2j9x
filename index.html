@@ -1668,31 +1668,53 @@ const AIS_BBOX=[[41.0,-71.2],[41.95,-69.7]];
 
 let aisWs=null,aisVessels={},aisShipTypes={},aisShipNames={},aisConnected=false,aisRenderTimer=null,aisUpdateTimer=null,aisRawCount=0,aisLastNames=[],aisMsgTypes={};
 
-// Known ferry vessel MMSIs — tracked globally (not limited to bbox)
+// Known ferry vessel MMSIs — tracked globally via MMSI subscription
 const FERRY_MMSIS = [
-  '367720690', // Hy-Line Grey Lady IV
-  '367101920', // Hy-Line Grey Lady
-  '338229000', // Steamship MV Eagle
-  '338234000', // Steamship MV Nantucket
-  '338226000', // Steamship MV Iyanough
-  '338237000', // Steamship MV Island Home
-  '338231000', // Steamship MV Katama
-  '338239000', // Steamship MV Governor
+  // Hy-Line Cruises (Hyannis ↔ Nantucket)
+  '367720690', // Grey Lady IV
+  '367101920', // Grey Lady
+  '367459870', // Great Point
+  // Steamship Authority (Hyannis ↔ Nantucket / Martha's Vineyard)
+  '367174060', // MV Eagle
+  '367324580', // MV Nantucket
+  '367145870', // MV Iyanough (high-speed)
+  '367130910', // MV Island Home
+  '367327330', // MV Katama
+  '367691010', // MV Woods Hole
+  '367345940', // MV Governor
+  // Seastreak (New York / New Bedford ↔ Nantucket)
+  '367347130', // Seastreak New York
 ];
 
 function getAisKey(){ return localStorage.getItem('aisstream_key')||''; }
 
-function identifyFerryAIS(name, shipType){
+// MMSI → known ferry identity map (built from FERRY_MMSIS)
+const MMSI_MAP = {
+  '367720690':{line:'Hy-Line',  color:'#30d158',emoji:'🚤',name:'Grey Lady IV'},
+  '367101920':{line:'Hy-Line',  color:'#30d158',emoji:'🚤',name:'Grey Lady'},
+  '367459870':{line:'Hy-Line',  color:'#30d158',emoji:'🚤',name:'Great Point'},
+  '367174060':{line:'Steamship',color:'#0A84FF',emoji:'🚢',name:'MV Eagle'},
+  '367324580':{line:'Steamship',color:'#0A84FF',emoji:'🚢',name:'MV Nantucket'},
+  '367145870':{line:'Steamship',color:'#0A84FF',emoji:'🚤',name:'MV Iyanough'},
+  '367130910':{line:'Steamship',color:'#0A84FF',emoji:'🚢',name:'Island Home'},
+  '367327330':{line:'Steamship',color:'#0A84FF',emoji:'🚢',name:'MV Katama'},
+  '367691010':{line:'Steamship',color:'#0A84FF',emoji:'🚢',name:'MV Woods Hole'},
+  '367345940':{line:'Steamship',color:'#0A84FF',emoji:'🚢',name:'MV Governor'},
+  '367347130':{line:'Seastreak',color:'#ff9f0a',emoji:'⛴',name:'Seastreak NY'},
+};
+
+function identifyFerryAIS(name, shipType, mmsi){
+  // MMSI-based identification is most reliable (no name parsing needed)
+  if(mmsi && MMSI_MAP[String(mmsi)]) return MMSI_MAP[String(mmsi)];
   if(!name&&!shipType) return null;
   const n=(name||'').toUpperCase().trim();
-  // Use .* for multi-word names like "GREY LADY IV"
-  if(n&&/GREY.*LADY|GREAT.*POINT|SEASTAR|HY.*LINE|GRACIE|OCEAN.*STAR|ISLAND.*QUEEN/.test(n))
+  if(n&&/GREY.*LADY|GREAT.*POINT|HY.*LINE|GRACIE|OCEAN.*STAR|ISLAND.*QUEEN/.test(n))
     return {line:'Hy-Line',color:'#30d158',emoji:'🚤'};
   if(n&&/IYANOUGH|EAGLE|GAY.*HEAD|WOODS.*HOLE|SANKATY|NOBSKA|KATAMA|MV\s*NANTUCKET|^NANTUCKET$|ISLAND.*HOME|GOVERNOR|HYANNISPORT|NANTUCKET.*II/.test(n))
     return {line:'Steamship',color:'#0A84FF',emoji:'🚢'};
   if(n&&/SEASTREAK/.test(n)) return {line:'Seastreak',color:'#ff9f0a',emoji:'⛴'};
   if(n&&/FREEDOM/.test(n)) return {line:'Freedom',color:'#bf5af2',emoji:'🛥'};
-  // Passenger vessels (60-69) and High Speed Craft (40-49, e.g. Grey Lady IV)
+  // Passenger vessels (60-69) and High Speed Craft (40-49)
   if(shipType&&(shipType>=60&&shipType<=69||shipType>=40&&shipType<=49))
     return {line:n||'Паром',color:'#aaa',emoji:'⛴'};
   return null;
@@ -1776,18 +1798,20 @@ function connectAIS(){
       const shipType=aisShipTypes[meta.MMSI]||0;
       const distNant=aisDistNm(lat,lon,NANT_PORT.lat,NANT_PORT.lon);
       const distHyan=aisDistNm(lat,lon,HYAN_PORT.lat,HYAN_PORT.lon);
-      // Identify by name/type. If name unknown but vessel is fast (>12 kn) and on the
-      // Nantucket–Hyannis corridor (<30 nm from either port), treat as ferry candidate.
-      let ferry=identifyFerryAIS(resolvedName,shipType);
+      // Identify by MMSI first (most reliable), then name/type
+      let ferry=identifyFerryAIS(resolvedName,shipType,meta.MMSI);
       // Narrow bbox already ensures we're in the corridor — any vessel >8kn is likely a ferry
       if(!ferry&&sog>8){
         ferry={line:resolvedName||`MMSI ${meta.MMSI}`,color:'#aaa',emoji:'⛴'};
       }
       if(!ferry)return;
+      // Use MMSI_MAP name as canonical name, fall back to AIS name
+      const knownName = MMSI_MAP[String(meta.MMSI)]?.name;
+      const displayName = knownName || resolvedName || ferry.line;
       const prev=aisVessels[meta.MMSI];
       const isInPort=distNant<0.4;
       const portSince=isInPort?(prev?.portSince||Date.now()):null;
-      aisVessels[meta.MMSI]={mmsi:meta.MMSI,name:resolvedName||ferry.line,...ferry,lat,lon,sog,cog,ts:Date.now(),portSince};
+      aisVessels[meta.MMSI]={mmsi:meta.MMSI,name:displayName,...ferry,lat,lon,sog,cog,ts:Date.now(),portSince};
       if(!aisRenderTimer) aisRenderTimer=setTimeout(()=>{aisRenderTimer=null;renderAISVessels();},2000);
     }catch(e){}
   };
