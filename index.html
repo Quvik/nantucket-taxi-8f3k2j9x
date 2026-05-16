@@ -1248,7 +1248,7 @@ let lastDestinationAddress = "";
 let localPlaces = [];
 // Promise resolves once both data files are loaded — calculateFare awaits it
 const localPlacesReady = Promise.all([
-  fetch('places.json?v=6').then(r => r.json()).then(data => { localPlaces = data; }).catch(() => {}),
+  fetch('places.json?v=7').then(r => r.json()).then(data => { localPlaces = data; }).catch(() => {}),
   fetch('streets.json').then(r => r.json()).then(data => { localPlaces = [...localPlaces, ...data]; }).catch(() => {})
 ]);
 
