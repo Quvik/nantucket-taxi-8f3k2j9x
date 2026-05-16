@@ -1610,17 +1610,22 @@ const HYAN_PORT={lat:41.6307,lon:-70.2842};
 const NEWB_PORT={lat:41.6354,lon:-70.9126};
 const AIS_BBOX=[[40.8,-71.5],[42.2,-69.5]];
 
-let aisWs=null,aisVessels={},aisConnected=false,aisRenderTimer=null;
+let aisWs=null,aisVessels={},aisShipTypes={},aisConnected=false,aisRenderTimer=null;
 
 function getAisKey(){ return localStorage.getItem('aisstream_key')||''; }
 
-function identifyFerryAIS(name){
-  if(!name) return null;
-  const n=name.toUpperCase().trim();
-  if(/GREY.?LADY|GREAT.?POINT|SEASTAR|HY.?LINE|GRACIE/.test(n)) return {line:'Hy-Line',color:'#30d158',emoji:'🚤'};
-  if(/IYANOUGH|EAGLE|GAY.?HEAD|WOODS.?HOLE|SANKATY|NOBSKA|KATAMA|MV\s*NANTUCKET|^NANTUCKET$/.test(n)) return {line:'Steamship',color:'#0A84FF',emoji:'🚢'};
+function identifyFerryAIS(name, shipType){
+  if(!name&&!shipType) return null;
+  const n=(name||'').toUpperCase().trim();
+  if(/GREY.?LADY|GREAT.?POINT|SEASTAR|HY.?LINE|GRACIE|OCEAN.?STAR|ISLAND.?QUEEN/.test(n))
+    return {line:'Hy-Line',color:'#30d158',emoji:'🚤'};
+  if(/IYANOUGH|EAGLE|GAY.?HEAD|WOODS.?HOLE|SANKATY|NOBSKA|KATAMA|MV\s*NANTUCKET|^NANTUCKET$|ISLAND.?HOME|GOVERNOR|HYANNISPORT|NANTUCKET.?II/.test(n))
+    return {line:'Steamship',color:'#0A84FF',emoji:'🚢'};
   if(/SEASTREAK/.test(n)) return {line:'Seastreak',color:'#ff9f0a',emoji:'⛴'};
   if(/FREEDOM/.test(n)) return {line:'Freedom',color:'#bf5af2',emoji:'🛥'};
+  // Fallback: unknown passenger/high-speed vessel in zone (ShipType 60-69)
+  if(shipType&&shipType>=60&&shipType<=69)
+    return {line:n||'Паром',color:'#aaa',emoji:'⛴'};
   return null;
 }
 
@@ -1650,19 +1655,29 @@ function connectAIS(){
   aisWs=new WebSocket('wss://stream.aisstream.io/v0/stream');
   aisWs.onopen=()=>{
     aisConnected=true; setAisDot('green');
-    aisWs.send(JSON.stringify({APIKey:key,BoundingBoxes:[AIS_BBOX],FilterMessageTypes:['PositionReport']}));
+    aisWs.send(JSON.stringify({APIKey:key,BoundingBoxes:[AIS_BBOX],FilterMessageTypes:['PositionReport','ShipStaticData']}));
     renderAISVessels();
   };
   aisWs.onmessage=(evt)=>{
     try{
       const msg=JSON.parse(evt.data);
+      // Cache ship type for fallback identification
+      if(msg.MessageType==='ShipStaticData'){
+        const mmsi=msg.MetaData?.MMSI;
+        const t=msg.Message?.ShipStaticData?.Type;
+        if(mmsi&&t) aisShipTypes[mmsi]=t;
+        return;
+      }
       if(msg.MessageType!=='PositionReport')return;
       const meta=msg.MetaData,pos=msg.Message?.PositionReport;
       if(!meta||!pos)return;
-      const ferry=identifyFerryAIS(meta.ShipName);
-      if(!ferry)return;
-      const lat=meta.latitude,lon=meta.longitude;
+      // Accept position coordinates from MetaData or PositionReport
+      const lat=meta.latitude||Number(pos.Latitude)||0;
+      const lon=meta.longitude||Number(pos.Longitude)||0;
       if(!lat||!lon)return;
+      const shipType=aisShipTypes[meta.MMSI]||0;
+      const ferry=identifyFerryAIS(meta.ShipName,shipType);
+      if(!ferry)return;
       const prev=aisVessels[meta.MMSI];
       const isInPort=aisDistNm(lat,lon,NANT_PORT.lat,NANT_PORT.lon)<0.4;
       const portSince=isInPort?(prev?.portSince||Date.now()):null;
