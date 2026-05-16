@@ -2834,10 +2834,14 @@ async function calculateFare() {
     let lng = null;
 
     // LOCAL DATABASE FIRST
-    const localMatch = localPlaces.find(p =>
-        p.name.toLowerCase() === address.toLowerCase() ||
-        address.toLowerCase().includes(p.name.toLowerCase())
-    );
+    // Strip city/state suffix Google Places adds (e.g. "Cisco Brewery Shuttle, Nantucket, MA")
+    const addrCore = address.toLowerCase().split(',')[0].trim();
+    const localMatch = localPlaces.find(p => {
+        const pn = p.name.toLowerCase();
+        if(addrCore === pn || addrCore.includes(pn) || pn.includes(addrCore)) return true;
+        // Word-level fuzzy: any word >3 chars from our place name found in the address core
+        return pn.split(' ').filter(w=>w.length>3).some(w=>addrCore.includes(w));
+    });
 
     if (localMatch) {
         destinationZone = localMatch.zone;
@@ -3107,7 +3111,11 @@ function fetchSuggestions(query){
           const main = (p.structured_formatting?.main_text||'').toLowerCase();
           if(!sec.includes('nantucket')) return false;
           // Remove if this prediction is a near-duplicate of any local result
-          const isDup = localNames.some(ln => main.includes(ln) || ln.includes(main));
+          // Word-level check: any word >3 chars from our local name found in Google's main text
+          const isDup = localNames.some(ln => {
+            if(main.includes(ln) || ln.includes(main)) return true;
+            return ln.split(' ').filter(w=>w.length>3).some(w=>main.includes(w));
+          });
           return !isDup;
         }).slice(0, Math.max(0, 5 - local.length))
       : [];
