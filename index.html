@@ -3647,5 +3647,15 @@ function renderBookings(bookings){
 initFirebase();
 </script>
 
+<script>
+if('serviceWorker' in navigator){
+  window.addEventListener('load', ()=>{
+    navigator.serviceWorker.register('/nantucket-taxi-8f3k2j9x/sw.js')
+      .then(()=>console.log('SW registered'))
+      .catch(e=>console.warn('SW error',e));
+  });
+}
+</script>
+
 </body>
 </html>
