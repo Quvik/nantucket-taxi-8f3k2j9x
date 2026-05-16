@@ -385,6 +385,7 @@ bottom:0;
 width:280px;
 background:#17181c;
 z-index:19999;
+padding-top:48px;
 transform:translateX(-100%);
 transition:transform .28s cubic-bezier(.4,0,.2,1);
 display:flex;
@@ -695,7 +696,6 @@ to{opacity:1;transform:translateY(0);}
 <div class="bookings-panel" id="bookingsPanel">
   <div class="bookings-header">
     <div style="font-size:18px;font-weight:800;">📅 Бронирования</div>
-    <button onclick="closeBookings()" style="background:none;border:none;color:white;font-size:22px;cursor:pointer;padding:4px;">✕</button>
   </div>
   <div class="bookings-body">
 
@@ -1025,7 +1025,6 @@ to{opacity:1;transform:translateY(0);}
     <div style="font-size:18px;font-weight:800;">📋 История поездок</div>
     <div style="display:flex;align-items:center;gap:10px;">
       <button id="clearAllBtn" onclick="confirmClearAll()" style="display:none;background:#2a1a1a;border:none;color:#ff453a;border-radius:10px;padding:7px 12px;font-size:13px;font-weight:700;cursor:pointer;">Очистить всё</button>
-      <button onclick="closeHistory()" style="background:none;border:none;color:white;font-size:22px;cursor:pointer;padding:4px;">✕</button>
     </div>
   </div>
   <div class="bookings-body">
