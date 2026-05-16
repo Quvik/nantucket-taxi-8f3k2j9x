@@ -3058,19 +3058,20 @@ function deleteTrip(id){
 }
 
 function confirmClearAll(){
-  const overlay = document.createElement('div');
-  overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:99999;display:flex;align-items:flex-end;justify-content:center;padding-bottom:40px;';
-  overlay.innerHTML=`
+  const el = document.createElement('div');
+  el.id = 'clearAllOverlay';
+  el.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:99999;display:flex;align-items:flex-end;justify-content:center;padding-bottom:40px;';
+  el.innerHTML=`
     <div style="background:#1e1e28;border:1px solid #333;border-radius:20px;padding:24px 20px;width:90%;max-width:340px;text-align:center;">
       <div style="font-size:22px;margin-bottom:8px;">🗑️</div>
       <div style="font-size:17px;font-weight:800;margin-bottom:6px;">Очистить всю историю?</div>
       <div style="font-size:13px;opacity:.5;margin-bottom:20px;">Все поездки будут удалены навсегда</div>
       <div style="display:flex;gap:10px;">
-        <button onclick="this.closest('div[style]').remove()" style="flex:1;background:#2a2a2a;border:none;color:white;border-radius:14px;padding:13px;font-size:15px;font-weight:700;cursor:pointer;">Отмена</button>
-        <button onclick="clearAllTrips();this.closest('div[style]').remove()" style="flex:1;background:#ff453a;border:none;color:white;border-radius:14px;padding:13px;font-size:15px;font-weight:700;cursor:pointer;">Удалить всё</button>
+        <button onclick="document.getElementById('clearAllOverlay').remove()" style="flex:1;background:#2a2a2a;border:none;color:white;border-radius:14px;padding:13px;font-size:15px;font-weight:700;cursor:pointer;">Отмена</button>
+        <button onclick="clearAllTrips();document.getElementById('clearAllOverlay').remove()" style="flex:1;background:#ff453a;border:none;color:white;border-radius:14px;padding:13px;font-size:15px;font-weight:700;cursor:pointer;">Удалить всё</button>
       </div>
     </div>`;
-  document.body.appendChild(overlay);
+  document.body.appendChild(el);
 }
 
 function clearAllTrips(){
