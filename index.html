@@ -1792,6 +1792,23 @@ function findSchedForVessel(ferryLine, portSinceMs){
   return arrivals.find(a=>a.line.includes(ferryLine.split(' ')[0])&&a.dateObj>=lo&&a.dateObj<=hi)||null;
 }
 
+// Returns ferries that should currently be at sea based on schedule
+function getScheduledVesselsAtSea(){
+  const now=Date.now();
+  const td=ferryTargetDate(0);
+  const arrivals=ferryLiveCache[dateKey(td)]||builtinArrivals(td)||[];
+  return arrivals.filter(a=>{
+    if(!a.dateObj) return false;
+    const arrMs=a.dateObj.getTime();
+    // Approximate crossing time: Traditional ~2h15m, High-Speed ~65min
+    const crossMs=(a.type||'').includes('Traditional')?140*60*1000:70*60*1000;
+    return now>arrMs-crossMs && now<arrMs;
+  }).map(a=>{
+    const etaMins=Math.round((a.dateObj.getTime()-now)/60000);
+    return {...a,etaMins};
+  });
+}
+
 function renderAISVessels(){
   const el=document.getElementById('aisVesselsList');
   if(!el)return;
@@ -1805,8 +1822,29 @@ function renderAISVessels(){
   if(!aisConnected&&!Object.keys(aisVessels).length){el.innerHTML='<div style="font-size:13px;opacity:.5;text-align:center;padding:10px;">🔄 Подключение к AIS...</div>';return;}
   const vessels=Object.values(aisVessels);
   if(!vessels.length){
-    let hint='';
     const mtLink=`<a href="https://www.marinetraffic.com/en/ais/home/centerx:-70.1/centery:41.27/zoom:12" target="_blank" style="color:#0A84FF;font-size:11px;text-decoration:none;">🗺 MarineTraffic</a>`;
+    // Show schedule-inferred vessels when AIS has no signal
+    const inferred=getScheduledVesselsAtSea();
+    if(inferred.length){
+      const pktHint=`<div style="font-size:10px;opacity:.35;text-align:center;margin-top:4px;">${aisRawCount} пкт · AIS не видит · ${mtLink}</div>`;
+      el.innerHTML=inferred.map(v=>`
+        <div style="background:#17181c;border:1px dashed #333;border-radius:14px;padding:10px 14px;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;">
+          <div style="display:flex;align-items:center;gap:10px;">
+            <div style="font-size:20px;">${lineEmoji(v.line)}</div>
+            <div>
+              <div style="font-size:13px;font-weight:800;">${v.line}</div>
+              <div style="font-size:11px;color:${lineColor(v.line)};opacity:.7;">из ${v.from} · ${v.type}</div>
+              <div style="font-size:10px;opacity:.4;">📋 по расписанию · AIS не видит</div>
+            </div>
+          </div>
+          <div style="text-align:right;">
+            <div style="font-size:14px;font-weight:800;">~${v.etaMins} мин</div>
+            <div style="font-size:10px;opacity:.4;">${v.time}</div>
+          </div>
+        </div>`).join('')+pktHint;
+      return;
+    }
+    let hint='';
     if(aisRawCount===0){
       hint=`<div style="font-size:11px;opacity:.4;margin-top:4px;">0 пакетов — нет ответа от сервера · ${mtLink}</div>`;
     } else if(aisLastNames.length&&aisLastNames[0].startsWith('⚠️')){
