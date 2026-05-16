@@ -1668,24 +1668,30 @@ function connectAIS(){
   aisWs=new WebSocket('wss://stream.aisstream.io/v0/stream');
   aisWs.onopen=()=>{
     aisConnected=true; setAisDot('green');
-    aisWs.send(JSON.stringify({APIKey:key,BoundingBoxes:[AIS_BBOX],FilterMessageTypes:['PositionReport','ShipStaticData']}));
+    // Try both field name casings in case API changed
+    const sub={APIKey:key,BoundingBoxes:[AIS_BBOX],FilterMessageTypes:['PositionReport','ShipStaticData']};
+    aisWs.send(JSON.stringify(sub));
     renderAISVessels();
   };
   aisWs.onmessage=(evt)=>{
+    aisRawCount++; // count ALL messages including server ack/errors
     try{
       const msg=JSON.parse(evt.data);
+      // Server error or subscription error
+      if(msg.ERROR||msg.error||msg.Error){
+        aisLastNames=['⚠️ '+JSON.stringify(msg).slice(0,80)];
+        renderAISVessels(); return;
+      }
       // Cache ship type for fallback identification
       if(msg.MessageType==='ShipStaticData'){
         const mmsi=msg.MetaData?.MMSI;
         const t=msg.Message?.ShipStaticData?.Type;
         if(mmsi&&t) aisShipTypes[mmsi]=t;
-        // Also track name for diagnostics
         const sn=(msg.MetaData?.ShipName||'').trim();
         if(sn&&!aisLastNames.includes(sn)) aisLastNames=[...aisLastNames.slice(-9),sn];
         return;
       }
       if(msg.MessageType!=='PositionReport')return;
-      aisRawCount++;
       const meta=msg.MetaData,pos=msg.Message?.PositionReport;
       if(!meta||!pos)return;
       // Track all vessel names seen (for diagnostics)
@@ -1740,11 +1746,13 @@ function renderAISVessels(){
   if(!vessels.length){
     let hint='';
     if(aisRawCount===0){
-      hint='<div style="font-size:11px;opacity:.4;margin-top:4px;">0 сигналов — проверьте API-ключ</div>';
+      hint='<div style="font-size:11px;opacity:.4;margin-top:4px;">0 пакетов — нет ответа от сервера</div>';
+    } else if(aisLastNames.length&&aisLastNames[0].startsWith('⚠️')){
+      hint=`<div style="font-size:10px;color:#ff9f0a;margin-top:4px;word-break:break-all;">${aisLastNames[0]}</div>`;
     } else if(aisLastNames.length){
-      hint=`<div style="font-size:10px;opacity:.35;margin-top:4px;word-break:break-all;">Вижу: ${aisLastNames.join(', ')}</div>`;
+      hint=`<div style="font-size:10px;opacity:.35;margin-top:4px;word-break:break-all;">Суда: ${aisLastNames.join(', ')}</div>`;
     } else {
-      hint=`<div style="font-size:11px;opacity:.4;margin-top:4px;">${aisRawCount} сигналов, паромы не опознаны</div>`;
+      hint=`<div style="font-size:11px;opacity:.4;margin-top:4px;">${aisRawCount} пакетов, паромы не опознаны</div>`;
     }
     el.innerHTML=`<div style="font-size:13px;opacity:.5;text-align:center;padding:10px;">📡 Ожидаю паром в зоне...${hint}</div>`;
     return;
