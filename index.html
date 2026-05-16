@@ -1610,7 +1610,7 @@ const HYAN_PORT={lat:41.6307,lon:-70.2842};
 const NEWB_PORT={lat:41.6354,lon:-70.9126};
 const AIS_BBOX=[[40.8,-71.5],[42.2,-69.5]];
 
-let aisWs=null,aisVessels={},aisShipTypes={},aisConnected=false,aisRenderTimer=null;
+let aisWs=null,aisVessels={},aisShipTypes={},aisConnected=false,aisRenderTimer=null,aisRawCount=0,aisLastNames=[];
 
 function getAisKey(){ return localStorage.getItem('aisstream_key')||''; }
 
@@ -1652,6 +1652,7 @@ function connectAIS(){
   const key=getAisKey();
   if(!key){renderAISVessels();return;}
   if(aisWs&&aisWs.readyState<=1)return;
+  aisRawCount=0; aisLastNames=[];
   aisWs=new WebSocket('wss://stream.aisstream.io/v0/stream');
   aisWs.onopen=()=>{
     aisConnected=true; setAisDot('green');
@@ -1666,11 +1667,18 @@ function connectAIS(){
         const mmsi=msg.MetaData?.MMSI;
         const t=msg.Message?.ShipStaticData?.Type;
         if(mmsi&&t) aisShipTypes[mmsi]=t;
+        // Also track name for diagnostics
+        const sn=(msg.MetaData?.ShipName||'').trim();
+        if(sn&&!aisLastNames.includes(sn)) aisLastNames=[...aisLastNames.slice(-9),sn];
         return;
       }
       if(msg.MessageType!=='PositionReport')return;
+      aisRawCount++;
       const meta=msg.MetaData,pos=msg.Message?.PositionReport;
       if(!meta||!pos)return;
+      // Track all vessel names seen (for diagnostics)
+      const sn=(meta.ShipName||'').trim();
+      if(sn&&!aisLastNames.includes(sn)) aisLastNames=[...aisLastNames.slice(-9),sn];
       // Accept position coordinates from MetaData or PositionReport
       const lat=meta.latitude||Number(pos.Latitude)||0;
       const lon=meta.longitude||Number(pos.Longitude)||0;
@@ -1717,7 +1725,18 @@ function renderAISVessels(){
   });
   if(!aisConnected&&!Object.keys(aisVessels).length){el.innerHTML='<div style="font-size:13px;opacity:.5;text-align:center;padding:10px;">🔄 Подключение к AIS...</div>';return;}
   const vessels=Object.values(aisVessels);
-  if(!vessels.length){el.innerHTML='<div style="font-size:13px;opacity:.5;text-align:center;padding:10px;">📡 Ожидаю суда в зоне...</div>';return;}
+  if(!vessels.length){
+    let hint='';
+    if(aisRawCount===0){
+      hint='<div style="font-size:11px;opacity:.4;margin-top:4px;">0 сигналов — проверьте API-ключ</div>';
+    } else if(aisLastNames.length){
+      hint=`<div style="font-size:10px;opacity:.35;margin-top:4px;word-break:break-all;">Вижу: ${aisLastNames.join(', ')}</div>`;
+    } else {
+      hint=`<div style="font-size:11px;opacity:.4;margin-top:4px;">${aisRawCount} сигналов, паромы не опознаны</div>`;
+    }
+    el.innerHTML=`<div style="font-size:13px;opacity:.5;text-align:center;padding:10px;">📡 Ожидаю паром в зоне...${hint}</div>`;
+    return;
+  }
   const annotated=vessels.map(v=>{
     const dn=aisDistNm(v.lat,v.lon,NANT_PORT.lat,NANT_PORT.lon);
     const brng=aisBearing(v.lat,v.lon,NANT_PORT.lat,NANT_PORT.lon);
