@@ -694,8 +694,7 @@ to{opacity:1;transform:translateY(0);}
 </div>
 
 <div class="sticky-bar">
-<button class="primary" onclick="calculateFare()">Calculate</button>
-<button class="secondary" onclick="openWaze()">Waze</button>
+<button class="primary" onclick="openWaze()">Waze</button>
 <button class="secondary" onclick="openGoogleMaps()">Maps</button>
 <button class="secondary" onclick="resetAll()" style="background:#2a1a1a;color:#ff453a;">↺</button>
 </div>
@@ -876,15 +875,9 @@ fetch('places.json')
 
 
 function autoCalculate(){
-
-const destination =
-document.getElementById('destination').value.trim();
-
-if(destination.length < 3) return;
-
-try{
-calculateFare();
-}catch(e){}
+  const destination = document.getElementById('destination').value.trim();
+  if(destination.length < 3){ _geoCache = {addr:'',zone:null,isCrossTown:false,lat:null,lng:null}; return; }
+  try{ calculateFare(); }catch(e){}
 }
 
 window.addEventListener('load',()=>{
@@ -2073,12 +2066,9 @@ if(current < min) current = min;
 if(current > max) current = max;
 
 input.value = current;
-
-if(id === 'passengers'){
 display.innerText = current;
-}else{
-display.innerText = current;
-}
+if(document.getElementById('destination').value.trim())
+  try { calculateFare(); } catch(e) {}
 }
 
 
@@ -2086,33 +2076,19 @@ function setDestination(placeName) {
     haptic(10);
     document.getElementById('destination').value = placeName;
     lastDestinationAddress = placeName;
+    try { calculateFare(); } catch(e) {}
 }
 
 function openGoogleMaps() {
-
-
-    if (!lastDestinationAddress) {
-        alert("Calculate fare first");
-        return;
-    }
-
-    const url =
-        `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(lastDestinationAddress)}`;
-
-    window.open(url, '_blank');
+    const dest = lastDestinationAddress || document.getElementById('destination').value.trim();
+    if (!dest) return;
+    window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(dest)}`, '_blank');
 }
 
 function openWaze() {
-
-    if (!lastDestinationAddress) {
-        alert("Calculate fare first");
-        return;
-    }
-
-    const url =
-        `https://waze.com/ul?q=${encodeURIComponent(lastDestinationAddress)}&navigate=yes`;
-
-    window.open(url, '_blank');
+    const dest = lastDestinationAddress || document.getElementById('destination').value.trim();
+    if (!dest) return;
+    window.open(`https://waze.com/ul?q=${encodeURIComponent(dest)}&navigate=yes`, '_blank');
 }
 
 
@@ -2123,6 +2099,7 @@ function openWaze() {
 function haptic(pattern){ try{ navigator.vibrate(pattern); }catch(e){} }
 
 const chipState = { nightFee: false, dirtRoad: false };
+let _geoCache = { addr:'', zone:null, isCrossTown:false, lat:null, lng:null };
 
 function toggleChip(btn, id) {
     haptic(12);
@@ -2136,10 +2113,7 @@ async function calculateFare() {
     haptic(15);
     const address = document.getElementById('destination').value.trim();
 
-    if (!address) {
-        alert('Enter destination');
-        return;
-    }
+    if (!address) return;
 
     lastDestinationAddress = address;
 
@@ -2182,49 +2156,42 @@ async function calculateFare() {
     );
 
     if (localMatch) {
-
         destinationZone = localMatch.zone;
-
+        _geoCache = { addr: address, zone: destinationZone, isCrossTown: false, lat: null, lng: null };
+    } else if (_geoCache.addr === address && _geoCache.zone) {
+        // Use cached geocoding result — avoid re-calling API on counter changes
+        destinationZone = _geoCache.zone;
+        destIsCrossTown = _geoCache.isCrossTown;
+        lat = _geoCache.lat;
+        lng = _geoCache.lng;
     } else if (
         window.selectedPlace &&
         window.selectedPlace.geometry
     ) {
-
-        lat =
-            window.selectedPlace.geometry.location.lat();
-
-        lng =
-            window.selectedPlace.geometry.location.lng();
-
+        lat = window.selectedPlace.geometry.location.lat();
+        lng = window.selectedPlace.geometry.location.lng();
         const point = turf.point([lng, lat]);
-
         const { zone: destZ1, isCrossTown: destCT1 } = findZoneInfo(point);
         destinationZone = destZ1;
         destIsCrossTown = destCT1;
-
+        _geoCache = { addr: address, zone: destinationZone, isCrossTown: destIsCrossTown, lat, lng };
     } else {
-
         const url =
             `https://photon.komoot.io/api/?q=${encodeURIComponent(address + " Nantucket")}&limit=5`;
-
         const response = await fetch(url);
         const data = await response.json();
-
         if (!data.features || !data.features.length) {
-            alert('Place not found');
+            document.getElementById('fare').innerText = '$ ?';
             return;
         }
-
         const best = data.features[0];
-
         lat = best.geometry.coordinates[1];
         lng = best.geometry.coordinates[0];
-
         const point = turf.point([lng, lat]);
-
         const { zone: destZ2, isCrossTown: destCT2 } = findZoneInfo(point);
         destinationZone = destZ2;
         destIsCrossTown = destCT2;
+        _geoCache = { addr: address, zone: destinationZone, isCrossTown: destIsCrossTown, lat, lng };
     }
 
     document.getElementById('destinationZone').innerText =
