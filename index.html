@@ -1768,6 +1768,7 @@ function startFerryTick(){
     const td=ferryTargetDate(ferryDayOffset);
     const arr=ferryLiveCache[dateKey(td)]||builtinArrivals(td)||[];
     renderRushCard(arr.filter(a=>a.dateObj>now-20*60*1000),now);
+    renderAISVessels();
   },30000);
 }
 function stopFerryTick(){ if(ferryTickId)clearInterval(ferryTickId); ferryTickId=null; disconnectAIS(); }
