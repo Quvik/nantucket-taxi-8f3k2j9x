@@ -559,6 +559,7 @@ to{opacity:1;transform:translateY(0);}
 <button class="chip toggle-chip" id="nightFeeBtn" onclick="toggleChip(this,'nightFee')">🌙 Night +$5</button>
 <button class="chip toggle-chip" id="dirtRoadBtn" onclick="toggleChip(this,'dirtRoad')">🛣 Dirt +$5</button>
 </div>
+<button id="waitBtn" onclick="toggleWait()" style="width:100%;margin-top:8px;background:#1e1e28;border:1px solid #333;color:#aaa;border-radius:14px;padding:11px;font-size:15px;font-weight:700;cursor:pointer;transition:all .2s;letter-spacing:.3px;">⏱ Wait</button>
 
 </div>
 
@@ -2020,6 +2021,9 @@ function resetAll(){
     document.getElementById('dirtRoadBtn').classList.remove('on');
     _nightAutoMode = true;
     applyNightAuto();
+    waitStartTime=null; waitAccruedMs=0; _staticTotalNoWait=0;
+    clearInterval(waitTickId); waitTickId=null;
+    updateWaitDisplay();
     // Clear fare display
     document.getElementById('destinationZone').innerText = '-';
     document.getElementById('fare').innerText = '$ -';
@@ -2103,6 +2107,54 @@ function haptic(pattern){ try{ navigator.vibrate(pattern); }catch(e){} }
 const chipState = { nightFee: false, dirtRoad: false };
 let _geoCache = { addr:'', zone:null, isCrossTown:false, lat:null, lng:null };
 let _nightAutoMode = true; // false once user manually toggles
+let waitStartTime = null;
+let waitAccruedMs = 0;
+let waitTickId = null;
+let _staticTotalNoWait = 0;
+
+function getWaitMs(){ return waitAccruedMs + (waitStartTime ? Date.now()-waitStartTime : 0); }
+function getWaitCharge(){ return Math.floor(getWaitMs()/60000*1.5*100)/100; }
+function fmtWait(){
+  const ms=getWaitMs(), m=Math.floor(ms/60000), s=Math.floor((ms%60000)/1000);
+  return `${m}:${String(s).padStart(2,'0')}`;
+}
+
+function toggleWait(){
+  haptic(15);
+  if(waitStartTime){
+    waitAccruedMs+=Date.now()-waitStartTime;
+    waitStartTime=null;
+    clearInterval(waitTickId); waitTickId=null;
+  } else {
+    waitStartTime=Date.now();
+    waitTickId=setInterval(updateWaitDisplay,1000);
+  }
+  updateWaitDisplay();
+  try{calculateFare();}catch(e){}
+}
+
+function updateWaitDisplay(){
+  const btn=document.getElementById('waitBtn');
+  if(!btn) return;
+  const ms=getWaitMs(), wc=getWaitCharge(), isRunning=!!waitStartTime;
+  if(ms<500&&!isRunning){
+    btn.innerText='⏱ Wait';
+    btn.style.cssText='width:100%;margin-top:8px;background:#1e1e28;border:1px solid #333;color:#aaa;border-radius:14px;padding:11px;font-size:15px;font-weight:700;cursor:pointer;transition:all .2s;letter-spacing:.3px;';
+  } else {
+    btn.innerText=isRunning?`⏱ ${fmtWait()} · $${wc.toFixed(2)}`:`✓ ${fmtWait()} · $${wc.toFixed(2)}`;
+    btn.style.cssText=`width:100%;margin-top:8px;background:${isRunning?'#2a0a0a':'#0a2a0a'};border:1px solid ${isRunning?'#ff453a':'#30d158'};color:${isRunning?'#ff453a':'#30d158'};border-radius:14px;padding:11px;font-size:15px;font-weight:700;cursor:pointer;transition:all .2s;letter-spacing:.3px;`;
+  }
+  // Live-update fare total and wait row without re-geocoding
+  if(_staticTotalNoWait>0){
+    const total=_staticTotalNoWait+wc;
+    const fareEl=document.getElementById('fare');
+    if(fareEl) fareEl.innerText=`$${Number.isInteger(total)?total:total.toFixed(2)}`;
+    const waitRow=document.getElementById('waitBreakdownRow');
+    if(waitRow) waitRow.innerHTML=wc>0?`<span>⏱ Ожидание ${fmtWait()}</span><span>+$${wc.toFixed(2)}</span>`:'';
+    const totRow=document.querySelector('.total-row span:last-child');
+    if(totRow) totRow.innerText=`$${Number.isInteger(total)?total:total.toFixed(2)}`;
+  }
+}
 
 function isNightHour(){ const h=new Date().getHours(); return h>=23||h<7; }
 
@@ -2243,17 +2295,12 @@ async function calculateFare() {
         return;
     }
 
-    const totalFare =
-        baseFare +
-        passengerCharge +
-        dogCharge +
-        bikeCharge +
-        bagCharge +
-        nightCharge +
-        dirtCharge;
+    const waitCharge = getWaitCharge();
+    _staticTotalNoWait = baseFare + passengerCharge + dogCharge + bikeCharge + bagCharge + nightCharge + dirtCharge;
+    const totalFare = _staticTotalNoWait + waitCharge;
 
     document.getElementById('fare').innerText =
-        `$${totalFare}`;
+        `$${Number.isInteger(totalFare)?totalFare:totalFare.toFixed(2)}`;
 
     const extras = [
         ['Passengers +' + extraPassengers, passengerCharge],
@@ -2268,10 +2315,14 @@ async function calculateFare() {
         `<div class="fare-row"><span>${label}</span><span>+$${val}</span></div>`
     ).join('');
 
+    const waitRow = waitCharge > 0
+        ? `<div class="fare-row" id="waitBreakdownRow"><span>⏱ Ожидание ${fmtWait()}</span><span>+$${waitCharge.toFixed(2)}</span></div>`
+        : `<div class="fare-row" id="waitBreakdownRow"></div>`;
+
     document.getElementById('fareBreakdown').innerHTML =
 `<div class="fare-row" style="margin-top:8px;"><span>Base (${currentZoneName} → ${destinationZone})</span><span>$${baseFare}</span></div>
-${extraRows}
-<div class="total-row"><span>Total</span><span>$${totalFare}</span></div>`;
+${extraRows}${waitRow}
+<div class="total-row"><span>Total</span><span>$${Number.isInteger(totalFare)?totalFare:totalFare.toFixed(2)}</span></div>`;
 
     if (lat && lng) {
 
