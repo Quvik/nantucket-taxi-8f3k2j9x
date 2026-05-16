@@ -1317,6 +1317,8 @@ window.addEventListener('load',()=>{
   setInterval(updateFlightWidget, 30000);
   loadWeather();
   setInterval(loadWeather, 15*60*1000);
+  applyNightAuto();
+  setInterval(applyNightAuto, 60*1000);
 });
 
 function updateFerryWidget(){
@@ -2014,10 +2016,10 @@ function resetAll(){
         document.getElementById(id+'Value').innerText = val;
     }
     // Reset night/dirt toggles
-    chipState.nightFee = false;
     chipState.dirtRoad = false;
-    document.getElementById('nightFeeBtn').classList.remove('on');
     document.getElementById('dirtRoadBtn').classList.remove('on');
+    _nightAutoMode = true;
+    applyNightAuto();
     // Clear fare display
     document.getElementById('destinationZone').innerText = '-';
     document.getElementById('fare').innerText = '$ -';
@@ -2100,9 +2102,24 @@ function haptic(pattern){ try{ navigator.vibrate(pattern); }catch(e){} }
 
 const chipState = { nightFee: false, dirtRoad: false };
 let _geoCache = { addr:'', zone:null, isCrossTown:false, lat:null, lng:null };
+let _nightAutoMode = true; // false once user manually toggles
+
+function isNightHour(){ const h=new Date().getHours(); return h>=21||h<6; }
+
+function applyNightAuto(){
+  if(!_nightAutoMode) return;
+  const shouldBeOn=isNightHour();
+  if(chipState.nightFee===shouldBeOn) return;
+  chipState.nightFee=shouldBeOn;
+  const btn=document.getElementById('nightFeeBtn');
+  if(btn) btn.classList.toggle('on',shouldBeOn);
+  if(shouldBeOn && document.getElementById('destination')?.value.trim())
+    try{calculateFare();}catch(e){}
+}
 
 function toggleChip(btn, id) {
     haptic(12);
+    if(id==='nightFee') _nightAutoMode=false; // user took manual control
     chipState[id] = !chipState[id];
     btn.classList.toggle('on', chipState[id]);
     if(document.getElementById('destination').value.trim())
