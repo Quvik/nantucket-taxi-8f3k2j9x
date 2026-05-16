@@ -3679,11 +3679,12 @@ function renderHistory(trips){
     ${group.trips.map(t=>{
       const time = t._date.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',hour12:true});
       const from = t.fromZone||'—';
-      const to = t.toZone||'—';
-      const destName = t.destination&&t.destination!==t.toZone ? t.destination : '';
+      const toZone = t.toZone||'—';
+      const dest = t.destination||toZone;
+      const showDest = dest && dest.toLowerCase()!==toZone.toLowerCase();
       const pax = t.passengers||1;
       const extras = [
-        `${pax} ${pax===1?'пас.':'пас.'}`,
+        `${pax} пас.`,
         t.dirtRoad?'🌿 грунт':'',
         t.nightFee?'🌙 ночь':'',
         (t.dogs||0)>0?`🐕 ${t.dogs}`:'',
@@ -3693,9 +3694,8 @@ function renderHistory(trips){
       ].filter(Boolean).join(' · ');
       return `<div style="background:#17181c;border:1px solid #252528;border-radius:14px;padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;gap:10px;">
         <div style="flex:1;min-width:0;">
-          <div style="font-size:15px;font-weight:800;">${from} → ${to}</div>
-          ${destName?`<div style="font-size:12px;opacity:.6;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${destName}</div>`:''}
-          <div style="font-size:12px;opacity:.5;margin-top:2px;">${time} · ${extras}</div>
+          <div style="font-size:15px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${from} → ${dest}</div>
+          <div style="font-size:12px;opacity:.5;margin-top:2px;">${toZone}${showDest?'':''} · ${time} · ${extras}</div>
         </div>
         <div style="font-size:20px;font-weight:900;color:#30d158;flex-shrink:0;">$${t.fare||'?'}</div>
         <button onclick="deleteTrip('${t.id}')" style="background:#2a1a1a;border:none;color:#ff453a;border-radius:10px;width:34px;height:34px;font-size:16px;cursor:pointer;flex-shrink:0;">🗑</button>
