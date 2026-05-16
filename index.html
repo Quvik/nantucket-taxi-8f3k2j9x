@@ -3677,18 +3677,25 @@ function renderHistory(trips){
       <span>${group.label.toUpperCase()}</span><span>$${group.sum}</span>
     </div>
     ${group.trips.map(t=>{
-      const time = t._date.toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'});
+      const time = t._date.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',hour12:true});
       const from = t.fromZone||'—';
-      const to = t.toZone||t.destination||'—';
+      const to = t.toZone||'—';
+      const destName = t.destination&&t.destination!==t.toZone ? t.destination : '';
+      const pax = t.passengers||1;
       const extras = [
-        t.passengers>1?`${t.passengers} пас.`:'',
-        t.waitCharge>0?`⏱ $${t.waitCharge.toFixed(2)}`:'',
-        t.nightFee?'🌙':'',
+        `${pax} ${pax===1?'пас.':'пас.'}`,
+        t.dirtRoad?'🌿 грунт':'',
+        t.nightFee?'🌙 ночь':'',
+        (t.dogs||0)>0?`🐕 ${t.dogs}`:'',
+        (t.bikes||0)>0?`🚲 ${t.bikes}`:'',
+        (t.bags||0)>0?`💼 ${t.bags}`:'',
+        (t.waitCharge||0)>0?`⏱ $${(t.waitCharge).toFixed(2)}`:'',
       ].filter(Boolean).join(' · ');
       return `<div style="background:#17181c;border:1px solid #252528;border-radius:14px;padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;gap:10px;">
         <div style="flex:1;min-width:0;">
           <div style="font-size:15px;font-weight:800;">${from} → ${to}</div>
-          <div style="font-size:12px;opacity:.5;margin-top:2px;">${time}${extras?' · '+extras:''}</div>
+          ${destName?`<div style="font-size:12px;opacity:.6;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${destName}</div>`:''}
+          <div style="font-size:12px;opacity:.5;margin-top:2px;">${time} · ${extras}</div>
         </div>
         <div style="font-size:20px;font-weight:900;color:#30d158;flex-shrink:0;">$${t.fare||'?'}</div>
         <button onclick="deleteTrip('${t.id}')" style="background:#2a1a1a;border:none;color:#ff453a;border-radius:10px;width:34px;height:34px;font-size:16px;cursor:pointer;flex-shrink:0;">🗑</button>
