@@ -4,7 +4,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Nantucket Taxi Fare Calculator</title>
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<title>Nantucket Taxi</title>
 
 <link rel="manifest" href="manifest.json">
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
@@ -343,10 +344,17 @@ white-space:nowrap;
 background:none;
 border:none;
 cursor:pointer;
-padding:4px;
+padding:8px;
 display:flex;
 flex-direction:column;
 gap:5px;
+position:relative;
+z-index:50000;
+-webkit-tap-highlight-color:transparent;
+min-width:44px;
+min-height:44px;
+align-items:center;
+justify-content:center;
 }
 
 .hamburger-btn span{
