@@ -1596,7 +1596,13 @@ async function fetchAirLabs(){
         from:f.dep_iata||'', status,
         delayed: delayed||0,
       };
-    }).filter(Boolean).sort((a,b)=>a.dateObj-b.dateObj);
+    }).filter(Boolean).sort((a,b)=>a.dateObj-b.dateObj)
+    // Deduplicate codeshares: same time + same origin = same physical flight, keep Cape Air (9K) over codeshare
+    .filter((f,i,arr)=>{
+      const key=`${f.dateObj.getTime()}-${f.from}`;
+      const first=arr.findIndex(x=>`${x.dateObj.getTime()}-${x.from}`===key);
+      return first===i;
+    });
   }catch(e){return null;}
 }
 
