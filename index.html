@@ -3393,18 +3393,18 @@ function renderBookings(bookings){
   }
 
   const todayStr = new Date().toISOString().split('T')[0];
+  const upcoming = bookings.filter(b=>b.date >= todayStr);
+  const past = bookings.filter(b=>b.date < todayStr).reverse();
 
-  list.innerHTML = bookings.map(b=>{
-    const isPast = b.date < todayStr;
+  function bookingCard(b, isPast){
     const dateObj = new Date(b.date + 'T12:00:00');
     const dateLabel = dateObj.toLocaleDateString('ru-RU',{weekday:'short',day:'numeric',month:'long'});
     const timeEmoji = {Morning:'🌅',Afternoon:'☀️',Evening:'🌆',Night:'🌙'}[b.time]||'🕐';
     const timeLabel = b.time ? `${timeEmoji} ${b.time}` : '';
-
-    return `<div class="booking-card" style="opacity:${isPast?'.45':'1'};">
+    return `<div class="booking-card" style="opacity:${isPast?'.4':'1'};${isPast?'filter:grayscale(.4);':''}">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;">
         <div style="flex:1;min-width:0;">
-          <div style="font-size:13px;font-weight:700;color:#0A84FF;margin-bottom:4px;">${dateLabel}${timeLabel?' · '+timeLabel:''}</div>
+          <div style="font-size:13px;font-weight:700;color:${isPast?'#888':'#0A84FF'};margin-bottom:4px;">${isPast?'✓ ':''} ${dateLabel}${timeLabel?' · '+timeLabel:''}</div>
           ${b.name?`<div style="font-size:16px;font-weight:800;margin-bottom:2px;">👤 ${b.name}</div>`:''}
           ${(b.from||b.to)?`<div style="font-size:14px;opacity:.7;margin-bottom:2px;">${b.from||'?'} → ${b.to||'?'}</div>`:''}
           ${b.notes?`<div style="font-size:13px;opacity:.5;margin-top:4px;">💬 ${b.notes}</div>`:''}
@@ -3412,7 +3412,21 @@ function renderBookings(bookings){
         <button onclick="deleteBooking('${b.id}')" style="background:#2a1a1a;border:none;color:#ff453a;border-radius:10px;width:34px;height:34px;font-size:16px;cursor:pointer;flex-shrink:0;">🗑</button>
       </div>
     </div>`;
-  }).join('');
+  }
+
+  let html = '';
+  if(upcoming.length){
+    html += upcoming.map(b=>bookingCard(b,false)).join('');
+  } else {
+    html += '<div style="text-align:center;padding:20px;opacity:.4;font-size:14px;">Нет предстоящих бронирований</div>';
+  }
+
+  if(past.length){
+    html += `<div style="font-size:11px;font-weight:700;opacity:.35;letter-spacing:1px;margin:20px 0 10px;text-align:center;">— ПРОШЕДШИЕ —</div>`;
+    html += past.map(b=>bookingCard(b,true)).join('');
+  }
+
+  list.innerHTML = html;
 }
 
 initFirebase();
