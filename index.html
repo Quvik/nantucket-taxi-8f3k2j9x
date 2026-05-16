@@ -1622,7 +1622,7 @@ const HYAN_PORT={lat:41.6307,lon:-70.2842};
 const NEWB_PORT={lat:41.6354,lon:-70.9126};
 const AIS_BBOX=[[35,-80],[45,-60]]; // wider US East Coast box for better coverage
 
-let aisWs=null,aisVessels={},aisShipTypes={},aisShipNames={},aisConnected=false,aisRenderTimer=null,aisRawCount=0,aisLastNames=[],aisMsgTypes={};
+let aisWs=null,aisVessels={},aisShipTypes={},aisShipNames={},aisConnected=false,aisRenderTimer=null,aisUpdateTimer=null,aisRawCount=0,aisLastNames=[],aisMsgTypes={};
 
 function getAisKey(){ return localStorage.getItem('aisstream_key')||''; }
 
@@ -1669,10 +1669,12 @@ function connectAIS(){
   aisWs=new WebSocket('wss://stream.aisstream.io/v0/stream');
   aisWs.onopen=()=>{
     aisConnected=true; setAisDot('green');
-    // Try both field name casings in case API changed
     const sub={APIKey:key,BoundingBoxes:[AIS_BBOX],FilterMessageTypes:['PositionReport','ShipStaticData']};
     aisWs.send(JSON.stringify(sub));
     renderAISVessels();
+    // Refresh the AIS panel every 20s so packet count and vessel list stay current
+    if(aisUpdateTimer) clearInterval(aisUpdateTimer);
+    aisUpdateTimer=setInterval(renderAISVessels, 20000);
   };
   aisWs.onmessage=(evt)=>{
     aisRawCount++;
@@ -1726,6 +1728,7 @@ function connectAIS(){
   };
   aisWs.onclose=()=>{
     aisConnected=false; setAisDot('yellow');
+    if(aisUpdateTimer){clearInterval(aisUpdateTimer);aisUpdateTimer=null;}
     renderAISVessels();
     setTimeout(connectAIS,8000);
   };
@@ -1758,18 +1761,20 @@ function renderAISVessels(){
   const vessels=Object.values(aisVessels);
   if(!vessels.length){
     let hint='';
+    const mtLink=`<a href="https://www.marinetraffic.com/en/ais/home/centerx:-70.1/centery:41.27/zoom:12" target="_blank" style="color:#0A84FF;font-size:11px;text-decoration:none;">🗺 MarineTraffic</a>`;
     if(aisRawCount===0){
-      hint='<div style="font-size:11px;opacity:.4;margin-top:4px;">0 пакетов — нет ответа от сервера</div>';
+      hint=`<div style="font-size:11px;opacity:.4;margin-top:4px;">0 пакетов — нет ответа от сервера · ${mtLink}</div>`;
     } else if(aisLastNames.length&&aisLastNames[0].startsWith('⚠️')){
       hint=`<div style="font-size:10px;color:#ff9f0a;margin-top:4px;word-break:break-all;">${aisLastNames[0]}</div>`;
     } else if(aisLastNames.length){
       hint=`<div style="font-size:10px;opacity:.35;margin-top:4px;word-break:break-all;">Суда: ${aisLastNames.join(', ')}</div>`;
     } else {
-      // Show message type breakdown to diagnose what's arriving
-      const typeInfo=Object.entries(aisMsgTypes).map(([k,v])=>`${k.replace('PositionReport','PosRpt').replace('ShipStaticData','Static')}:${v}`).join(' ');
-      hint=`<div style="font-size:10px;opacity:.35;margin-top:4px;">${aisRawCount} пакетов${typeInfo?' · '+typeInfo:''} · суда без имён</div>`;
+      const typeEntries=Object.entries(aisMsgTypes);
+      const typeInfo=typeEntries.map(([k,v])=>`${k==='PositionReport'?'PosRpt':k==='ShipStaticData'?'Static':k}:${v}`).join(' ');
+      const pktLine=aisRawCount>0?`${aisRawCount} пкт${typeInfo?' ('+typeInfo+')':''}`:' ';
+      hint=`<div style="font-size:10px;opacity:.35;margin-top:4px;">${pktLine} · паромов нет · ${mtLink}</div>`;
     }
-    el.innerHTML=`<div style="font-size:13px;opacity:.5;text-align:center;padding:10px;">📡 Ожидаю паром в зоне...${hint}</div>`;
+    el.innerHTML=`<div style="font-size:13px;opacity:.5;text-align:center;padding:10px;">📡 Паромы не в пути${hint}</div>`;
     return;
   }
   const annotated=vessels.map(v=>{
