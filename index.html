@@ -7,6 +7,9 @@
 <title>Nantucket Taxi Fare Calculator</title>
 
 <link rel="manifest" href="manifest.json">
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/3448/3448339.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -453,6 +456,7 @@ to{opacity:1;transform:translateY(0);}
 <button class="tab-btn active-tab" onclick="showTab('taxiTab', this)">🚕 Taxi</button>
 <button class="tab-btn" onclick="showTab('ferryTab', this)">⛴ Ferries</button>
 <button class="tab-btn" onclick="showTab('flightTab', this)">✈️ Flights</button>
+<button class="tab-btn" onclick="showTab('historyTab', this)">📋 История</button>
 </div>
 
 <div id="topbar"><div id="taxiTab">
@@ -467,6 +471,7 @@ to{opacity:1;transform:translateY(0);}
       <span id="wxWind" style="opacity:.6;font-weight:600;"></span>
     </span>
     <span id="zoneSourceIcon" style="font-size:13px;opacity:.5;font-weight:600;letter-spacing:.5px;">📍 GPS</span>
+    <span id="authBtn" onclick="handleAuthClick()" style="cursor:pointer;font-size:13px;opacity:.7;font-weight:600;">👤 Войти</span>
   </div>
 </div>
 <div class="zone-value" id="currentZone">Detecting...</div>
@@ -692,6 +697,15 @@ to{opacity:1;transform:translateY(0);}
     <div style="text-align:center;padding:40px;opacity:.4;">Загрузка...</div>
   </div>
 
+</div>
+
+<div id="historyTab" style="display:none;padding:14px 14px 130px;">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+    <div style="font-size:20px;font-weight:800;">История поездок</div>
+    <div id="historyAuthHint" style="font-size:12px;opacity:.5;"></div>
+  </div>
+  <div id="historyStats" style="display:flex;gap:8px;margin-bottom:14px;"></div>
+  <div id="historyList"><div style="text-align:center;padding:40px;opacity:.4;">Войдите чтобы видеть историю</div></div>
 </div>
 
 <div class="sticky-bar">
@@ -927,9 +941,9 @@ let lastFerryRefresh = 0;
 const FERRY_REFRESH_INTERVAL = 5 * 60 * 1000; // 5 минут
 
 function showTab(tabId, btn){
-  document.getElementById('taxiTab').style.display='none';
-  document.getElementById('ferryTab').style.display='none';
-  document.getElementById('flightTab').style.display='none';
+  ['taxiTab','ferryTab','flightTab','historyTab'].forEach(id=>{
+    const el=document.getElementById(id); if(el) el.style.display='none';
+  });
   document.getElementById(tabId).style.display='block';
   document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active-tab'));
   btn.classList.add('active-tab');
@@ -953,6 +967,10 @@ function showTab(tabId, btn){
     } else if(Date.now()-lastAdsbRefresh>ADSB_REFRESH_INTERVAL){
       refreshAdsbOnly();
     }
+  } else if(tabId==='historyTab'){
+    stopFerryTick();
+    stopFlightTick();
+    loadHistory();
   } else {
     stopFerryTick();
     stopFlightTick();
@@ -1589,6 +1607,7 @@ function saveAirlabsKey(){
   const val=document.getElementById('airlabsKeyInput').value.trim();
   if(!val){ document.getElementById('apiKeyStatus').innerText='Введи ключ'; return; }
   localStorage.setItem('airlabs_key',val);
+  try{ saveSettingsToCloud(); }catch(e){}
   document.getElementById('apiKeyStatus').innerText='✅ AirLabs сохранён';
   document.getElementById('apiKeyStatus').style.color='#30d158';
   setTimeout(()=>{ toggleApiKeyPanel(); refreshFlightsLive(); },800);
@@ -2344,11 +2363,24 @@ ${extraRows}${waitRow}
 <div class="total-row"><span>Total</span><span>$${Number.isInteger(totalFare)?totalFare:totalFare.toFixed(2)}</span></div>`;
 
     if (lat && lng) {
-
         L.marker([lat, lng]).addTo(map);
-
         map.setView([lat, lng], 14);
     }
+
+    // Auto-save trip to Firebase
+    saveTrip({
+      fromZone: currentZoneName,
+      toZone: destinationZone,
+      destination: address,
+      fare: totalFare,
+      baseFare,
+      passengers,
+      dogs, bikes, bags,
+      nightFee: chipState.nightFee,
+      dirtRoad: chipState.dirtRoad,
+      waitCharge: getWaitCharge(),
+      waitMs: getWaitMs(),
+    });
 }
 
 </script>
@@ -2695,6 +2727,182 @@ function setZoneManual(zone){
 
 <script async defer
 src="https://maps.googleapis.com/maps/api/js?key=AIzaSyChh4QTDtpcj9u_QwchPjZ5jE9B1VIl1wM&libraries=places&callback=initAutocomplete">
+</script>
+
+<script>
+// ═══════════════════════════════════════════════════════════
+//  FIREBASE — Auth + Firestore
+//  ВСТАВЬ СВОЙ CONFIG НИЖЕ (из Firebase Console → Project Settings → Your apps)
+// ═══════════════════════════════════════════════════════════
+const FIREBASE_CONFIG = {
+  apiKey: "",
+  authDomain: "",
+  projectId: "",
+  storageBucket: "",
+  messagingSenderId: "",
+  appId: ""
+};
+
+let fbAuth = null, fbDb = null, fbUser = null;
+let _unsubTrips = null;
+
+function fbReady(){ return FIREBASE_CONFIG.apiKey && typeof firebase !== 'undefined'; }
+
+function initFirebase(){
+  if(!fbReady()) return;
+  try{
+    firebase.initializeApp(FIREBASE_CONFIG);
+    fbAuth = firebase.auth();
+    fbDb   = firebase.firestore();
+    fbAuth.onAuthStateChanged(user=>{
+      fbUser = user;
+      updateAuthUI();
+      if(user){
+        syncSettingsFromCloud();
+        if(document.getElementById('historyTab').style.display !== 'none') loadHistory();
+      }
+    });
+  }catch(e){ console.warn('Firebase init error:', e); }
+}
+
+function handleAuthClick(){
+  if(!fbReady()){ alert('Сначала заполни Firebase config в коде'); return; }
+  if(fbUser){
+    if(fbAuth) fbAuth.signOut();
+  } else {
+    const provider = new firebase.auth.GoogleAuthProvider();
+    fbAuth.signInWithPopup(provider).catch(e=>console.warn(e));
+  }
+}
+
+function updateAuthUI(){
+  const btn = document.getElementById('authBtn');
+  if(!btn) return;
+  if(fbUser){
+    btn.innerHTML = `<img src="${fbUser.photoURL}" style="width:22px;height:22px;border-radius:50%;vertical-align:middle;"> ${fbUser.displayName?.split(' ')[0]||''}`;
+    btn.title = 'Выйти';
+  } else {
+    btn.innerHTML = '👤 Войти';
+    btn.title = '';
+  }
+  const hint = document.getElementById('historyAuthHint');
+  if(hint) hint.innerText = fbUser ? fbUser.displayName||fbUser.email : '';
+}
+
+// ── Settings sync ─────────────────────────────────────────
+function syncSettingsFromCloud(){
+  if(!fbDb||!fbUser) return;
+  fbDb.collection('users').doc(fbUser.uid).collection('settings').doc('prefs').get().then(doc=>{
+    if(!doc.exists) return;
+    const d = doc.data();
+    if(d.airlabsKey && !getAirlabsKey()){
+      localStorage.setItem('airlabs_key', d.airlabsKey);
+      const inp = document.getElementById('airlabsKeyInput');
+      if(inp) inp.value = d.airlabsKey;
+    }
+  }).catch(()=>{});
+}
+
+function saveSettingsToCloud(){
+  if(!fbDb||!fbUser) return;
+  const key = getAirlabsKey();
+  if(!key) return;
+  fbDb.collection('users').doc(fbUser.uid).collection('settings').doc('prefs')
+    .set({ airlabsKey: key }, { merge: true }).catch(()=>{});
+}
+
+// ── Save trip ─────────────────────────────────────────────
+function saveTrip(data){
+  if(!fbDb||!fbUser) return;
+  fbDb.collection('users').doc(fbUser.uid).collection('trips').add({
+    ...data,
+    uid: fbUser.uid,
+    ts: firebase.firestore.FieldValue.serverTimestamp()
+  }).catch(()=>{});
+}
+
+// ── History tab ───────────────────────────────────────────
+function loadHistory(){
+  const list = document.getElementById('historyList');
+  if(!fbDb||!fbUser){
+    if(list) list.innerHTML='<div style="text-align:center;padding:40px;opacity:.4;">Войдите чтобы видеть историю</div>';
+    return;
+  }
+  if(list) list.innerHTML='<div style="text-align:center;padding:40px;opacity:.4;">Загрузка...</div>';
+  if(_unsubTrips) _unsubTrips();
+  _unsubTrips = fbDb.collection('users').doc(fbUser.uid).collection('trips')
+    .orderBy('ts','desc').limit(100)
+    .onSnapshot(snap=>{
+      renderHistory(snap.docs.map(d=>({id:d.id,...d.data()})));
+    }, ()=>{});
+}
+
+function renderHistory(trips){
+  const list = document.getElementById('historyList');
+  const stats = document.getElementById('historyStats');
+  if(!list) return;
+  if(!trips.length){
+    list.innerHTML='<div style="text-align:center;padding:40px;opacity:.4;">Поездок пока нет</div>';
+    if(stats) stats.innerHTML='';
+    return;
+  }
+  // Stats
+  const total = trips.reduce((s,t)=>s+(t.fare||0),0);
+  const today = trips.filter(t=>t.ts&&new Date(t.ts.toDate?t.ts.toDate():t.ts).toDateString()===new Date().toDateString());
+  const todayTotal = today.reduce((s,t)=>s+(t.fare||0),0);
+  if(stats) stats.innerHTML=`
+    <div style="flex:1;background:#17181c;border:1px solid #252528;border-radius:14px;padding:12px;text-align:center;">
+      <div style="font-size:11px;opacity:.5;margin-bottom:4px;">СЕГОДНЯ</div>
+      <div style="font-size:20px;font-weight:900;color:#30d158;">$${todayTotal}</div>
+      <div style="font-size:11px;opacity:.4;">${today.length} поезд.</div>
+    </div>
+    <div style="flex:1;background:#17181c;border:1px solid #252528;border-radius:14px;padding:12px;text-align:center;">
+      <div style="font-size:11px;opacity:.5;margin-bottom:4px;">ВСЕГО</div>
+      <div style="font-size:20px;font-weight:900;">$${total}</div>
+      <div style="font-size:11px;opacity:.4;">${trips.length} поезд.</div>
+    </div>`;
+
+  // Group by date
+  const byDate = {};
+  trips.forEach(t=>{
+    const d = t.ts ? (t.ts.toDate ? t.ts.toDate() : new Date(t.ts)) : new Date();
+    const key = d.toLocaleDateString('ru-RU',{day:'numeric',month:'short',weekday:'short'});
+    if(!byDate[key]) byDate[key]={label:key,trips:[],sum:0};
+    byDate[key].trips.push({...t,_date:d});
+    byDate[key].sum+=(t.fare||0);
+  });
+
+  list.innerHTML = Object.values(byDate).map(group=>`
+    <div style="font-size:11px;font-weight:700;opacity:.4;letter-spacing:1px;margin:14px 0 8px;display:flex;justify-content:space-between;">
+      <span>${group.label.toUpperCase()}</span><span>$${group.sum}</span>
+    </div>
+    ${group.trips.map(t=>{
+      const time = t._date.toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'});
+      const from = t.fromZone||'—';
+      const to = t.toZone||t.destination||'—';
+      const extras = [
+        t.passengers>1?`${t.passengers} пас.`:'',
+        t.waitCharge>0?`⏱ $${t.waitCharge.toFixed(2)}`:'',
+        t.nightFee?'🌙':'',
+      ].filter(Boolean).join(' · ');
+      return `<div style="background:#17181c;border:1px solid #252528;border-radius:14px;padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;">
+        <div>
+          <div style="font-size:15px;font-weight:800;">${from} → ${to}</div>
+          <div style="font-size:12px;opacity:.5;margin-top:2px;">${time}${extras?' · '+extras:''}</div>
+        </div>
+        <div style="font-size:20px;font-weight:900;color:#30d158;">$${t.fare||'?'}</div>
+      </div>`;
+    }).join('')}
+  `).join('');
+}
+
+// ── showTab hook for historyTab ───────────────────────────
+const _origShowTab = window.showTab;
+
+// Update showTab to handle historyTab
+document.addEventListener('DOMContentLoaded',()=>{});
+
+initFirebase();
 </script>
 
 </body>
