@@ -562,6 +562,77 @@ to{opacity:1;transform:translateY(0);}
 .zone-card{ cursor:pointer; }
 .zone-card:active{ opacity:.8; }
 
+.bookings-panel{
+  position:fixed;
+  inset:0;
+  background:#0f0f10;
+  z-index:29999;
+  display:flex;
+  flex-direction:column;
+  transform:translateX(100%);
+  transition:transform .28s cubic-bezier(.4,0,.2,1);
+}
+.bookings-panel.open{ transform:translateX(0); }
+
+.bookings-header{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:16px 16px 12px;
+  border-bottom:1px solid #252528;
+  flex-shrink:0;
+}
+
+.bookings-body{
+  flex:1;
+  overflow-y:auto;
+  -webkit-overflow-scrolling:touch;
+  padding:14px 14px 120px;
+}
+
+.booking-card{
+  background:#17181c;
+  border:1px solid #252528;
+  border-radius:16px;
+  padding:14px 16px;
+  margin-bottom:10px;
+}
+
+.add-booking-form{
+  background:#17181c;
+  border:1px solid #252528;
+  border-radius:16px;
+  padding:16px;
+  margin-bottom:14px;
+  display:none;
+}
+
+.form-field{
+  margin-bottom:12px;
+}
+
+.form-label{
+  font-size:12px;
+  opacity:.5;
+  font-weight:600;
+  letter-spacing:.5px;
+  margin-bottom:6px;
+}
+
+.form-input{
+  width:100%;
+  background:#0f0f10;
+  border:1px solid #2a2a2e;
+  border-radius:12px;
+  color:white;
+  font-size:16px;
+  padding:12px 14px;
+  box-sizing:border-box;
+  font-family:-apple-system,BlinkMacSystemFont,sans-serif;
+}
+
+.form-input:focus{ outline:none; border-color:#0A84FF; }
+
 </style>
 
 </head>
@@ -585,7 +656,77 @@ to{opacity:1;transform:translateY(0);}
       <div class="drawer-email" id="drawerEmail"></div>
     </div>
   </div>
+  <div style="border-bottom:1px solid #252528;margin:8px 0;"></div>
+  <button class="drawer-item" onclick="openBookings();closeDrawer();">
+    <span style="font-size:20px;">📅</span> Бронирования
+  </button>
   <div id="drawerAuthSection"></div>
+</div>
+
+<div class="bookings-panel" id="bookingsPanel">
+  <div class="bookings-header">
+    <div style="font-size:18px;font-weight:800;">📅 Бронирования</div>
+    <button onclick="closeBookings()" style="background:none;border:none;color:white;font-size:22px;cursor:pointer;padding:4px;">✕</button>
+  </div>
+  <div class="bookings-body">
+
+    <div class="add-booking-form" id="addBookingForm">
+      <div style="font-size:15px;font-weight:800;margin-bottom:14px;">Новое бронирование</div>
+
+      <div class="form-field">
+        <div class="form-label">ДАТА *</div>
+        <input class="form-input" type="date" id="bDate">
+      </div>
+
+      <div style="display:flex;gap:10px;">
+        <div class="form-field" style="flex:1;">
+          <div class="form-label">ВРЕМЯ</div>
+          <select class="form-input" id="bTime">
+            <option value="">Не указано</option>
+            <option value="Morning">🌅 Morning</option>
+            <option value="Afternoon">☀️ Afternoon</option>
+            <option value="Evening">🌆 Evening</option>
+            <option value="Night">🌙 Night</option>
+            <option value="custom">✏️ Указать</option>
+          </select>
+        </div>
+        <div class="form-field" style="flex:1;" id="bTimeCustomWrap" style="display:none;">
+          <div class="form-label">ТОЧНОЕ ВРЕМЯ</div>
+          <input class="form-input" type="time" id="bTimeCustom">
+        </div>
+      </div>
+
+      <div class="form-field">
+        <div class="form-label">ИМЯ КЛИЕНТА</div>
+        <input class="form-input" type="text" id="bName" placeholder="Необязательно">
+      </div>
+
+      <div style="display:flex;gap:10px;">
+        <div class="form-field" style="flex:1;">
+          <div class="form-label">ОТКУДА</div>
+          <input class="form-input" type="text" id="bFrom" placeholder="Необязательно">
+        </div>
+        <div class="form-field" style="flex:1;">
+          <div class="form-label">КУДА</div>
+          <input class="form-input" type="text" id="bTo" placeholder="Необязательно">
+        </div>
+      </div>
+
+      <div class="form-field">
+        <div class="form-label">ЗАМЕТКИ</div>
+        <textarea class="form-input" id="bNotes" placeholder="Примечания, пожелания..." rows="2" style="resize:none;"></textarea>
+      </div>
+
+      <div style="display:flex;gap:10px;margin-top:4px;">
+        <button onclick="hideAddBooking()" style="flex:1;background:#2a2a2e;border:none;color:white;border-radius:14px;padding:13px;font-size:15px;font-weight:700;cursor:pointer;">Отмена</button>
+        <button onclick="saveBooking()" style="flex:1;background:#0A84FF;border:none;color:white;border-radius:14px;padding:13px;font-size:15px;font-weight:700;cursor:pointer;">Сохранить</button>
+      </div>
+    </div>
+
+    <button onclick="showAddBooking()" id="addBookingBtn" style="width:100%;background:#17181c;border:1px dashed #2a2a2e;color:#0A84FF;border-radius:16px;padding:16px;font-size:16px;font-weight:700;cursor:pointer;margin-bottom:14px;">+ Добавить бронирование</button>
+
+    <div id="bookingsList"><div style="text-align:center;padding:40px;opacity:.4;">Нет бронирований</div></div>
+  </div>
 </div>
 
 <div class="topbar-header">
@@ -3151,6 +3292,115 @@ const _origShowTab = window.showTab;
 
 // Update showTab to handle historyTab
 document.addEventListener('DOMContentLoaded',()=>{});
+
+// ── Bookings ──────────────────────────────────────────────
+let _unsubBookings = null;
+
+function openBookings(){
+  document.getElementById('bookingsPanel').classList.add('open');
+  loadBookings();
+}
+
+function closeBookings(){
+  document.getElementById('bookingsPanel').classList.remove('open');
+}
+
+function showAddBooking(){
+  const form = document.getElementById('addBookingForm');
+  form.style.display = 'block';
+  document.getElementById('addBookingBtn').style.display = 'none';
+  // Default date = today
+  const today = new Date().toISOString().split('T')[0];
+  document.getElementById('bDate').value = today;
+  document.getElementById('bTime').onchange = function(){
+    const wrap = document.getElementById('bTimeCustomWrap');
+    wrap.style.display = this.value === 'custom' ? 'block' : 'none';
+  };
+}
+
+function hideAddBooking(){
+  document.getElementById('addBookingForm').style.display = 'none';
+  document.getElementById('addBookingBtn').style.display = 'block';
+}
+
+function saveBooking(){
+  if(!fbDb||!fbUser){ alert('Войдите в аккаунт'); return; }
+  const date = document.getElementById('bDate').value;
+  if(!date){ alert('Укажи дату'); return; }
+
+  const timeVal = document.getElementById('bTime').value;
+  const time = timeVal === 'custom'
+    ? document.getElementById('bTimeCustom').value
+    : timeVal;
+
+  const data = {
+    date,
+    time: time||'',
+    name: document.getElementById('bName').value.trim(),
+    from: document.getElementById('bFrom').value.trim(),
+    to:   document.getElementById('bTo').value.trim(),
+    notes: document.getElementById('bNotes').value.trim(),
+    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+  };
+
+  fbDb.collection('users').doc(fbUser.uid).collection('bookings').add(data)
+    .then(()=>{
+      hideAddBooking();
+      ['bName','bFrom','bTo','bNotes'].forEach(id=>document.getElementById(id).value='');
+      document.getElementById('bTime').value='';
+    })
+    .catch(e=>console.warn(e));
+}
+
+function deleteBooking(id){
+  if(!fbDb||!fbUser) return;
+  fbDb.collection('users').doc(fbUser.uid).collection('bookings').doc(id).delete();
+}
+
+function loadBookings(){
+  const list = document.getElementById('bookingsList');
+  if(!fbDb||!fbUser){
+    if(list) list.innerHTML='<div style="text-align:center;padding:40px;opacity:.4;">Войдите чтобы видеть бронирования</div>';
+    return;
+  }
+  if(_unsubBookings) _unsubBookings();
+  _unsubBookings = fbDb.collection('users').doc(fbUser.uid).collection('bookings')
+    .orderBy('date','asc').orderBy('createdAt','asc')
+    .onSnapshot(snap=>{
+      renderBookings(snap.docs.map(d=>({id:d.id,...d.data()})));
+    }, ()=>{});
+}
+
+function renderBookings(bookings){
+  const list = document.getElementById('bookingsList');
+  if(!list) return;
+  if(!bookings.length){
+    list.innerHTML='<div style="text-align:center;padding:40px;opacity:.4;">Нет бронирований</div>';
+    return;
+  }
+
+  const todayStr = new Date().toISOString().split('T')[0];
+
+  list.innerHTML = bookings.map(b=>{
+    const isPast = b.date < todayStr;
+    const dateObj = new Date(b.date + 'T12:00:00');
+    const dateLabel = dateObj.toLocaleDateString('ru-RU',{weekday:'short',day:'numeric',month:'long'});
+    const timeEmoji = {Morning:'🌅',Afternoon:'☀️',Evening:'🌆',Night:'🌙'}[b.time]||'🕐';
+    const timeLabel = b.time ? `${timeEmoji} ${b.time}` : '';
+
+    return `<div class="booking-card" style="opacity:${isPast?'.45':'1'};">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;">
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:13px;font-weight:700;color:#0A84FF;margin-bottom:4px;">${dateLabel}${timeLabel?' · '+timeLabel:''}</div>
+          ${b.name?`<div style="font-size:16px;font-weight:800;margin-bottom:2px;">👤 ${b.name}</div>`:''}
+          ${(b.from||b.to)?`<div style="font-size:14px;opacity:.7;margin-bottom:2px;">${b.from||'?'} → ${b.to||'?'}</div>`:''}
+          ${b.notes?`<div style="font-size:13px;opacity:.5;margin-top:4px;">💬 ${b.notes}</div>`:''}
+        </div>
+        <button onclick="deleteBooking('${b.id}')" style="background:#2a1a1a;border:none;color:#ff453a;border-radius:10px;width:34px;height:34px;font-size:16px;cursor:pointer;flex-shrink:0;">🗑</button>
+      </div>
+    </div>`;
+  }).join('');
+}
 
 initFirebase();
 </script>
