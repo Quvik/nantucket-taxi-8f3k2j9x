@@ -1668,6 +1668,18 @@ const AIS_BBOX=[[41.0,-71.2],[41.95,-69.7]];
 
 let aisWs=null,aisVessels={},aisShipTypes={},aisShipNames={},aisConnected=false,aisRenderTimer=null,aisUpdateTimer=null,aisRawCount=0,aisLastNames=[],aisMsgTypes={};
 
+// Known ferry vessel MMSIs — tracked globally (not limited to bbox)
+const FERRY_MMSIS = [
+  '367720690', // Hy-Line Grey Lady IV
+  '367101920', // Hy-Line Grey Lady
+  '338229000', // Steamship MV Eagle
+  '338234000', // Steamship MV Nantucket
+  '338226000', // Steamship MV Iyanough
+  '338237000', // Steamship MV Island Home
+  '338231000', // Steamship MV Katama
+  '338239000', // Steamship MV Governor
+];
+
 function getAisKey(){ return localStorage.getItem('aisstream_key')||''; }
 
 function identifyFerryAIS(name, shipType){
@@ -1713,7 +1725,15 @@ function connectAIS(){
   aisWs=new WebSocket('wss://stream.aisstream.io/v0/stream');
   aisWs.onopen=()=>{
     aisConnected=true; setAisDot('green');
-    const sub={APIKey:key,BoundingBoxes:[AIS_BBOX],FilterMessageTypes:['PositionReport','ShipStaticData']};
+    // Use wide East Coast box + specific ferry MMSIs so aisstream.io uses all available
+    // data sources (terrestrial + satellite AIS) to track these vessels by identity,
+    // not just local receiver coverage.
+    const sub={
+      APIKey:key,
+      BoundingBoxes:[[[38,-75],[44,-67]]],
+      FiltersShipMMSI:FERRY_MMSIS,
+      FilterMessageTypes:['PositionReport','ShipStaticData']
+    };
     aisWs.send(JSON.stringify(sub));
     renderAISVessels();
     // Refresh the AIS panel every 20s so packet count and vessel list stay current
