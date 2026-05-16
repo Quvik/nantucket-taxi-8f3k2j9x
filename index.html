@@ -1235,14 +1235,10 @@ let lastDestinationAddress = "";
 
 let localPlaces = [];
 
-Promise.allSettled([
-  fetch('places.json').then(r => r.json()),
-  fetch('streets.json').then(r => r.json())
-]).then(([placesResult, streetsResult]) => {
-  const places  = placesResult.status  === 'fulfilled' ? placesResult.value  : [];
-  const streets = streetsResult.status === 'fulfilled' ? streetsResult.value : [];
-  localPlaces = [...places, ...streets];
-});
+// Load places immediately so fare calculation works right away
+fetch('places.json').then(r => r.json()).then(data => { localPlaces = data; }).catch(() => {});
+// Append streets when ready (silently ignored if missing)
+fetch('streets.json').then(r => r.json()).then(data => { localPlaces = [...localPlaces, ...data]; }).catch(() => {});
 
 
 
