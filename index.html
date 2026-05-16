@@ -1747,12 +1747,11 @@ function connectAIS(){
   aisWs=new WebSocket('wss://stream.aisstream.io/v0/stream');
   aisWs.onopen=()=>{
     aisConnected=true; setAisDot('green');
-    // Use wide East Coast box + specific ferry MMSIs so aisstream.io uses all available
-    // data sources (terrestrial + satellite AIS) to track these vessels by identity,
-    // not just local receiver coverage.
+    // Global bbox + specific ferry MMSIs: tracks these vessels anywhere in the world
+    // via both terrestrial and satellite AIS regardless of local receiver coverage.
     const sub={
       APIKey:key,
-      BoundingBoxes:[[[38,-75],[44,-67]]],
+      BoundingBoxes:[[[-90,-180],[90,180]]],
       FiltersShipMMSI:FERRY_MMSIS,
       FilterMessageTypes:['PositionReport','ShipStaticData']
     };
