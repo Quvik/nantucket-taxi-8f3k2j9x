@@ -22,6 +22,7 @@
 <style>
 body {
     margin:0;
+    padding-top:48px;
     background:#0f0f10;
     color:white;
     font-family:-apple-system,BlinkMacSystemFont,sans-serif;
@@ -315,14 +316,17 @@ filter:invert(1);
 
 
 .topbar-header{
-position:sticky;
+position:fixed;
 top:0;
-z-index:9998;
+left:0;
+right:0;
+z-index:49999;
 display:flex;
 align-items:center;
 justify-content:space-between;
 padding:14px 16px 10px;
 background:#0f0f10;
+border-bottom:1px solid #1c1c1e;
 }
 
 .hamburger-btn{
@@ -439,11 +443,11 @@ color:#ff453a;
 
 .top-tabs{
 position:sticky;
-top:54px;
+top:48px;
 z-index:9997;
 display:flex;
 gap:10px;
-padding:0 12px 12px;
+padding:8px 12px 12px;
 background:#0f0f10;
 }
 
@@ -564,7 +568,10 @@ to{opacity:1;transform:translateY(0);}
 
 .bookings-panel{
   position:fixed;
-  inset:0;
+  top:48px;
+  left:0;
+  right:0;
+  bottom:0;
   background:#0f0f10;
   z-index:29999;
   display:flex;
@@ -657,10 +664,13 @@ to{opacity:1;transform:translateY(0);}
     </div>
   </div>
   <div style="border-bottom:1px solid #252528;margin:8px 0;"></div>
-  <button class="drawer-item" onclick="openHistory();closeDrawer();">
+  <button class="drawer-item" onclick="navigateTo('main');">
+    <span style="font-size:20px;">🏠</span> Главная
+  </button>
+  <button class="drawer-item" onclick="navigateTo('history');">
     <span style="font-size:20px;">📋</span> История поездок
   </button>
-  <button class="drawer-item" onclick="openBookings();closeDrawer();">
+  <button class="drawer-item" onclick="navigateTo('bookings');">
     <span style="font-size:20px;">📅</span> Бронирования
   </button>
   <div id="drawerAuthSection"></div>
@@ -3302,6 +3312,14 @@ function openHistory(){
 
 function closeHistory(){
   document.getElementById('historyPanel').classList.remove('open');
+}
+
+function navigateTo(dest){
+  closeDrawer();
+  document.getElementById('historyPanel').classList.remove('open');
+  document.getElementById('bookingsPanel').classList.remove('open');
+  if(dest === 'history') openHistory();
+  else if(dest === 'bookings') openBookings();
 }
 
 // ── Bookings ──────────────────────────────────────────────
