@@ -2812,6 +2812,7 @@ async function calculateFare() {
 
     if (!currentZoneName || !destinationZone) {
         document.getElementById('fare').innerText = '$ ?';
+        document.getElementById('fareBreakdown').innerHTML = '';
         return;
     }
 
@@ -2834,8 +2835,8 @@ async function calculateFare() {
     }
 
     if (!baseFare) {
-        document.getElementById('fare').innerText =
-            'No fare found';
+        document.getElementById('fare').innerText = 'No fare found';
+        document.getElementById('fareBreakdown').innerHTML = '';
         return;
     }
 
