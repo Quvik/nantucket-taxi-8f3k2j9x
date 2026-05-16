@@ -3365,10 +3365,10 @@ function loadBookings(){
   }
   if(_unsubBookings) _unsubBookings();
   _unsubBookings = fbDb.collection('users').doc(fbUser.uid).collection('bookings')
-    .orderBy('date','asc').orderBy('createdAt','asc')
+    .orderBy('date','asc')
     .onSnapshot(snap=>{
       renderBookings(snap.docs.map(d=>({id:d.id,...d.data()})));
-    }, ()=>{});
+    }, e=>console.warn('bookings error:', e));
 }
 
 function renderBookings(bookings){
