@@ -868,6 +868,7 @@ to{opacity:1;transform:translateY(0);}
 <div class="sticky-bar">
 <button class="primary" onclick="openWaze()">Waze</button>
 <button class="secondary" onclick="openGoogleMaps()">Maps</button>
+<button id="saveTripBtn" onclick="saveTripManual()" style="display:none;background:#1a2a1a;border:none;color:#30d158;border-radius:16px;padding:16px;font-size:15px;font-weight:700;cursor:pointer;flex:1;">💾 Сохранить</button>
 <button class="secondary" onclick="showResetConfirm()" style="background:#2a1a1a;color:#ff453a;">↺</button>
 </div>
 
@@ -2223,6 +2224,9 @@ function resetAll(){
     document.getElementById('destinationZone').innerText = '-';
     document.getElementById('fare').innerText = '$ -';
     document.getElementById('fareBreakdown').innerHTML = '';
+    _lastTripData = null;
+    const saveBtn = document.getElementById('saveTripBtn');
+    if(saveBtn) saveBtn.style.display='none';
     hideStreetView();
     // Restore GPS zone if it was overridden manually
     if(zoneIsManual){
@@ -2524,8 +2528,7 @@ ${extraRows}${waitRow}
         map.setView([lat, lng], 14);
     }
 
-    // Auto-save trip to Firebase
-    saveTrip({
+    _lastTripData = {
       fromZone: currentZoneName,
       toZone: destinationZone,
       destination: address,
@@ -2537,7 +2540,10 @@ ${extraRows}${waitRow}
       dirtRoad: chipState.dirtRoad,
       waitCharge: getWaitCharge(),
       waitMs: getWaitMs(),
-    });
+    };
+
+    const saveBtn = document.getElementById('saveTripBtn');
+    if(saveBtn){ saveBtn.style.display='flex'; saveBtn.textContent='💾 Сохранить поездку'; saveBtn.disabled=false; }
 }
 
 </script>
@@ -2903,6 +2909,7 @@ const FIREBASE_CONFIG = {
 
 let fbAuth = null, fbDb = null, fbUser = null;
 let _unsubTrips = null;
+let _lastTripData = null;
 
 function fbReady(){ return FIREBASE_CONFIG.apiKey && typeof firebase !== 'undefined'; }
 
@@ -3008,6 +3015,18 @@ function saveSettingsToCloud(){
 }
 
 // ── Save trip ─────────────────────────────────────────────
+function saveTripManual(){
+  if(!fbUser){
+    openDrawer();
+    return;
+  }
+  if(!_lastTripData) return;
+  const btn = document.getElementById('saveTripBtn');
+  saveTrip(_lastTripData);
+  if(btn){ btn.textContent='✅ Сохранено'; btn.disabled=true; }
+  _lastTripData = null;
+}
+
 function saveTrip(data){
   if(!fbDb||!fbUser) return;
   fbDb.collection('users').doc(fbUser.uid).collection('trips').add({
