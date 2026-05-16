@@ -952,6 +952,14 @@ input[type="time"].form-input{ -webkit-appearance:auto; appearance:auto; }
     <div style="text-align:center;padding:40px;opacity:.4;">Загрузка...</div>
   </div>
 
+  <div id="aisLiveSection" style="margin-top:14px;margin-bottom:4px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+      <div style="font-size:11px;font-weight:700;opacity:.4;letter-spacing:1px;">📡 LIVE СУДА (AIS)</div>
+      <div id="aisDotStatus" style="width:8px;height:8px;border-radius:50%;background:#555;transition:background .3s;"></div>
+    </div>
+    <div id="aisVesselsList"><div style="font-size:13px;opacity:.5;text-align:center;padding:10px;">🔄 Подключение...</div></div>
+  </div>
+
   <div style="display:flex;gap:10px;margin-top:12px;">
     <button class="quick-btn" style="flex:1;" onclick="window.open('https://www.steamshipauthority.com/traveling_today/status','_blank')">🚢 Steamship</button>
     <button class="quick-btn" style="flex:1;" onclick="window.open('https://hylinecruises.com/schedules/','_blank')">🚤 Hy-Line</button>
@@ -1592,8 +1600,133 @@ function renderRushCard(upcoming,now){
   card.innerHTML=`<div style="opacity:.5;font-size:13px;">Статус</div><div style="font-size:22px;font-weight:900;color:${color};margin-top:4px;">${icon} ${msg}</div><div style="font-size:13px;opacity:.7;margin-top:5px;">${sub}</div>`;
 }
 
+// ── AIS Live Ferry Tracking (aisstream.io) ────────────────────────────────
+(function(){ if(!localStorage.getItem('aisstream_key')) localStorage.setItem('aisstream_key','9724c584cd29a6cb23bd8b96551ba563b30d9954'); })();
+
+const NANT_PORT={lat:41.2720,lon:-70.0970};
+const HYAN_PORT={lat:41.6307,lon:-70.2842};
+const NEWB_PORT={lat:41.6354,lon:-70.9126};
+const AIS_BBOX=[[40.8,-71.5],[42.2,-69.5]];
+
+let aisWs=null,aisVessels={},aisConnected=false,aisRenderTimer=null;
+
+function getAisKey(){ return localStorage.getItem('aisstream_key')||''; }
+
+function identifyFerryAIS(name){
+  if(!name) return null;
+  const n=name.toUpperCase().trim();
+  if(/GREY.?LADY|GREAT.?POINT|SEASTAR|HY.?LINE/.test(n)) return {line:'Hy-Line',color:'#30d158',emoji:'🚤'};
+  if(/IYANOUGH|EAGLE|GAY.?HEAD|WOODS.?HOLE|SANKATY|NOBSKA/.test(n)) return {line:'Steamship',color:'#0A84FF',emoji:'🚢'};
+  if(/SEASTREAK/.test(n)) return {line:'Seastreak',color:'#ff9f0a',emoji:'⛴'};
+  if(/FREEDOM/.test(n)) return {line:'Freedom',color:'#bf5af2',emoji:'🛥'};
+  return null;
+}
+
+function aisDistNm(lat1,lon1,lat2,lon2){
+  const R=3440.065,dLat=(lat2-lat1)*Math.PI/180,dLon=(lon2-lon1)*Math.PI/180;
+  const a=Math.sin(dLat/2)**2+Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)**2;
+  return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
+}
+
+function aisBearing(lat1,lon1,lat2,lon2){
+  const dLon=(lon2-lon1)*Math.PI/180;
+  const y=Math.sin(dLon)*Math.cos(lat2*Math.PI/180);
+  const x=Math.cos(lat1*Math.PI/180)*Math.sin(lat2*Math.PI/180)-Math.sin(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.cos(dLon);
+  return(Math.atan2(y,x)*180/Math.PI+360)%360;
+}
+
+function setAisDot(c){
+  const el=document.getElementById('aisDotStatus');
+  if(!el)return;
+  el.style.background={green:'#30d158',red:'#ff453a',gray:'#555',yellow:'#ff9f0a'}[c]||c;
+}
+
+function connectAIS(){
+  const key=getAisKey();
+  if(!key){renderAISVessels();return;}
+  if(aisWs&&aisWs.readyState<=1)return;
+  aisWs=new WebSocket('wss://stream.aisstream.io/v0/stream');
+  aisWs.onopen=()=>{
+    aisConnected=true; setAisDot('green');
+    aisWs.send(JSON.stringify({APIKey:key,BoundingBoxes:[AIS_BBOX],FilterMessageTypes:['PositionReport']}));
+    renderAISVessels();
+  };
+  aisWs.onmessage=(evt)=>{
+    try{
+      const msg=JSON.parse(evt.data);
+      if(msg.MessageType!=='PositionReport')return;
+      const meta=msg.MetaData,pos=msg.Message?.PositionReport;
+      if(!meta||!pos)return;
+      const ferry=identifyFerryAIS(meta.ShipName);
+      if(!ferry)return;
+      const lat=meta.latitude,lon=meta.longitude;
+      if(!lat||!lon)return;
+      aisVessels[meta.MMSI]={mmsi:meta.MMSI,name:(meta.ShipName||'').trim(),...ferry,lat,lon,sog:Number(pos.Sog)||0,cog:Number(pos.Cog)||0,ts:Date.now()};
+      if(!aisRenderTimer) aisRenderTimer=setTimeout(()=>{aisRenderTimer=null;renderAISVessels();},2000);
+    }catch(e){}
+  };
+  aisWs.onclose=()=>{
+    aisConnected=false; setAisDot('yellow');
+    renderAISVessels();
+    setTimeout(connectAIS,8000);
+  };
+  aisWs.onerror=()=>aisWs.close();
+}
+
+function disconnectAIS(){
+  if(aisWs){aisWs.onclose=null;aisWs.close();aisWs=null;}
+  aisConnected=false; setAisDot('gray');
+}
+
+function renderAISVessels(){
+  const el=document.getElementById('aisVesselsList');
+  if(!el)return;
+  if(!getAisKey()){el.innerHTML='<div style="font-size:13px;opacity:.5;text-align:center;padding:10px;">AIS ключ не задан</div>';return;}
+  const now=Date.now();
+  Object.keys(aisVessels).forEach(m=>{if(now-aisVessels[m].ts>5*60*1000)delete aisVessels[m];});
+  if(!aisConnected&&!Object.keys(aisVessels).length){el.innerHTML='<div style="font-size:13px;opacity:.5;text-align:center;padding:10px;">🔄 Подключение к AIS...</div>';return;}
+  const vessels=Object.values(aisVessels);
+  if(!vessels.length){el.innerHTML='<div style="font-size:13px;opacity:.5;text-align:center;padding:10px;">📡 Ожидаю суда в зоне...</div>';return;}
+  const annotated=vessels.map(v=>{
+    const dn=aisDistNm(v.lat,v.lon,NANT_PORT.lat,NANT_PORT.lon);
+    const brng=aisBearing(v.lat,v.lon,NANT_PORT.lat,NANT_PORT.lon);
+    const diff=Math.abs(((v.cog-brng)+180)%360-180);
+    const approaching=v.sog>1&&diff<50;
+    const etaMins=approaching&&v.sog>1?Math.round(dn/v.sog*60):null;
+    const inPort=dn<0.4;
+    const dh=aisDistNm(v.lat,v.lon,HYAN_PORT.lat,HYAN_PORT.lon);
+    const db=aisDistNm(v.lat,v.lon,NEWB_PORT.lat,NEWB_PORT.lon);
+    let origin=inPort?'📍 Nantucket':dh<0.5?'⚓ Hyannis':db<0.5?'⚓ New Bedford':approaching?'из '+(dh<db?'Hyannis':'New Bedford'):'↩ уходит';
+    return{...v,dn,approaching,etaMins,inPort,origin};
+  }).sort((a,b)=>a.approaching!==b.approaching?(a.approaching?-1:1):a.dn-b.dn);
+  let html='';
+  annotated.forEach(v=>{
+    const speed=v.sog>0.5?`${v.sog.toFixed(1)} уз`:'стоит';
+    const dist=`${v.dn.toFixed(1)} nm`;
+    let etaHtml='';
+    if(v.inPort) etaHtml=`<div style="font-size:12px;color:#30d158;font-weight:700;">В ПОРТУ</div>`;
+    else if(v.etaMins!==null) etaHtml=`<div style="font-size:13px;font-weight:800;color:${v.color};">${v.etaMins<=2?'⚡ Прибывает!':'~'+v.etaMins+' мин'}</div>`;
+    else if(v.sog>0.5) etaHtml=`<div style="font-size:12px;opacity:.4;">↩</div>`;
+    const border=v.approaching&&!v.inPort?v.color:'#252528';
+    const bg=v.approaching&&!v.inPort?v.color+'18':'#17181c';
+    html+=`<div style="background:${bg};border:1px solid ${border};border-radius:14px;padding:11px 14px;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <div style="font-size:22px;">${v.emoji}</div>
+        <div>
+          <div style="font-size:14px;font-weight:800;">${v.name}</div>
+          <div style="font-size:12px;color:${v.color};font-weight:600;">${v.line} · ${v.origin}</div>
+          <div style="font-size:11px;opacity:.45;">${speed} · ${dist} до Nantucket</div>
+        </div>
+      </div>
+      <div style="text-align:right;min-width:55px;">${etaHtml}</div>
+    </div>`;
+  });
+  el.innerHTML=html;
+}
+
 function startFerryTick(){
   stopFerryTick();
+  connectAIS();
   ferryTickId=setInterval(()=>{
     const now=new Date();
     document.querySelectorAll('.fa-row').forEach(row=>{
@@ -1607,7 +1740,7 @@ function startFerryTick(){
     renderRushCard(arr.filter(a=>a.dateObj>now-20*60*1000),now);
   },30000);
 }
-function stopFerryTick(){ if(ferryTickId)clearInterval(ferryTickId); ferryTickId=null; }
+function stopFerryTick(){ if(ferryTickId)clearInterval(ferryTickId); ferryTickId=null; disconnectAIS(); }
 function shiftFerryDay(d){ ferryDayOffset=Math.max(0,ferryDayOffset+d); renderFerryTab(); }
 
 // ── Ferry Notifications ─────────────────────────────────────
