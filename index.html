@@ -665,6 +665,7 @@ select.form-input{
 }
 
 .form-input:focus{ outline:none; border-color:#0A84FF; }
+input[type="time"].form-input{ -webkit-appearance:auto; appearance:auto; }
 
 </style>
 
@@ -729,7 +730,7 @@ select.form-input{
         </div>
         <div class="form-field" style="flex:1;">
           <div class="form-label">ТОЧНОЕ ВРЕМЯ</div>
-          <input class="form-input" type="text" inputmode="numeric" id="bTimeCustom" placeholder="10:30">
+          <input class="form-input" type="time" id="bTimeCustom">
         </div>
       </div>
 
