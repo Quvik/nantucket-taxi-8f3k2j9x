@@ -689,17 +689,16 @@ to{opacity:1;transform:translateY(0);}
   </div>
 
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
-    <div style="font-size:18px;font-weight:800;">Сегодня</div>
+    <div style="display:flex;align-items:center;gap:6px;">
+      <button id="flightDayPrev" onclick="changeFlightDay(-1)" style="background:#1e1e28;border:none;color:white;border-radius:10px;width:34px;height:34px;font-size:18px;cursor:pointer;opacity:.3;">‹</button>
+      <div id="flightDayLabel" style="font-size:18px;font-weight:800;">Сегодня</div>
+      <button id="flightDayNext" onclick="changeFlightDay(1)" style="background:#1e1e28;border:none;color:white;border-radius:10px;width:34px;height:34px;font-size:18px;cursor:pointer;">›</button>
+    </div>
     <div id="flightSourceBadge" style="font-size:11px;padding:4px 10px;border-radius:20px;background:#1e1e28;color:#aaa;">📋 Встроенные</div>
   </div>
 
   <div id="flightArrivalsContainer">
     <div style="text-align:center;padding:40px;opacity:.4;">Загрузка...</div>
-  </div>
-
-  <div style="display:flex;gap:10px;margin-top:12px;">
-    <button class="quick-btn" style="flex:1;" onclick="window.open('https://flightaware.com/live/airport/KACK/arrivals','_blank')">✈️ FlightAware</button>
-    <button class="quick-btn" style="flex:1;" onclick="window.open('https://www.flightradar24.com/airport/ack','_blank')">📡 FR24</button>
   </div>
 
 </div>
@@ -950,12 +949,12 @@ function showTab(tabId, btn){
     renderFlightTab();
     startFlightTick();
     stopFerryTick();
-    // Full refresh (AeroDataBox + infax + ADS-B) every 10 min
-    if(Date.now()-lastFlightRefresh>FLIGHT_REFRESH_INTERVAL){
+    if(selectedFlightDay>0){
+      // future day already loaded by changeFlightDay
+    } else if(Date.now()-lastFlightRefresh>FLIGHT_REFRESH_INTERVAL){
       lastFlightRefresh=Date.now();
       refreshFlightsLive();
     } else if(Date.now()-lastAdsbRefresh>ADSB_REFRESH_INTERVAL){
-      // Otherwise just refresh ADS-B
       refreshAdsbOnly();
     }
   } else {
@@ -1374,6 +1373,74 @@ let lastAdsbRefresh   = 0;
 let flightLiveData = null;
 let flightScheduleData = null;
 let flightTickId = null;
+let selectedFlightDay = 0;
+
+function getFlightDayLabel(){
+  if(selectedFlightDay===0) return 'Сегодня';
+  if(selectedFlightDay===1) return 'Завтра';
+  const d=new Date(); d.setDate(d.getDate()+selectedFlightDay);
+  return d.toLocaleDateString('ru-RU',{weekday:'long',day:'numeric',month:'short'});
+}
+
+function changeFlightDay(delta){
+  const nd=selectedFlightDay+delta;
+  if(nd<0||nd>2) return;
+  selectedFlightDay=nd;
+  flightScheduleData=null;
+  if(selectedFlightDay>0) flightLiveData=null;
+  document.getElementById('flightDayLabel').innerText=getFlightDayLabel();
+  document.getElementById('flightDayPrev').style.opacity=selectedFlightDay===0?'0.3':'1';
+  document.getElementById('flightDayNext').style.opacity=selectedFlightDay>=2?'0.3':'1';
+  document.getElementById('flightArrivalsContainer').innerHTML='<div style="text-align:center;padding:40px;opacity:.4;">Загрузка...</div>';
+  if(selectedFlightDay===0){
+    document.getElementById('flightRushCard').style.display='';
+    refreshFlightsLive();
+  } else {
+    document.getElementById('flightRushCard').style.display='none';
+    fetchAirLabsTimetable(selectedFlightDay).then(data=>{
+      flightScheduleData=data||builtinFlightArrivals(new Date(Date.now()+selectedFlightDay*86400000));
+      const badge=document.getElementById('flightSourceBadge');
+      if(data?.length){badge.innerText='🟢 AirLabs';badge.style.color='#30d158';badge.style.background='#0f2a1a';}
+      else{badge.innerText='📋 Примерно';badge.style.color='#aaa';badge.style.background='#1e1e28';}
+      renderFlightTab();
+    });
+  }
+}
+
+async function fetchAirLabsTimetable(dayOffset){
+  const key=getAirlabsKey();
+  if(!key) return null;
+  try{
+    const resp=await fetch(
+      `https://airlabs.co/api/v9/timetable?arr_iata=ACK&type=arrival&api_key=${encodeURIComponent(key)}`,
+      {signal:AbortSignal.timeout(10000)}
+    );
+    if(!resp.ok) return null;
+    const json=await resp.json();
+    const list=(json.response||json).filter(f=>f.arr_iata==='ACK');
+    if(!Array.isArray(list)||!list.length) return null;
+    const targetDate=new Date();
+    targetDate.setDate(targetDate.getDate()+dayOffset);
+    targetDate.setHours(0,0,0,0);
+    return list.map(f=>{
+      const timeStr=f.arr_time;
+      if(!timeStr) return null;
+      const [hh,mm]=timeStr.split(':').map(Number);
+      if(isNaN(hh)||isNaN(mm)) return null;
+      const dateObj=new Date(targetDate);
+      dateObj.setHours(hh,mm,0,0);
+      const h12=hh===0?12:(hh>12?hh-12:hh), ampm=hh<12?'AM':'PM';
+      const time=`${h12}:${String(mm).padStart(2,'0')} ${ampm}`;
+      const airline=f.airline_name||(AIRLINE_NAMES[f.airline_iata]||f.airline_iata||'');
+      return {time,dateObj,source:'airlabs',airline,flight:f.flight_iata||'',from:f.dep_iata||'',status:'По расписанию',delayed:0};
+    }).filter(Boolean)
+    .sort((a,b)=>a.dateObj-b.dateObj)
+    .filter((f,i,arr)=>{
+      const k=`${f.dateObj.getTime()}-${f.from}`;
+      return arr.findIndex(x=>`${x.dateObj.getTime()}-${x.from}`===k)===i;
+    });
+  }catch(e){return null;}
+}
 
 // Approximate summer schedule for ACK arrivals
 // Times are approximate — use ADS-B Live or FlightAware for exact times
@@ -1736,96 +1803,74 @@ function statusColor(s){
 
 function renderFlightTab(source){
   const now=new Date();
-  const GRACE=FLIGHT_GRACE_MS;
-  // Prefer infax live data over built-in schedule
-  const schedule=flightScheduleData||builtinFlightArrivals(new Date())||[];
-  const isInfax=!!flightScheduleData;
-  const upcoming=schedule.filter(a=>a.dateObj>now-GRACE);
-  const past=schedule.filter(a=>a.dateObj<=now-GRACE);
+  const isToday=selectedFlightDay===0;
+  const targetMs=Date.now()+selectedFlightDay*86400000;
+  const schedule=flightScheduleData||builtinFlightArrivals(new Date(targetMs))||[];
+  const isAirlabsData=flightScheduleData?.length>0&&flightScheduleData[0]?.source==='airlabs';
+  const isAeroData=flightScheduleData?.length>0&&flightScheduleData[0]?.source==='aerodatabox';
+  const upcoming=schedule.filter(a=>a.dateObj>now-FLIGHT_GRACE_MS);
+  const past=schedule.filter(a=>a.dateObj<=now-FLIGHT_GRACE_MS);
 
   let html='';
 
-  // ADS-B approaching section
-  if(flightLiveData&&flightLiveData.length>0){
+  // ADS-B approaching (today only)
+  if(isToday&&flightLiveData&&flightLiveData.length>0){
     html+=`<div style="font-size:11px;font-weight:700;opacity:.4;letter-spacing:1px;margin-bottom:8px;">📡 СЕЙЧАС ЛЕТЯТ К ACK</div>`;
     flightLiveData.forEach((ac,i)=>{
-      const isNext=i===0, hot=ac.etaMin<=15;
+      const isNext=i===0,hot=ac.etaMin<=15;
       const bg=isNext?(hot?'#2a1200':'#0f1f14'):'#17181c';
       const br=isNext?(hot?'#ff9f0a':'#30d158'):'#252528';
-      const altStr=ac.alt?`${Math.round(ac.alt/100)*100}ft`:'—';
       const etaStr=ac.etaMin!=null?(ac.etaMin<=1?'~1 мин':`~${ac.etaMin} мин`):'—';
       const badge=isNext?`<div style="font-size:10px;font-weight:800;color:${hot?'#ff9f0a':'#30d158'};margin-top:3px;">${hot?'⚡СКОРО':'▶ NEXT'}</div>`:'';
       html+=`<div style="background:${bg};border:1px solid ${br};border-radius:15px;padding:13px 15px;margin-bottom:9px;display:flex;align-items:center;justify-content:space-between;">
-        <div style="display:flex;align-items:center;gap:11px;">
-          <div style="font-size:24px;">${ac.emoji}</div>
-          <div>
-            <div style="font-size:18px;font-weight:800;">${ac.callsign||'???'}</div>
-            <div style="font-size:13px;color:${ac.color};font-weight:600;">${ac.airline}</div>
-            <div style="font-size:11px;opacity:.5;">${ac.type} · ${altStr} · ${Math.round(ac.distNm*1.852)} км</div>
-          </div>
-        </div>
-        <div style="text-align:right;min-width:60px;">
-          <div style="font-size:15px;font-weight:800;color:${hot&&isNext?'#ff9f0a':'white'};">${etaStr}</div>${badge}
-        </div>
+        <div style="display:flex;align-items:center;gap:11px;"><div style="font-size:24px;">${ac.emoji}</div>
+        <div><div style="font-size:18px;font-weight:800;">${ac.callsign||'???'}</div>
+        <div style="font-size:13px;color:${ac.color};font-weight:600;">${ac.airline}</div></div></div>
+        <div style="text-align:right;min-width:60px;"><div style="font-size:15px;font-weight:800;color:${hot&&isNext?'#ff9f0a':'white'};">${etaStr}</div>${badge}</div>
       </div>`;
     });
-  } else if(flightLiveData&&flightLiveData.length===0){
-    html+=`<div style="background:#17181c;border:1px solid #252528;border-radius:15px;padding:14px;margin-bottom:9px;text-align:center;opacity:.5;font-size:13px;">📡 Нет самолётов в 90 км от ACK</div>`;
   }
 
-  // Schedule section (AirLabs > AeroDataBox > infax > built-in)
-  const isAirlabsData=flightScheduleData?.length>0&&flightScheduleData[0]?.source==='airlabs';
-  const isAeroData=flightScheduleData?.length>0&&flightScheduleData[0]?.source==='aerodatabox';
-  if(schedule.length){
-    const label=isAirlabsData?'✈️ ПРИЛЁТЫ В НАНТАКЕТ (AirLabs)':isAeroData?'📋 РАСПИСАНИЕ СЕГОДНЯ (LIVE)':isInfax?'📋 РАСПИСАНИЕ СЕГОДНЯ (INFAX)':'📋 РАСПИСАНИЕ (ПРИМЕРНО)';
-    html+=`<div style="font-size:11px;font-weight:700;opacity:.4;letter-spacing:1px;margin:14px 0 8px;">${label}</div>`;
-    upcoming.forEach(a=>{
-      const {emoji,color}=airlineInfo(a.airline);
-      const sc=statusColor(a.status);
-      const statusBadge=a.status?`<div style="font-size:10px;font-weight:700;color:${sc};margin-top:2px;">${a.status}</div>`:'';
-      let sub='';
-      if(isAeroData){
-        sub=`${a.flight||''} ${a.from?'· из '+a.from:''}${a.gate?' · Gate '+a.gate:''}`;
-        if(a.actualTime&&a.actualTime!==a.time) sub+=` · факт: ${a.actualTime}`;
-      }else if(isInfax){
-        sub=`${a.flight?a.flight+' · ':''}${a.from||''}`;
-      }else{
-        sub=`из ${a.from}${a.seats?' · '+(a.seats>=100?a.seats+' мест':'мини'):''}`;
-      }
-      html+=`<div class="flt-row" data-iso="${a.dateObj.toISOString()}" style="background:#17181c;border:1px solid #252528;border-radius:15px;padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;">
-        <div style="display:flex;align-items:center;gap:10px;">
-          <div style="font-size:22px;">${emoji}</div>
-          <div>
-            <div style="font-size:17px;font-weight:800;">${a.time}</div>
-            <div style="font-size:13px;color:${color};font-weight:600;">${a.airline||a.flight||'—'}</div>
-            <div style="font-size:11px;opacity:.5;">${sub}</div>
-          </div>
+  // Flight rows helper
+  const makeRow=(a,isPast)=>{
+    const {emoji,color}=airlineInfo(a.airline);
+    const sc=statusColor(a.status);
+    const sub=`${a.flight?a.flight+' · ':''}${a.from?'из '+a.from:''}`;
+    const statusBadge=a.status?`<div style="font-size:10px;font-weight:700;color:${sc};margin-top:2px;">${a.status}</div>`:'';
+    const right=isPast
+      ?`<div style="font-size:12px;opacity:.5;">${a.status||'✓'}</div>`
+      :`<div><div class="flt-cd" style="font-size:14px;font-weight:800;">${isToday?fmtCD(a.dateObj-now):''}</div>${statusBadge}</div>`;
+    const opacity=isPast?'opacity:.35;':'';
+    const strike=isPast?'text-decoration:line-through;':'';
+    return `<div class="flt-row" data-iso="${a.dateObj.toISOString()}" style="background:#17181c;border:1px solid #252528;border-radius:15px;padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;${opacity}">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <div style="font-size:22px;">${emoji}</div>
+        <div>
+          <div style="font-size:17px;font-weight:800;${strike}">${a.time}</div>
+          <div style="font-size:13px;color:${color};font-weight:600;">${a.airline||a.flight||'—'}</div>
+          <div style="font-size:11px;opacity:.5;">${sub}</div>
         </div>
-        <div style="text-align:right;min-width:64px;">
-          <div class="flt-cd" style="font-size:14px;font-weight:800;">${fmtCD(a.dateObj-now)}</div>
-          ${statusBadge}
-        </div>
-      </div>`;
-    });
+      </div>
+      <div style="text-align:right;min-width:64px;">${right}</div>
+    </div>`;
+  };
+
+  if(isToday){
+    if(upcoming.length) upcoming.forEach(a=>{ html+=makeRow(a,false); });
     if(past.length){
       html+=`<div style="font-size:11px;font-weight:700;opacity:.3;letter-spacing:1px;margin:12px 0 8px;">УЖЕ ПРИЛЕТЕЛИ</div>`;
-      past.slice().reverse().slice(0,6).forEach(a=>{
-        const {emoji,color}=airlineInfo(a.airline);
-        html+=`<div style="background:#111;border:1px solid #1e1e1e;border-radius:13px;padding:10px 14px;margin-bottom:7px;opacity:.3;display:flex;align-items:center;justify-content:space-between;">
-          <div style="display:flex;align-items:center;gap:9px;"><div style="font-size:18px;">${emoji}</div><div><div style="font-size:15px;font-weight:700;text-decoration:line-through;">${a.time}</div><div style="font-size:11px;color:${color};">${a.airline||a.flight} ${a.from?'· из '+a.from:''}</div></div></div>
-          <div style="font-size:12px;opacity:.6;">${a.status||'✓'}</div></div>`;
-      });
+      past.slice().reverse().forEach(a=>{ html+=makeRow(a,true); });
     }
-    if(!isInfax) html+=`<div style="font-size:10px;opacity:.3;text-align:center;margin-top:8px;">⚠️ Примерное расписание · Нажми ADS-B Live для infax.com</div>`;
+  } else {
+    // Future day — show all, no countdown
+    if(schedule.length) schedule.forEach(a=>{ html+=makeRow(a,false); });
+    else html=`<div style="text-align:center;padding:40px;opacity:.5;">Нет данных о рейсах</div>`;
   }
 
-  if(!html){
-    html=`<div style="text-align:center;padding:32px;opacity:.5;">Нажми «ADS-B Live» для актуальных данных<br><br><a href="https://flightaware.com/live/airport/KACK" target="_blank" style="color:#0A84FF;">FlightAware ACK</a></div>`;
-  }
+  if(!html) html=`<div style="text-align:center;padding:40px;opacity:.5;">Нет данных · нажми Live обновление</div>`;
 
   document.getElementById('flightArrivalsContainer').innerHTML=html;
-  renderFlightStatusCard(upcoming,now);
-  try{updateFlightWidget();}catch(e){}
+  if(isToday){ renderFlightStatusCard(upcoming,now); try{updateFlightWidget();}catch(e){} }
 }
 
 function renderFlightStatusCard(upcoming,now){
