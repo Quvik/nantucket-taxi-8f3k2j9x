@@ -856,7 +856,10 @@ to{opacity:1;transform:translateY(0);}
 <div id="historyTab" style="display:none;padding:14px 14px 130px;">
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
     <div style="font-size:20px;font-weight:800;">История поездок</div>
-    <div id="historyAuthHint" style="font-size:12px;opacity:.5;"></div>
+    <div style="display:flex;align-items:center;gap:10px;">
+      <div id="historyAuthHint" style="font-size:12px;opacity:.5;"></div>
+      <button id="clearAllBtn" onclick="confirmClearAll()" style="display:none;background:#2a1a1a;border:none;color:#ff453a;border-radius:10px;padding:7px 12px;font-size:13px;font-weight:700;cursor:pointer;">Очистить всё</button>
+    </div>
   </div>
   <div id="historyStats" style="display:flex;gap:8px;margin-bottom:14px;"></div>
   <div id="historyList"><div style="text-align:center;padding:40px;opacity:.4;">Войдите чтобы видеть историю</div></div>
@@ -3030,16 +3033,50 @@ function loadHistory(){
     }, ()=>{});
 }
 
+function deleteTrip(id){
+  if(!fbDb||!fbUser) return;
+  fbDb.collection('users').doc(fbUser.uid).collection('trips').doc(id).delete().catch(()=>{});
+}
+
+function confirmClearAll(){
+  const overlay = document.createElement('div');
+  overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:99999;display:flex;align-items:flex-end;justify-content:center;padding-bottom:40px;';
+  overlay.innerHTML=`
+    <div style="background:#1e1e28;border:1px solid #333;border-radius:20px;padding:24px 20px;width:90%;max-width:340px;text-align:center;">
+      <div style="font-size:22px;margin-bottom:8px;">🗑️</div>
+      <div style="font-size:17px;font-weight:800;margin-bottom:6px;">Очистить всю историю?</div>
+      <div style="font-size:13px;opacity:.5;margin-bottom:20px;">Все поездки будут удалены навсегда</div>
+      <div style="display:flex;gap:10px;">
+        <button onclick="this.closest('div[style]').remove()" style="flex:1;background:#2a2a2a;border:none;color:white;border-radius:14px;padding:13px;font-size:15px;font-weight:700;cursor:pointer;">Отмена</button>
+        <button onclick="clearAllTrips();this.closest('div[style]').remove()" style="flex:1;background:#ff453a;border:none;color:white;border-radius:14px;padding:13px;font-size:15px;font-weight:700;cursor:pointer;">Удалить всё</button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+}
+
+function clearAllTrips(){
+  if(!fbDb||!fbUser) return;
+  fbDb.collection('users').doc(fbUser.uid).collection('trips').get().then(snap=>{
+    const batch = fbDb.batch();
+    snap.docs.forEach(d=>batch.delete(d.ref));
+    batch.commit().catch(()=>{});
+  });
+}
+
 function renderHistory(trips){
   const list = document.getElementById('historyList');
   const stats = document.getElementById('historyStats');
+  const clearBtn = document.getElementById('clearAllBtn');
   if(!list) return;
+
+  if(clearBtn) clearBtn.style.display = trips.length ? 'block' : 'none';
+
   if(!trips.length){
     list.innerHTML='<div style="text-align:center;padding:40px;opacity:.4;">Поездок пока нет</div>';
     if(stats) stats.innerHTML='';
     return;
   }
-  // Stats
+
   const total = trips.reduce((s,t)=>s+(t.fare||0),0);
   const today = trips.filter(t=>t.ts&&new Date(t.ts.toDate?t.ts.toDate():t.ts).toDateString()===new Date().toDateString());
   const todayTotal = today.reduce((s,t)=>s+(t.fare||0),0);
@@ -3055,7 +3092,6 @@ function renderHistory(trips){
       <div style="font-size:11px;opacity:.4;">${trips.length} поезд.</div>
     </div>`;
 
-  // Group by date
   const byDate = {};
   trips.forEach(t=>{
     const d = t.ts ? (t.ts.toDate ? t.ts.toDate() : new Date(t.ts)) : new Date();
@@ -3078,12 +3114,13 @@ function renderHistory(trips){
         t.waitCharge>0?`⏱ $${t.waitCharge.toFixed(2)}`:'',
         t.nightFee?'🌙':'',
       ].filter(Boolean).join(' · ');
-      return `<div style="background:#17181c;border:1px solid #252528;border-radius:14px;padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;">
-        <div>
+      return `<div style="background:#17181c;border:1px solid #252528;border-radius:14px;padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;gap:10px;">
+        <div style="flex:1;min-width:0;">
           <div style="font-size:15px;font-weight:800;">${from} → ${to}</div>
           <div style="font-size:12px;opacity:.5;margin-top:2px;">${time}${extras?' · '+extras:''}</div>
         </div>
-        <div style="font-size:20px;font-weight:900;color:#30d158;">$${t.fare||'?'}</div>
+        <div style="font-size:20px;font-weight:900;color:#30d158;flex-shrink:0;">$${t.fare||'?'}</div>
+        <button onclick="deleteTrip('${t.id}')" style="background:#2a1a1a;border:none;color:#ff453a;border-radius:10px;width:34px;height:34px;font-size:16px;cursor:pointer;flex-shrink:0;">🗑</button>
       </div>`;
     }).join('')}
   `).join('');
