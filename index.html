@@ -725,10 +725,9 @@ select.form-input{
             <option value="Afternoon">☀️ Afternoon</option>
             <option value="Evening">🌆 Evening</option>
             <option value="Night">🌙 Night</option>
-            <option value="custom">✏️ Указать</option>
           </select>
         </div>
-        <div class="form-field" style="flex:1;display:none;" id="bTimeCustomWrap">
+        <div class="form-field" style="flex:1;">
           <div class="form-label">ТОЧНОЕ ВРЕМЯ</div>
           <input class="form-input" type="text" inputmode="numeric" id="bTimeCustom" placeholder="10:30">
         </div>
@@ -3366,10 +3365,6 @@ function showAddBooking(){
   // Default date = today
   const today = new Date().toISOString().split('T')[0];
   document.getElementById('bDate').value = today;
-  document.getElementById('bTime').onchange = function(){
-    const wrap = document.getElementById('bTimeCustomWrap');
-    wrap.style.display = this.value === 'custom' ? 'block' : 'none';
-  };
 }
 
 function hideAddBooking(){
