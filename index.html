@@ -3052,6 +3052,10 @@ function searchLocalPlaces(query){
 function selectLocalPlace(place){
   const input = document.getElementById('destination');
   input.value = place.name;
+  window.selectedPlace = null;
+  // Pre-seed the geocache with the known zone so calculateFare works
+  // immediately even if localPlaces hasn't finished loading yet
+  _geoCache = { addr: place.name, zone: place.zone, isCrossTown: false, lat: null, lng: null };
   hideDropdown();
   try{
     calculateFare();
