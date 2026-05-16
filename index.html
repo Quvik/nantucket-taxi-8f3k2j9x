@@ -3275,8 +3275,12 @@ function initFirebase(){
         syncSettingsFromCloud();
         if(document.getElementById('historyPanel').classList.contains('open')) loadHistory();
       } else {
-        localStorage.removeItem('wasLoggedIn');
-        setTimeout(()=>{ if(!fbUser && overlay) overlay.style.display='flex'; }, 2000);
+        // Only show login / clear flag when online — offline Firebase returns null
+        // even for previously-authenticated users
+        if(navigator.onLine){
+          localStorage.removeItem('wasLoggedIn');
+          setTimeout(()=>{ if(!fbUser && overlay) overlay.style.display='flex'; }, 2000);
+        }
       }
     });
   }catch(e){ console.warn('Firebase init error:', e); }

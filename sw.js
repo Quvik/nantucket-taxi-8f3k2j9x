@@ -1,4 +1,4 @@
-const CACHE      = 'ntaxi-v2';
+const CACHE      = 'ntaxi-v3';
 const TILE_CACHE = 'ntaxi-tiles-v2';
 const MAX_TILES  = 1000;
 
@@ -21,10 +21,14 @@ const OPTIONAL = [
   'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js',
   'https://cdnjs.cloudflare.com/ajax/libs/togeojson/0.16.0/togeojson.min.js',
   'https://cdn.jsdelivr.net/npm/@turf/turf@6/turf.min.js',
+  // Firebase SDK — must be cached for offline auth to work
+  'https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js',
+  'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js',
+  'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js',
 ];
 
 const SKIP_HOSTS = [
-  'gstatic.com','googleapis.com','firebaseio.com',
+  'googleapis.com','firebaseio.com',
   'aisstream.io','airlabs.co','rapidapi.com',
   'allorigins.win','corsproxy.io','codetabs.com',
   'flaticon.com',
