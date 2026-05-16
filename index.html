@@ -2104,7 +2104,7 @@ const chipState = { nightFee: false, dirtRoad: false };
 let _geoCache = { addr:'', zone:null, isCrossTown:false, lat:null, lng:null };
 let _nightAutoMode = true; // false once user manually toggles
 
-function isNightHour(){ const h=new Date().getHours(); return h>=21||h<6; }
+function isNightHour(){ const h=new Date().getHours(); return h>=23||h<7; }
 
 function applyNightAuto(){
   if(!_nightAutoMode) return;
