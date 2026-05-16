@@ -3354,7 +3354,20 @@ function saveBooking(){
 
 function deleteBooking(id){
   if(!fbDb||!fbUser) return;
-  fbDb.collection('users').doc(fbUser.uid).collection('bookings').doc(id).delete();
+  const el = document.createElement('div');
+  el.id = 'deleteBookingOverlay';
+  el.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:99999;display:flex;align-items:flex-end;justify-content:center;padding-bottom:40px;';
+  el.innerHTML=`
+    <div style="background:#1e1e28;border:1px solid #333;border-radius:20px;padding:24px 20px;width:90%;max-width:340px;text-align:center;">
+      <div style="font-size:22px;margin-bottom:8px;">🗑️</div>
+      <div style="font-size:17px;font-weight:800;margin-bottom:6px;">Удалить бронирование?</div>
+      <div style="font-size:13px;opacity:.5;margin-bottom:20px;">Это действие нельзя отменить</div>
+      <div style="display:flex;gap:10px;">
+        <button onclick="document.getElementById('deleteBookingOverlay').remove()" style="flex:1;background:#2a2a2a;border:none;color:white;border-radius:14px;padding:13px;font-size:15px;font-weight:700;cursor:pointer;">Отмена</button>
+        <button onclick="fbDb.collection('users').doc(fbUser.uid).collection('bookings').doc('${id}').delete();document.getElementById('deleteBookingOverlay').remove()" style="flex:1;background:#ff453a;border:none;color:white;border-radius:14px;padding:13px;font-size:15px;font-weight:700;cursor:pointer;">Удалить</button>
+      </div>
+    </div>`;
+  document.body.appendChild(el);
 }
 
 function loadBookings(){
