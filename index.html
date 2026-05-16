@@ -1246,12 +1246,11 @@ function getFare(fromZone, toZone) {
 let lastDestinationAddress = "";
 
 let localPlaces = [];
-
-// Load places immediately so fare calculation works right away
-// ?v= param bypasses CDN/browser cache so zone edits take effect immediately
-fetch('places.json?v=6').then(r => r.json()).then(data => { localPlaces = data; }).catch(() => {});
-// Append streets when ready (silently ignored if missing)
-fetch('streets.json').then(r => r.json()).then(data => { localPlaces = [...localPlaces, ...data]; }).catch(() => {});
+// Promise resolves once both data files are loaded — calculateFare awaits it
+const localPlacesReady = Promise.all([
+  fetch('places.json?v=6').then(r => r.json()).then(data => { localPlaces = data; }).catch(() => {}),
+  fetch('streets.json').then(r => r.json()).then(data => { localPlaces = [...localPlaces, ...data]; }).catch(() => {})
+]);
 
 
 
@@ -2795,6 +2794,7 @@ function toggleChip(btn, id) {
 
 async function calculateFare() {
     haptic(15);
+    await localPlacesReady; // ensure places.json + streets.json are loaded first
     const address = document.getElementById('destination').value.trim();
 
     if (!address) return;
