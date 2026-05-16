@@ -948,16 +948,16 @@ input[type="time"].form-input{ -webkit-appearance:auto; appearance:auto; }
     <div id="ferrySourceBadge" style="font-size:11px;padding:4px 10px;border-radius:20px;background:#1e1e28;color:#aaa;"></div>
   </div>
 
-  <div id="ferryArrivalsContainer">
-    <div style="text-align:center;padding:40px;opacity:.4;">Загрузка...</div>
-  </div>
-
-  <div id="aisLiveSection" style="margin-top:14px;margin-bottom:4px;">
+  <div id="aisLiveSection" style="margin-bottom:14px;">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
       <div style="font-size:11px;font-weight:700;opacity:.4;letter-spacing:1px;">📡 LIVE СУДА (AIS)</div>
       <div id="aisDotStatus" style="width:8px;height:8px;border-radius:50%;background:#555;transition:background .3s;"></div>
     </div>
     <div id="aisVesselsList"><div style="font-size:13px;opacity:.5;text-align:center;padding:10px;">🔄 Подключение...</div></div>
+  </div>
+
+  <div id="ferryArrivalsContainer">
+    <div style="text-align:center;padding:40px;opacity:.4;">Загрузка...</div>
   </div>
 
   <div style="display:flex;gap:10px;margin-top:12px;">
@@ -1615,8 +1615,8 @@ function getAisKey(){ return localStorage.getItem('aisstream_key')||''; }
 function identifyFerryAIS(name){
   if(!name) return null;
   const n=name.toUpperCase().trim();
-  if(/GREY.?LADY|GREAT.?POINT|SEASTAR|HY.?LINE/.test(n)) return {line:'Hy-Line',color:'#30d158',emoji:'🚤'};
-  if(/IYANOUGH|EAGLE|GAY.?HEAD|WOODS.?HOLE|SANKATY|NOBSKA/.test(n)) return {line:'Steamship',color:'#0A84FF',emoji:'🚢'};
+  if(/GREY.?LADY|GREAT.?POINT|SEASTAR|HY.?LINE|GRACIE/.test(n)) return {line:'Hy-Line',color:'#30d158',emoji:'🚤'};
+  if(/IYANOUGH|EAGLE|GAY.?HEAD|WOODS.?HOLE|SANKATY|NOBSKA|KATAMA|MV\s*NANTUCKET|^NANTUCKET$/.test(n)) return {line:'Steamship',color:'#0A84FF',emoji:'🚢'};
   if(/SEASTREAK/.test(n)) return {line:'Seastreak',color:'#ff9f0a',emoji:'⛴'};
   if(/FREEDOM/.test(n)) return {line:'Freedom',color:'#bf5af2',emoji:'🛥'};
   return null;
@@ -1683,7 +1683,11 @@ function renderAISVessels(){
   if(!el)return;
   if(!getAisKey()){el.innerHTML='<div style="font-size:13px;opacity:.5;text-align:center;padding:10px;">AIS ключ не задан</div>';return;}
   const now=Date.now();
-  Object.keys(aisVessels).forEach(m=>{if(now-aisVessels[m].ts>5*60*1000)delete aisVessels[m];});
+  Object.keys(aisVessels).forEach(m=>{
+    const v=aisVessels[m];
+    const ttl=aisDistNm(v.lat,v.lon,NANT_PORT.lat,NANT_PORT.lon)<0.5?15*60*1000:8*60*1000;
+    if(now-v.ts>ttl)delete aisVessels[m];
+  });
   if(!aisConnected&&!Object.keys(aisVessels).length){el.innerHTML='<div style="font-size:13px;opacity:.5;text-align:center;padding:10px;">🔄 Подключение к AIS...</div>';return;}
   const vessels=Object.values(aisVessels);
   if(!vessels.length){el.innerHTML='<div style="font-size:13px;opacity:.5;text-align:center;padding:10px;">📡 Ожидаю суда в зоне...</div>';return;}
