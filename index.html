@@ -701,6 +701,18 @@ input[type="time"].form-input{ -webkit-appearance:auto; appearance:auto; }
     <span style="font-size:20px;">📅</span> Бронирования
   </button>
   <div id="drawerAuthSection"></div>
+  <div style="border-bottom:1px solid #252528;margin:8px 0;"></div>
+  <div style="padding:10px 16px;">
+    <div style="font-size:11px;font-weight:700;opacity:.4;letter-spacing:1px;margin-bottom:8px;">📡 AIS API KEY</div>
+    <div style="display:flex;gap:8px;align-items:center;">
+      <input id="aisKeyInput" type="password"
+        placeholder="aisstream.io key"
+        style="flex:1;background:#1e1e28;border:1px solid #333;border-radius:10px;padding:9px 12px;color:white;font-size:13px;outline:none;"
+        oninput="this.dataset.changed='1'">
+      <button onclick="saveAisKey()" style="background:#0A84FF;border:none;color:white;border-radius:10px;padding:9px 14px;font-size:13px;font-weight:700;cursor:pointer;">OK</button>
+    </div>
+    <div style="font-size:11px;opacity:.35;margin-top:6px;">aisstream.io → My Account → API Keys</div>
+  </div>
 </div>
 
 <div class="bookings-panel" id="bookingsPanel">
@@ -3425,8 +3437,21 @@ function handleAuthClick(){
 function openDrawer(){
   const drawer = document.getElementById('sideDrawer');
   if(drawer.classList.contains('open')){ closeDrawer(); return; }
+  // Populate AIS key field (masked)
+  const keyInput = document.getElementById('aisKeyInput');
+  if(keyInput) keyInput.value = localStorage.getItem('aisstream_key') || '';
   drawer.classList.add('open');
   document.getElementById('drawerBackdrop').style.display='block';
+}
+
+function saveAisKey(){
+  const val = (document.getElementById('aisKeyInput')?.value||'').trim();
+  if(!val) return;
+  localStorage.setItem('aisstream_key', val);
+  closeDrawer();
+  // Reconnect AIS with new key
+  if(typeof disconnectAIS==='function'){ disconnectAIS(); setTimeout(connectAIS, 500); }
+  alert('AIS ключ сохранён. Переподключаюсь...');
 }
 
 function closeDrawer(){
