@@ -1622,21 +1622,22 @@ const HYAN_PORT={lat:41.6307,lon:-70.2842};
 const NEWB_PORT={lat:41.6354,lon:-70.9126};
 const AIS_BBOX=[[35,-80],[45,-60]]; // wider US East Coast box for better coverage
 
-let aisWs=null,aisVessels={},aisShipTypes={},aisConnected=false,aisRenderTimer=null,aisRawCount=0,aisLastNames=[];
+let aisWs=null,aisVessels={},aisShipTypes={},aisShipNames={},aisConnected=false,aisRenderTimer=null,aisRawCount=0,aisLastNames=[];
 
 function getAisKey(){ return localStorage.getItem('aisstream_key')||''; }
 
 function identifyFerryAIS(name, shipType){
   if(!name&&!shipType) return null;
   const n=(name||'').toUpperCase().trim();
-  if(/GREY.?LADY|GREAT.?POINT|SEASTAR|HY.?LINE|GRACIE|OCEAN.?STAR|ISLAND.?QUEEN/.test(n))
+  // Use .* for multi-word names like "GREY LADY IV"
+  if(n&&/GREY.*LADY|GREAT.*POINT|SEASTAR|HY.*LINE|GRACIE|OCEAN.*STAR|ISLAND.*QUEEN/.test(n))
     return {line:'Hy-Line',color:'#30d158',emoji:'🚤'};
-  if(/IYANOUGH|EAGLE|GAY.?HEAD|WOODS.?HOLE|SANKATY|NOBSKA|KATAMA|MV\s*NANTUCKET|^NANTUCKET$|ISLAND.?HOME|GOVERNOR|HYANNISPORT|NANTUCKET.?II/.test(n))
+  if(n&&/IYANOUGH|EAGLE|GAY.*HEAD|WOODS.*HOLE|SANKATY|NOBSKA|KATAMA|MV\s*NANTUCKET|^NANTUCKET$|ISLAND.*HOME|GOVERNOR|HYANNISPORT|NANTUCKET.*II/.test(n))
     return {line:'Steamship',color:'#0A84FF',emoji:'🚢'};
-  if(/SEASTREAK/.test(n)) return {line:'Seastreak',color:'#ff9f0a',emoji:'⛴'};
-  if(/FREEDOM/.test(n)) return {line:'Freedom',color:'#bf5af2',emoji:'🛥'};
-  // Fallback: unknown passenger/high-speed vessel in zone (ShipType 60-69)
-  if(shipType&&shipType>=60&&shipType<=69)
+  if(n&&/SEASTREAK/.test(n)) return {line:'Seastreak',color:'#ff9f0a',emoji:'⛴'};
+  if(n&&/FREEDOM/.test(n)) return {line:'Freedom',color:'#bf5af2',emoji:'🛥'};
+  // Passenger vessels (60-69) and High Speed Craft (40-49, e.g. Grey Lady IV)
+  if(shipType&&(shipType>=60&&shipType<=69||shipType>=40&&shipType<=49))
     return {line:n||'Паром',color:'#aaa',emoji:'⛴'};
   return null;
 }
@@ -1664,7 +1665,7 @@ function connectAIS(){
   const key=getAisKey();
   if(!key){renderAISVessels();return;}
   if(aisWs&&aisWs.readyState<=1)return;
-  aisRawCount=0; aisLastNames=[];
+  aisRawCount=0; aisLastNames=[]; aisShipNames={};
   aisWs=new WebSocket('wss://stream.aisstream.io/v0/stream');
   aisWs.onopen=()=>{
     aisConnected=true; setAisDot('green');
@@ -1682,32 +1683,34 @@ function connectAIS(){
         aisLastNames=['⚠️ '+JSON.stringify(msg).slice(0,80)];
         renderAISVessels(); return;
       }
-      // Cache ship type for fallback identification
+      // Cache ship type and name for vessels — ShipStaticData arrives separately from PositionReport
       if(msg.MessageType==='ShipStaticData'){
         const mmsi=msg.MetaData?.MMSI;
         const t=msg.Message?.ShipStaticData?.Type;
         if(mmsi&&t) aisShipTypes[mmsi]=t;
-        const sn=(msg.MetaData?.ShipName||'').trim();
+        // Name may be in MetaData.ShipName OR Message.ShipStaticData.Name
+        const sn=(msg.Message?.ShipStaticData?.Name||msg.MetaData?.ShipName||'').trim();
+        if(mmsi&&sn) aisShipNames[mmsi]=sn;
         if(sn&&!aisLastNames.includes(sn)) aisLastNames=[...aisLastNames.slice(-9),sn];
         return;
       }
       if(msg.MessageType!=='PositionReport')return;
       const meta=msg.MetaData,pos=msg.Message?.PositionReport;
       if(!meta||!pos)return;
-      // Track all vessel names seen (for diagnostics)
-      const sn=(meta.ShipName||'').trim();
-      if(sn&&!aisLastNames.includes(sn)) aisLastNames=[...aisLastNames.slice(-9),sn];
+      // Resolve name: MetaData first, then from our ShipStaticData cache (often more reliable)
+      const resolvedName=(meta.ShipName||aisShipNames[meta.MMSI]||'').trim();
+      if(resolvedName&&!aisLastNames.includes(resolvedName)) aisLastNames=[...aisLastNames.slice(-9),resolvedName];
       // Accept position coordinates from MetaData or PositionReport
       const lat=meta.latitude||Number(pos.Latitude)||0;
       const lon=meta.longitude||Number(pos.Longitude)||0;
       if(!lat||!lon)return;
       const shipType=aisShipTypes[meta.MMSI]||0;
-      const ferry=identifyFerryAIS(meta.ShipName,shipType);
+      const ferry=identifyFerryAIS(resolvedName,shipType);
       if(!ferry)return;
       const prev=aisVessels[meta.MMSI];
       const isInPort=aisDistNm(lat,lon,NANT_PORT.lat,NANT_PORT.lon)<0.4;
       const portSince=isInPort?(prev?.portSince||Date.now()):null;
-      aisVessels[meta.MMSI]={mmsi:meta.MMSI,name:(meta.ShipName||'').trim(),...ferry,lat,lon,sog:Number(pos.Sog)||0,cog:Number(pos.Cog)||0,ts:Date.now(),portSince};
+      aisVessels[meta.MMSI]={mmsi:meta.MMSI,name:resolvedName,...ferry,lat,lon,sog:Number(pos.Sog)||0,cog:Number(pos.Cog)||0,ts:Date.now(),portSince};
       if(!aisRenderTimer) aisRenderTimer=setTimeout(()=>{aisRenderTimer=null;renderAISVessels();},2000);
     }catch(e){}
   };
