@@ -1,4 +1,4 @@
-const CACHE      = 'ntaxi-v3';
+const CACHE      = 'ntaxi-v4';
 const TILE_CACHE = 'ntaxi-tiles-v2';
 const MAX_TILES  = 1000;
 
@@ -12,6 +12,7 @@ const CRITICAL = [
   '/nantucket-taxi-8f3k2j9x/index.html',
   '/nantucket-taxi-8f3k2j9x/zones.kml',
   '/nantucket-taxi-8f3k2j9x/places.json',
+  '/nantucket-taxi-8f3k2j9x/streets.json',
   '/nantucket-taxi-8f3k2j9x/manifest.json',
 ];
 
