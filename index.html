@@ -2776,19 +2776,25 @@ function initFirebase(){
         syncSettingsFromCloud();
         if(document.getElementById('historyTab').style.display !== 'none') loadHistory();
       } else {
-        if(overlay) overlay.style.display='flex';
+        setTimeout(()=>{ if(!fbUser && overlay) overlay.style.display='flex'; }, 2000);
       }
     });
   }catch(e){ console.warn('Firebase init error:', e); }
 }
 
 function handleAuthClick(){
-  if(!fbReady()){ alert('Сначала заполни Firebase config в коде'); return; }
+  if(!fbReady()){ alert('Firebase config не настроен'); return; }
   if(fbUser){
     if(fbAuth) fbAuth.signOut();
   } else {
     const provider = new firebase.auth.GoogleAuthProvider();
-    fbAuth.signInWithRedirect(provider).catch(e=>console.warn(e));
+    fbAuth.signInWithPopup(provider).catch(e=>{
+      if(e.code === 'auth/popup-blocked'){
+        fbAuth.signInWithRedirect(provider);
+      } else {
+        console.warn(e.code, e.message);
+      }
+    });
   }
 }
 
