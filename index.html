@@ -2766,6 +2766,7 @@ function initFirebase(){
     firebase.initializeApp(FIREBASE_CONFIG);
     fbAuth = firebase.auth();
     fbDb   = firebase.firestore();
+    fbAuth.getRedirectResult().catch(e=>console.warn('redirect:', e));
     fbAuth.onAuthStateChanged(user=>{
       fbUser = user;
       updateAuthUI();
@@ -2787,7 +2788,7 @@ function handleAuthClick(){
     if(fbAuth) fbAuth.signOut();
   } else {
     const provider = new firebase.auth.GoogleAuthProvider();
-    fbAuth.signInWithPopup(provider).catch(e=>console.warn(e));
+    fbAuth.signInWithRedirect(provider).catch(e=>console.warn(e));
   }
 }
 
