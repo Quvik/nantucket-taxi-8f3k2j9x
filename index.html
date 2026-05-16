@@ -657,6 +657,9 @@ to{opacity:1;transform:translateY(0);}
     </div>
   </div>
   <div style="border-bottom:1px solid #252528;margin:8px 0;"></div>
+  <button class="drawer-item" onclick="openHistory();closeDrawer();">
+    <span style="font-size:20px;">📋</span> История поездок
+  </button>
   <button class="drawer-item" onclick="openBookings();closeDrawer();">
     <span style="font-size:20px;">📅</span> Бронирования
   </button>
@@ -741,7 +744,6 @@ to{opacity:1;transform:translateY(0);}
 <button class="tab-btn active-tab" onclick="showTab('taxiTab', this)">🚕 Taxi</button>
 <button class="tab-btn" onclick="showTab('ferryTab', this)">⛴ Ferries</button>
 <button class="tab-btn" onclick="showTab('flightTab', this)">✈️ Flights</button>
-<button class="tab-btn" onclick="showTab('historyTab', this)">📋 История</button>
 </div>
 
 <div id="topbar"><div id="taxiTab">
@@ -994,16 +996,19 @@ to{opacity:1;transform:translateY(0);}
   <div style="font-size:12px;opacity:.3;margin-top:24px;text-align:center;">Вход сохраняется автоматически.<br>Повторно входить не нужно.</div>
 </div>
 
-<div id="historyTab" style="display:none;padding:14px 14px 130px;">
-  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
-    <div style="font-size:20px;font-weight:800;">История поездок</div>
+<div class="bookings-panel" id="historyPanel">
+  <div class="bookings-header">
+    <div style="font-size:18px;font-weight:800;">📋 История поездок</div>
     <div style="display:flex;align-items:center;gap:10px;">
-      <div id="historyAuthHint" style="font-size:12px;opacity:.5;"></div>
       <button id="clearAllBtn" onclick="confirmClearAll()" style="display:none;background:#2a1a1a;border:none;color:#ff453a;border-radius:10px;padding:7px 12px;font-size:13px;font-weight:700;cursor:pointer;">Очистить всё</button>
+      <button onclick="closeHistory()" style="background:none;border:none;color:white;font-size:22px;cursor:pointer;padding:4px;">✕</button>
     </div>
   </div>
-  <div id="historyStats" style="display:flex;gap:8px;margin-bottom:14px;"></div>
-  <div id="historyList"><div style="text-align:center;padding:40px;opacity:.4;">Войдите чтобы видеть историю</div></div>
+  <div class="bookings-body">
+    <div id="historyAuthHint" style="font-size:12px;opacity:.5;text-align:center;margin-bottom:8px;"></div>
+    <div id="historyStats" style="display:flex;gap:8px;margin-bottom:14px;"></div>
+    <div id="historyList"><div style="text-align:center;padding:40px;opacity:.4;">Войдите чтобы видеть историю</div></div>
+  </div>
 </div>
 
 <div class="sticky-bar">
@@ -1240,7 +1245,7 @@ let lastFerryRefresh = 0;
 const FERRY_REFRESH_INTERVAL = 5 * 60 * 1000; // 5 минут
 
 function showTab(tabId, btn){
-  ['taxiTab','ferryTab','flightTab','historyTab'].forEach(id=>{
+  ['taxiTab','ferryTab','flightTab'].forEach(id=>{
     const el=document.getElementById(id); if(el) el.style.display='none';
   });
   document.getElementById(tabId).style.display='block';
@@ -1266,10 +1271,6 @@ function showTab(tabId, btn){
     } else if(Date.now()-lastAdsbRefresh>ADSB_REFRESH_INTERVAL){
       refreshAdsbOnly();
     }
-  } else if(tabId==='historyTab'){
-    stopFerryTick();
-    stopFlightTick();
-    loadHistory();
   } else {
     stopFerryTick();
     stopFlightTick();
@@ -3068,7 +3069,7 @@ function initFirebase(){
       if(user){
         if(overlay) overlay.style.display='none';
         syncSettingsFromCloud();
-        if(document.getElementById('historyTab').style.display !== 'none') loadHistory();
+        if(document.getElementById('historyPanel').classList.contains('open')) loadHistory();
       } else {
         setTimeout(()=>{ if(!fbUser && overlay) overlay.style.display='flex'; }, 2000);
       }
@@ -3292,6 +3293,16 @@ const _origShowTab = window.showTab;
 
 // Update showTab to handle historyTab
 document.addEventListener('DOMContentLoaded',()=>{});
+
+// ── History panel ─────────────────────────────────────────
+function openHistory(){
+  document.getElementById('historyPanel').classList.add('open');
+  loadHistory();
+}
+
+function closeHistory(){
+  document.getElementById('historyPanel').classList.remove('open');
+}
 
 // ── Bookings ──────────────────────────────────────────────
 let _unsubBookings = null;
