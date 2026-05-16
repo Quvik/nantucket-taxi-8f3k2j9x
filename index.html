@@ -2857,6 +2857,13 @@ async function calculateFare() {
         const { zone: destZ1, isCrossTown: destCT1 } = findZoneInfo(point);
         destinationZone = destZ1;
         destIsCrossTown = destCT1;
+        // If KML returned nothing (shuttle stop / coordinates outside all polygons),
+        // fall back to keyword match against localPlaces
+        if(!destinationZone){
+            const words=address.toLowerCase().split(/[\s,]+/).filter(w=>w.length>3);
+            const fuzzy=localPlaces.find(p=>words.some(w=>p.name.toLowerCase().includes(w)));
+            if(fuzzy){ destinationZone=fuzzy.zone; destIsCrossTown=false; lat=null; lng=null; }
+        }
         _geoCache = { addr: address, zone: destinationZone, isCrossTown: destIsCrossTown, lat, lng };
     } else {
         const url =
@@ -2874,6 +2881,11 @@ async function calculateFare() {
         const { zone: destZ2, isCrossTown: destCT2 } = findZoneInfo(point);
         destinationZone = destZ2;
         destIsCrossTown = destCT2;
+        if(!destinationZone){
+            const words=address.toLowerCase().split(/[\s,]+/).filter(w=>w.length>3);
+            const fuzzy=localPlaces.find(p=>words.some(w=>p.name.toLowerCase().includes(w)));
+            if(fuzzy){ destinationZone=fuzzy.zone; destIsCrossTown=false; lat=null; lng=null; }
+        }
         _geoCache = { addr: address, zone: destinationZone, isCrossTown: destIsCrossTown, lat, lng };
     }
 
