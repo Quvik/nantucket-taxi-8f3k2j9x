@@ -761,6 +761,7 @@ to{opacity:1;transform:translateY(0);}
   <button class="hamburger-btn" onclick="openDrawer()">
     <span></span><span></span><span></span>
   </button>
+  <div class="topbar-title">🚕 Nantucket Taxi</div>
 </div>
 
 <div class="top-tabs">
@@ -3116,7 +3117,9 @@ function handleAuthClick(){
 }
 
 function openDrawer(){
-  document.getElementById('sideDrawer').classList.add('open');
+  const drawer = document.getElementById('sideDrawer');
+  if(drawer.classList.contains('open')){ closeDrawer(); return; }
+  drawer.classList.add('open');
   document.getElementById('drawerBackdrop').style.display='block';
 }
 
