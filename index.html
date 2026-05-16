@@ -3260,15 +3260,22 @@ function initFirebase(){
     fbAuth = firebase.auth();
     fbDb   = firebase.firestore();
     fbAuth.getRedirectResult().catch(e=>console.warn('redirect:', e));
+    // If offline and was previously logged in — hide overlay immediately
+    const overlay = document.getElementById('loginOverlay');
+    if(!navigator.onLine && localStorage.getItem('wasLoggedIn')){
+      if(overlay) overlay.style.display='none';
+    }
+
     fbAuth.onAuthStateChanged(user=>{
       fbUser = user;
       updateAuthUI();
-      const overlay = document.getElementById('loginOverlay');
       if(user){
+        localStorage.setItem('wasLoggedIn','1');
         if(overlay) overlay.style.display='none';
         syncSettingsFromCloud();
         if(document.getElementById('historyPanel').classList.contains('open')) loadHistory();
       } else {
+        localStorage.removeItem('wasLoggedIn');
         setTimeout(()=>{ if(!fbUser && overlay) overlay.style.display='flex'; }, 2000);
       }
     });
