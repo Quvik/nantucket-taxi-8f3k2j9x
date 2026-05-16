@@ -321,12 +321,22 @@ top:0;
 left:0;
 right:0;
 z-index:49999;
+height:48px;
 display:flex;
 align-items:center;
-justify-content:space-between;
-padding:14px 16px 10px;
+padding:0 16px;
 background:#0f0f10;
 border-bottom:1px solid #1c1c1e;
+}
+
+.topbar-title{
+position:absolute;
+left:50%;
+transform:translateX(-50%);
+font-size:16px;
+font-weight:800;
+pointer-events:none;
+white-space:nowrap;
 }
 
 .hamburger-btn{
@@ -347,11 +357,6 @@ background:white;
 border-radius:2px;
 }
 
-.topbar-title{
-font-size:17px;
-font-weight:800;
-letter-spacing:.3px;
-}
 
 .drawer-backdrop{
 display:none;
@@ -747,7 +752,6 @@ to{opacity:1;transform:translateY(0);}
     <span></span><span></span><span></span>
   </button>
   <div class="topbar-title">🚕 Nantucket Taxi</div>
-  <div style="width:32px;"></div>
 </div>
 
 <div class="top-tabs">
