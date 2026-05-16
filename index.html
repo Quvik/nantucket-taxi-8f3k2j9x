@@ -2962,7 +2962,14 @@ function selectLocalPlace(place){
   const input = document.getElementById('destination');
   input.value = place.name;
   hideDropdown();
-  try{ calculateFare(); }catch(e){}
+  try{
+    calculateFare();
+    // Scroll fare section into view so user sees the result
+    setTimeout(()=>{
+      const fareCard = document.getElementById('destinationZone')?.closest('.card');
+      if(fareCard) fareCard.scrollIntoView({behavior:'smooth', block:'nearest'});
+    }, 100);
+  }catch(e){}
 }
 
 function renderLocalItem(place, isLast){
@@ -3006,12 +3013,16 @@ function fetchSuggestions(query){
     componentRestrictions: { country:'us' },
     types: ['geocode','establishment']
   }, (predictions, status)=>{
-    const localNames = new Set(local.map(p => p.name.toLowerCase()));
+    const localNames = [...local.map(p => p.name.toLowerCase())];
     const gPreds = (status === google.maps.places.PlacesServiceStatus.OK && predictions)
-      ? predictions.filter(p =>
-          (p.structured_formatting?.secondary_text||'').toLowerCase().includes('nantucket') &&
-          !localNames.has((p.structured_formatting?.main_text||'').toLowerCase())
-        ).slice(0, Math.max(0, 5 - local.length))
+      ? predictions.filter(p => {
+          const sec  = (p.structured_formatting?.secondary_text||'').toLowerCase();
+          const main = (p.structured_formatting?.main_text||'').toLowerCase();
+          if(!sec.includes('nantucket')) return false;
+          // Remove if this prediction is a near-duplicate of any local result
+          const isDup = localNames.some(ln => main.includes(ln) || ln.includes(main));
+          return !isDup;
+        }).slice(0, Math.max(0, 5 - local.length))
       : [];
 
     acDropdown.innerHTML = '';
