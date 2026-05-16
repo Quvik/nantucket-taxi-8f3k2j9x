@@ -1257,6 +1257,9 @@ function autoCalculate(){
 
 window.addEventListener('load',()=>{
 
+// Init dropdown UI immediately — works offline without Google Maps
+initAutocompleteUI();
+
 setTimeout(()=>{
 const splash =
 document.getElementById('splashScreen');
@@ -2901,12 +2904,9 @@ function isOnNantucket(lat,lng){
 
 let acService, placesService, sessionToken, acDropdown, acDebounceTimer;
 
-function initAutocomplete(){
+function initAutocompleteUI(){
   const input = document.getElementById('destination');
-
-  acService     = new google.maps.places.AutocompleteService();
-  placesService = new google.maps.places.PlacesService(document.createElement('div'));
-  sessionToken  = new google.maps.places.AutocompleteSessionToken();
+  if(!input || acDropdown) return; // already initialized
 
   // Build custom dark dropdown — attached to body so it overlays everything
   acDropdown = document.createElement('div');
@@ -2946,6 +2946,14 @@ function initAutocomplete(){
 
   // Prevent Enter from reloading page on mobile
   input.addEventListener('keydown', e=>{ if(e.key==='Enter') e.preventDefault(); });
+}
+
+// Called by Google Maps API script when it finishes loading
+function initAutocomplete(){
+  initAutocompleteUI();
+  acService     = new google.maps.places.AutocompleteService();
+  placesService = new google.maps.places.PlacesService(document.createElement('div'));
+  sessionToken  = new google.maps.places.AutocompleteSessionToken();
 }
 
 function searchLocalPlaces(query){
