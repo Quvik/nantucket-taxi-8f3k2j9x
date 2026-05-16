@@ -1661,7 +1661,10 @@ function connectAIS(){
       if(!ferry)return;
       const lat=meta.latitude,lon=meta.longitude;
       if(!lat||!lon)return;
-      aisVessels[meta.MMSI]={mmsi:meta.MMSI,name:(meta.ShipName||'').trim(),...ferry,lat,lon,sog:Number(pos.Sog)||0,cog:Number(pos.Cog)||0,ts:Date.now()};
+      const prev=aisVessels[meta.MMSI];
+      const isInPort=aisDistNm(lat,lon,NANT_PORT.lat,NANT_PORT.lon)<0.4;
+      const portSince=isInPort?(prev?.portSince||Date.now()):null;
+      aisVessels[meta.MMSI]={mmsi:meta.MMSI,name:(meta.ShipName||'').trim(),...ferry,lat,lon,sog:Number(pos.Sog)||0,cog:Number(pos.Cog)||0,ts:Date.now(),portSince};
       if(!aisRenderTimer) aisRenderTimer=setTimeout(()=>{aisRenderTimer=null;renderAISVessels();},2000);
     }catch(e){}
   };
@@ -1676,6 +1679,13 @@ function connectAIS(){
 function disconnectAIS(){
   if(aisWs){aisWs.onclose=null;aisWs.close();aisWs=null;}
   aisConnected=false; setAisDot('gray');
+}
+
+function findSchedForVessel(ferryLine, portSinceMs){
+  const td=ferryTargetDate(ferryDayOffset);
+  const arrivals=ferryLiveCache[dateKey(td)]||builtinArrivals(td)||[];
+  const lo=new Date(portSinceMs-50*60000), hi=new Date(portSinceMs+15*60000);
+  return arrivals.find(a=>a.line.includes(ferryLine.split(' ')[0])&&a.dateObj>=lo&&a.dateObj<=hi)||null;
 }
 
 function renderAISVessels(){
@@ -1707,12 +1717,28 @@ function renderAISVessels(){
   annotated.forEach(v=>{
     const speed=v.sog>0.5?`${v.sog.toFixed(1)} уз`:'стоит';
     const dist=`${v.dn.toFixed(1)} nm`;
-    let etaHtml='';
-    if(v.inPort) etaHtml=`<div style="font-size:12px;color:#30d158;font-weight:700;">В ПОРТУ</div>`;
-    else if(v.etaMins!==null) etaHtml=`<div style="font-size:13px;font-weight:800;color:${v.color};">${v.etaMins<=2?'⚡ Прибывает!':'~'+v.etaMins+' мин'}</div>`;
-    else if(v.sog>0.5) etaHtml=`<div style="font-size:12px;opacity:.4;">↩</div>`;
-    const border=v.approaching&&!v.inPort?v.color:'#252528';
-    const bg=v.approaching&&!v.inPort?v.color+'18':'#17181c';
+    let etaHtml='', delayMins=null;
+    if(v.inPort){
+      const minsInPort=v.portSince?Math.round((now-v.portSince)/60000):null;
+      const sched=v.portSince?findSchedForVessel(v.line,v.portSince):null;
+      if(sched){
+        const turnaround=sched.type?.includes('Traditional')?42:22;
+        delayMins=Math.round((now-sched.dateObj.getTime()-turnaround*60000)/60000);
+      }
+      if(delayMins!==null&&delayMins>5){
+        etaHtml=`<div style="font-size:12px;font-weight:800;color:#ff9f0a;text-align:right;">⚠️ Задержка<br>~${delayMins} мин</div>`;
+      } else {
+        const portStr=minsInPort>0?`<br><span style="opacity:.6;font-size:11px;">${minsInPort} мин</span>`:'';
+        etaHtml=`<div style="font-size:12px;color:#30d158;font-weight:700;">В ПОРТУ${portStr}</div>`;
+      }
+    } else if(v.etaMins!==null){
+      etaHtml=`<div style="font-size:13px;font-weight:800;color:${v.color};">${v.etaMins<=2?'⚡ Прибывает!':'~'+v.etaMins+' мин'}</div>`;
+    } else if(v.sog>0.5){
+      etaHtml=`<div style="font-size:12px;opacity:.4;">↩</div>`;
+    }
+    const delayed=delayMins!==null&&delayMins>5;
+    const border=delayed?'#ff9f0a':(v.approaching&&!v.inPort?v.color:'#252528');
+    const bg=delayed?'#2a1500':(v.approaching&&!v.inPort?v.color+'18':'#17181c');
     html+=`<div style="background:${bg};border:1px solid ${border};border-radius:14px;padding:11px 14px;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;">
       <div style="display:flex;align-items:center;gap:10px;">
         <div style="font-size:22px;">${v.emoji}</div>
