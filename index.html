@@ -713,26 +713,6 @@ input[type="time"].form-input{ -webkit-appearance:auto; appearance:auto; }
     </div>
     <div style="font-size:11px;opacity:.35;margin-top:6px;">aisstream.io → My Account → API Keys</div>
   </div>
-  <div style="padding:0 16px 12px 16px;">
-    <div style="font-size:11px;font-weight:700;opacity:.4;letter-spacing:1px;margin-bottom:8px;">📡 AISHUB USERNAME</div>
-    <div style="display:flex;gap:8px;align-items:center;">
-      <input id="aishubUserInput" type="text"
-        placeholder="логин с aishub.net"
-        style="flex:1;background:#1e1e28;border:1px solid #333;border-radius:10px;padding:9px 12px;color:white;font-size:13px;outline:none;">
-      <button onclick="saveAisHubUser()" style="background:#30d158;border:none;color:white;border-radius:10px;padding:9px 14px;font-size:13px;font-weight:700;cursor:pointer;">OK</button>
-    </div>
-    <div style="font-size:11px;opacity:.35;margin-top:6px;">aishub.net → Register (бесплатно) → username</div>
-  </div>
-  <div style="padding:0 16px 12px 16px;">
-    <div style="font-size:11px;font-weight:700;opacity:.4;letter-spacing:1px;margin-bottom:8px;">🛰 VESSEL FINDER KEY</div>
-    <div style="display:flex;gap:8px;align-items:center;">
-      <input id="vfKeyInput" type="password"
-        placeholder="VesselFinder free API key"
-        style="flex:1;background:#1e1e28;border:1px solid #333;border-radius:10px;padding:9px 12px;color:white;font-size:13px;outline:none;">
-      <button onclick="saveVfKey()" style="background:#30d158;border:none;color:white;border-radius:10px;padding:9px 14px;font-size:13px;font-weight:700;cursor:pointer;">OK</button>
-    </div>
-    <div style="font-size:11px;opacity:.35;margin-top:6px;">vesselfinder.com → бесплатно → API → Lite plan</div>
-  </div>
   <div style="padding:0 16px 16px 16px;border-top:1px solid #1e1e28;margin-top:4px;">
     <button onclick="forceSwUpdate()" style="width:100%;background:#1e1e28;border:1px solid #333;color:#aaa;border-radius:10px;padding:10px;font-size:12px;cursor:pointer;">🔄 Принудительное обновление приложения</button>
   </div>
@@ -1608,9 +1588,13 @@ function renderFerryTab(forceSource){
   let html='';
   const season=FERRY_BUILTIN.find(s=>{const k=dateKey(td);return k>=s.from&&k<=s.to;});
   if(season&&source==='builtin') html+=`<div style="font-size:11px;color:#0A84FF;font-weight:700;margin-bottom:8px;opacity:.8;">📋 ${season.label}</div>`;
-  if(upcoming.length){
+  const upcomingNotDeparted=upcoming.filter(a=>{
+    const crossMs=(a.type||'').includes('Traditional')?140*60000:70*60000;
+    return !(now>a.dateObj.getTime()-crossMs);
+  });
+  if(upcomingNotDeparted.length){
     html+=`<div style="font-size:11px;font-weight:700;opacity:.4;letter-spacing:1px;margin-bottom:8px;">СЛЕДУЮЩИЕ ПРИБЫТИЯ</div>`;
-    upcoming.forEach((a,i)=>{
+    upcomingNotDeparted.forEach((a,i)=>{
       const isNext=i===0, mins=Math.floor((a.dateObj-now)/60000);
       const isLate=mins<0, hot=!isLate&&mins<=20;
       const bg=isLate?'#1a1000':(isNext?(hot?'#2a1200':'#0f1f14'):'#17181c');
@@ -1686,7 +1670,6 @@ function renderRushCard(upcoming,now){
 // ── AIS Live Ferry Tracking (aisstream.io + VesselFinder fallback) ────────
 (function(){
   if(!localStorage.getItem('aisstream_key')) localStorage.setItem('aisstream_key','584cd29a6cb23bd8b96551ba563b30d9954');
-  if(!localStorage.getItem('vf_key')) localStorage.setItem('vf_key','019e33884172767a9b06647e5c81e771');
 })();
 
 const NANT_PORT={lat:41.2720,lon:-70.0970};
@@ -1716,223 +1699,6 @@ const FERRY_MMSIS = [
 ];
 
 function getAisKey(){     return localStorage.getItem('aisstream_key')||''; }
-function getVfKey(){      return localStorage.getItem('vf_key')||''; }
-function getAisHubUser(){ return localStorage.getItem('aishub_user')||''; }
-
-// ── AISHub polling (volunteer receiver network, free with registration) ────
-async function pollAISHub(){
-  const user=getAisHubUser();
-  if(!user) return;
-  // AISHub bbox: Nantucket Sound + approaches
-  const url=`http://data.aishub.net/ws.php?username=${user}&format=1&output=json&compress=0&latmin=40.8&latmax=42.2&lonmin=-71.5&lonmax=-69.5`;
-  const proxies=['https://api.allorigins.win/raw?url=','https://corsproxy.io/?'];
-  for(const base of proxies){
-    try{
-      const ctrl=new AbortController();
-      const t=setTimeout(()=>ctrl.abort(),10000);
-      const r=await fetch(base+encodeURIComponent(url),{signal:ctrl.signal});
-      clearTimeout(t);
-      const data=await r.json();
-      // AISHub response: [[{header}],[{vessel},{vessel},...]]
-      if(!Array.isArray(data)||data.length<2){ vfLastStatus='⚠️ AISHub: нет ответа'; renderAISVessels(); return; }
-      const hdr=data[0]?.[0]||{};
-      if(hdr.ERROR){ vfLastStatus=`⚠️ AISHub: ${hdr.USERNAME||'ошибка'}`; renderAISVessels(); return; }
-      const vessels=data[1]||[];
-      const now=Date.now();
-      let updated=0;
-      vessels.forEach(v=>{
-        const mmsi=String(v.MMSI||'');
-        const ferry=MMSI_MAP[mmsi];
-        if(!ferry) return;
-        const lat=Number(v.LATITUDE),lon=Number(v.LONGITUDE);
-        if(!lat||!lon) return;
-        const sog=Number(v.SOG)||0, cog=Number(v.COG)||0;
-        const prev=aisVessels[mmsi];
-        const isInPort=aisDistNm(lat,lon,NANT_PORT.lat,NANT_PORT.lon)<0.4;
-        const portSince=isInPort?(prev?.portSince||now):null;
-        aisVessels[mmsi]={mmsi,name:ferry.name,...ferry,lat,lon,sog,cog,ts:now,portSince,source:'AISHub'};
-        updated++;
-      });
-      vfLastStatus=updated>0?`📡 AISHub: ${updated} паромов найдено`
-        :`📡 AISHub: паромов нет (${vessels.length} судов в зоне)`;
-      renderAISVessels(); return;
-    }catch(e){ vfLastStatus=`⚠️ AISHub: ${e.message||'timeout'}`; }
-  }
-  renderAISVessels();
-}
-
-// ── VesselFinder REST API polling (satellite AIS fallback) ─────────────────
-// Free Lite plan: 1 req/min, up to 10 MMSIs per request.
-// Uses allorigins.win proxy to bypass CORS restrictions.
-const VF_BATCH1 = FERRY_MMSIS.slice(0,10).join(',');
-const VF_BATCH2 = FERRY_MMSIS.slice(10).join(',');
-let vfPollTimer=null, vfBatch=0, vfLastStatus='';
-
-async function pollVesselFinder(){
-  const key=getVfKey();
-  if(!key) return;
-  const batch=vfBatch%2===0 ? VF_BATCH1 : (VF_BATCH2||VF_BATCH1);
-  vfBatch++;
-  // Try: 1) API key + MMSI list, 2) Fleet key + MMSI list, 3) Fleet key only (all fleet vessels)
-  const fleetKey=key.slice(0,-1)+'0'; // fleet key differs in last digit (see VF account page)
-  const urls=[
-    `https://api.vesselfinder.com/vessels?userkey=${key}&mmsi=${batch}`,
-    `https://api.vesselfinder.com/vessels?userkey=${fleetKey}&mmsi=${batch}`,
-    `https://api.vesselfinder.com/vessels?userkey=${fleetKey}`,
-  ];
-  const proxies=['https://api.allorigins.win/raw?url=','https://corsproxy.io/?'];
-  for(const vfUrl of urls){
-    for(const base of proxies){
-      try{
-        const r=await fetch(base+encodeURIComponent(vfUrl),{signal:AbortSignal.timeout(10000)});
-        const text=await r.text();
-        let data;
-        try{ data=JSON.parse(text); }catch{ vfLastStatus=`⚠️ VF: не JSON · ${text.slice(0,50)}`; continue; }
-        if(data&&!Array.isArray(data)){
-          vfLastStatus=`⚠️ VF: ${data.error||data.msg||data.message||JSON.stringify(data).slice(0,80)}`;
-          renderAISVessels(); return;
-        }
-        if(!Array.isArray(data)){ vfLastStatus='⚠️ VF: неожиданный ответ'; continue; }
-        const now=Date.now();
-        let updated=0;
-        data.forEach(item=>{
-          const a=item.AIS;
-          if(!a||!a.MMSI) return;
-          const mmsi=String(a.MMSI);
-          const ferry=MMSI_MAP[mmsi];
-          if(!ferry) return;
-          const lat=Number(a.LATITUDE),lon=Number(a.LONGITUDE);
-          if(!lat||!lon) return;
-          const rawSpd=Number(a.SPEED)||0;
-          const sog=rawSpd>300?rawSpd/10:rawSpd;
-          const cog=Number(a.COURSE)||0;
-          const prev=aisVessels[mmsi];
-          const isInPort=aisDistNm(lat,lon,NANT_PORT.lat,NANT_PORT.lon)<0.4;
-          const portSince=isInPort?(prev?.portSince||now):null;
-          aisVessels[mmsi]={mmsi,name:ferry.name,...ferry,lat,lon,sog,cog,ts:now,portSince,source:'VF'};
-          updated++;
-        });
-        vfLastStatus=updated>0?`🛰 VF: ${updated} судов`:`🛰 VF: пустой ответ [${new URL(vfUrl).search.slice(0,30)}]`;
-        renderAISVessels();
-        return; // success — stop trying
-      }catch(e){ vfLastStatus=`⚠️ VF: ${e.message||'timeout'}`; }
-    }
-  }
-  renderAISVessels(); // always update UI even if all attempts failed
-}
-
-// ── SSA Vessel Tracker (steamshipauthority.com internal API) ──────────────
-// SSA publishes real-time vessel positions on their website.
-// We discover their API endpoint by fetching the tracker page HTML.
-let ssaApiUrl='', ssaDiscovered=false, ssaPollTimer=null;
-
-async function fetchJson(url){
-  const proxies=['https://api.allorigins.win/raw?url=','https://corsproxy.io/?'];
-  for(const base of proxies){
-    try{
-      const ctrl=new AbortController();
-      const t=setTimeout(()=>ctrl.abort(),9000);
-      const r=await fetch(base+encodeURIComponent(url),{signal:ctrl.signal});
-      clearTimeout(t);
-      const text=await r.text();
-      return JSON.parse(text);
-    }catch{}
-  }
-  return null;
-}
-
-async function discoverSSAApi(){
-  if(ssaDiscovered) return;
-  ssaDiscovered=true;
-  const proxies=['https://api.allorigins.win/raw?url=','https://corsproxy.io/?'];
-  const ssaPage='https://www.steamshipauthority.com/about/vessel_tracker';
-  for(const base of proxies){
-    try{
-      const ctrl=new AbortController();
-      const t=setTimeout(()=>ctrl.abort(),12000);
-      const r=await fetch(base+encodeURIComponent(ssaPage),{signal:ctrl.signal});
-      clearTimeout(t);
-      const html=await r.text();
-      // Look for API endpoint patterns in the page HTML/JS
-      const patterns=[
-        /['"`]([^'"`]*vessel[^'"`]*position[^'"`]{0,50})['"` ]/gi,
-        /['"`]([^'"`]*\/api\/[^'"`\s]{5,80})['"` ]/gi,
-        /fetch\(['"`]([^'"`]+)['"` ]/gi,
-        /url\s*[:=]\s*['"`]([^'"`]{10,120})['"` ]/gi,
-      ];
-      const found=new Set();
-      for(const p of patterns){
-        let m;
-        while((m=p.exec(html))!==null){
-          const u=m[1];
-          if(u.startsWith('http')||u.startsWith('/')) found.add(u);
-        }
-      }
-      // Try common SSA API patterns
-      const candidates=[...found].filter(u=>
-        u.includes('vessel')||u.includes('position')||u.includes('track')||u.includes('fleet')
-      );
-      // Also try known common patterns
-      candidates.push(
-        'https://www.steamshipauthority.com/api/vessel_positions',
-        'https://www.steamshipauthority.com/api/vessels',
-        'https://www.steamshipauthority.com/about/vessel_tracker_data',
-        'https://www.steamshipauthority.com/vesseltracker/api',
-      );
-      for(const candidate of candidates.slice(0,8)){
-        const data=await fetchJson(candidate.startsWith('/')?'https://www.steamshipauthority.com'+candidate:candidate);
-        if(data&&(Array.isArray(data)||(typeof data==='object'&&Object.keys(data).length>0))){
-          ssaApiUrl=candidate;
-          await pollSSA(); return;
-        }
-      }
-      if(html.length>100) break; // got a response, stop trying proxies
-    }catch{}
-  }
-}
-
-async function pollSSA(){
-  if(!ssaApiUrl) return;
-  const data=await fetchJson(ssaApiUrl);
-  if(!data) return;
-  const items=Array.isArray(data)?data:Object.values(data);
-  const now=Date.now();
-  let updated=0;
-  items.forEach(v=>{
-    const lat=Number(v.lat||v.latitude||v.Latitude||v.LAT);
-    const lon=Number(v.lon||v.lng||v.longitude||v.Longitude||v.LON);
-    if(!lat||!lon) return;
-    const mmsi=String(v.mmsi||v.MMSI||'');
-    const ferry=mmsi?MMSI_MAP[mmsi]:null;
-    if(!ferry&&!mmsi) return;
-    const name=v.name||v.Name||v.vessel_name||mmsi;
-    const sog=Number(v.speed||v.Speed||v.SOG||v.sog||0);
-    const cog=Number(v.course||v.Course||v.COG||v.cog||0);
-    const id=mmsi||name;
-    const prev=aisVessels[id];
-    const isInPort=aisDistNm(lat,lon,NANT_PORT.lat,NANT_PORT.lon)<0.4;
-    const portSince=isInPort?(prev?.portSince||now):null;
-    const info=ferry||{line:'Steamship',color:'#0A84FF',emoji:'🚢',name};
-    aisVessels[id]={mmsi:id,name:info.name,...info,lat,lon,sog,cog,ts:now,portSince,source:'SSA'};
-    updated++;
-  });
-  if(updated>0){
-    vfLastStatus=`🛳 SSA: ${updated} судов`;
-    renderAISVessels();
-  }
-}
-
-function startVfPoll(){
-  stopVfPoll();
-  pollVesselFinder();
-  discoverSSAApi();
-  pollAISHub();
-  vfPollTimer=setInterval(()=>{ pollVesselFinder(); pollAISHub(); if(ssaApiUrl)pollSSA(); }, 65000);
-}
-function stopVfPoll(){
-  if(vfPollTimer){clearInterval(vfPollTimer);vfPollTimer=null;}
-  ssaDiscovered=false; ssaApiUrl=''; // reset so next startFerryTick re-discovers
-}
 
 // MMSI → known ferry identity map (built from FERRY_MMSIS)
 const MMSI_MAP = {
@@ -2121,8 +1887,7 @@ function renderAISVessels(){
     // Show schedule-inferred vessels when AIS has no signal
     const inferred=getScheduledVesselsAtSea();
     if(inferred.length){
-      const vfSt=vfLastStatus?`<div style="font-size:10px;opacity:.5;margin-top:2px;word-break:break-all;">${vfLastStatus}</div>`:'';
-      const pktHint=`<div style="font-size:10px;opacity:.35;text-align:center;margin-top:4px;">${aisRawCount} пкт · AIS не видит · ${mtLink}</div>${vfSt}`;
+      const pktHint=`<div style="font-size:10px;opacity:.35;text-align:center;margin-top:4px;">${aisRawCount} пкт · AIS не видит · ${mtLink}</div>`;
       el.innerHTML=inferred.map(v=>{
         const filled=Math.round(v.progress*12);
         const bar='─'.repeat(filled)+'⬤'+'─'.repeat(12-filled);
@@ -2156,19 +1921,17 @@ function renderAISVessels(){
       return;
     }
     let hint='';
-    const vfStatusHtml=vfLastStatus?`<div style="font-size:10px;opacity:.5;margin-top:3px;word-break:break-all;">${vfLastStatus}</div>`:'';
-    const vfHint=!getVfKey()?`<div style="font-size:10px;opacity:.4;margin-top:3px;">🛰 Добавь <b>VesselFinder ключ</b> в настройках для спутникового AIS</div>`:vfStatusHtml;
     if(aisRawCount===0){
-      hint=`<div style="font-size:11px;opacity:.4;margin-top:4px;">0 пакетов — нет ответа от сервера · ${mtLink}</div>${vfHint}`;
+      hint=`<div style="font-size:11px;opacity:.4;margin-top:4px;">0 пакетов — нет ответа от сервера · ${mtLink}</div>`;
     } else if(aisLastNames.length&&aisLastNames[0].startsWith('⚠️')){
-      hint=`<div style="font-size:10px;color:#ff9f0a;margin-top:4px;word-break:break-all;">${aisLastNames[0]}</div>${vfHint}`;
+      hint=`<div style="font-size:10px;color:#ff9f0a;margin-top:4px;word-break:break-all;">${aisLastNames[0]}</div>`;
     } else if(aisLastNames.length){
-      hint=`<div style="font-size:10px;opacity:.35;margin-top:4px;word-break:break-all;">Суда: ${aisLastNames.join(', ')}</div>${vfHint}`;
+      hint=`<div style="font-size:10px;opacity:.35;margin-top:4px;word-break:break-all;">Суда: ${aisLastNames.join(', ')}</div>`;
     } else {
       const typeEntries=Object.entries(aisMsgTypes);
       const typeInfo=typeEntries.map(([k,v])=>`${k==='PositionReport'?'PosRpt':k==='ShipStaticData'?'Static':k}:${v}`).join(' ');
       const pktLine=aisRawCount>0?`${aisRawCount} пкт${typeInfo?' ('+typeInfo+')':''}`:' ';
-      hint=`<div style="font-size:10px;opacity:.35;margin-top:4px;">${pktLine} · паромов нет · ${mtLink}</div>${vfHint}`;
+      hint=`<div style="font-size:10px;opacity:.35;margin-top:4px;">${pktLine} · паромов нет · ${mtLink}</div>`;
     }
     el.innerHTML=`<div style="font-size:13px;opacity:.5;text-align:center;padding:10px;">📡 Паромы не в пути${hint}</div>`;
     return;
@@ -2217,7 +1980,7 @@ function renderAISVessels(){
         <div>
           <div style="font-size:14px;font-weight:800;">${v.name}</div>
           <div style="font-size:12px;color:${v.color};font-weight:600;">${v.line} · ${v.origin}</div>
-          <div style="font-size:11px;opacity:.45;">${speed} · ${dist} до Nantucket${v.source==='VF'?' · 🛰 VF':v.source==='AISHub'?' · 📡 AISHub':v.source==='SSA'?' · 🛳 SSA':''}</div>
+          <div style="font-size:11px;opacity:.45;">${speed} · ${dist} до Nantucket</div>
         </div>
       </div>
       <div style="text-align:right;min-width:55px;">${etaHtml}</div>
@@ -2229,7 +1992,6 @@ function renderAISVessels(){
 function startFerryTick(){
   stopFerryTick();
   connectAIS();
-  startVfPoll();
   ferryTickId=setInterval(()=>{
     const now=new Date();
     document.querySelectorAll('.fa-row').forEach(row=>{
@@ -2244,7 +2006,7 @@ function startFerryTick(){
     renderAISVessels();
   },30000);
 }
-function stopFerryTick(){ if(ferryTickId)clearInterval(ferryTickId); ferryTickId=null; disconnectAIS(); stopVfPoll(); }
+function stopFerryTick(){ if(ferryTickId)clearInterval(ferryTickId); ferryTickId=null; disconnectAIS(); }
 function shiftFerryDay(d){ ferryDayOffset=Math.max(0,ferryDayOffset+d); renderFerryTab(); }
 
 // ── Ferry Notifications ─────────────────────────────────────
@@ -3889,10 +3651,6 @@ function openDrawer(){
   if(drawer.classList.contains('open')){ closeDrawer(); return; }
   const keyInput = document.getElementById('aisKeyInput');
   if(keyInput) keyInput.value = localStorage.getItem('aisstream_key') || '';
-  const vfInput = document.getElementById('vfKeyInput');
-  if(vfInput) vfInput.value = localStorage.getItem('vf_key') || '';
-  const ahInput = document.getElementById('aishubUserInput');
-  if(ahInput) ahInput.value = localStorage.getItem('aishub_user') || '';
   drawer.classList.add('open');
   document.getElementById('drawerBackdrop').style.display='block';
 }
@@ -3904,24 +3662,6 @@ function saveAisKey(){
   closeDrawer();
   if(typeof disconnectAIS==='function'){ disconnectAIS(); setTimeout(connectAIS, 500); }
   alert('AIS ключ сохранён. Переподключаюсь...');
-}
-
-function saveVfKey(){
-  const val = (document.getElementById('vfKeyInput')?.value||'').trim();
-  if(!val) return;
-  localStorage.setItem('vf_key', val);
-  closeDrawer();
-  startVfPoll();
-  alert('VesselFinder ключ сохранён. Запрашиваю позиции...');
-}
-
-function saveAisHubUser(){
-  const val = (document.getElementById('aishubUserInput')?.value||'').trim();
-  if(!val) return;
-  localStorage.setItem('aishub_user', val);
-  closeDrawer();
-  pollAISHub();
-  alert('AISHub username сохранён. Запрашиваю позиции...');
 }
 
 async function forceSwUpdate(){
