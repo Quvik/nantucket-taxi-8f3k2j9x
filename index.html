@@ -1668,7 +1668,10 @@ function renderRushCard(upcoming,now){
 }
 
 // ── AIS Live Ferry Tracking (aisstream.io + VesselFinder fallback) ────────
-(function(){ if(!localStorage.getItem('aisstream_key')) localStorage.setItem('aisstream_key','584cd29a6cb23bd8b96551ba563b30d9954'); })();
+(function(){
+  if(!localStorage.getItem('aisstream_key')) localStorage.setItem('aisstream_key','584cd29a6cb23bd8b96551ba563b30d9954');
+  if(!localStorage.getItem('vf_key')) localStorage.setItem('vf_key','019e33884172767a9b06647e5c81e771');
+})();
 
 const NANT_PORT={lat:41.2720,lon:-70.0970};
 const HYAN_PORT={lat:41.6307,lon:-70.2842};
