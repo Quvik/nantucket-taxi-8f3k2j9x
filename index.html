@@ -2081,7 +2081,7 @@ function findSchedForVessel(ferryLine, portSinceMs){
   return arrivals.find(a=>a.line.includes(ferryLine.split(' ')[0])&&a.dateObj>=lo&&a.dateObj<=hi)||null;
 }
 
-// Returns ferries that should currently be at sea based on schedule
+// Returns ferries currently at sea based on schedule, with estimated position
 function getScheduledVesselsAtSea(){
   const now=Date.now();
   const td=ferryTargetDate(0);
@@ -2089,12 +2089,18 @@ function getScheduledVesselsAtSea(){
   return arrivals.filter(a=>{
     if(!a.dateObj) return false;
     const arrMs=a.dateObj.getTime();
-    // Approximate crossing time: Traditional ~2h15m, High-Speed ~65min
     const crossMs=(a.type||'').includes('Traditional')?140*60*1000:70*60*1000;
     return now>arrMs-crossMs && now<arrMs;
   }).map(a=>{
-    const etaMins=Math.round((a.dateObj.getTime()-now)/60000);
-    return {...a,etaMins};
+    const arrMs=a.dateObj.getTime();
+    const crossMs=(a.type||'').includes('Traditional')?140*60*1000:70*60*1000;
+    const depMs=arrMs-crossMs;
+    const elapsed=now-depMs;
+    const progress=Math.max(0,Math.min(1,elapsed/crossMs));
+    const etaMins=Math.round((arrMs-now)/60000);
+    const elapsedMins=Math.round(elapsed/60000);
+    const distNm=Math.round((1-progress)*28.5*10)/10; // ~28.5nm Hyannis→Nantucket
+    return {...a,etaMins,elapsedMins,progress,distNm};
   });
 }
 
@@ -2117,21 +2123,36 @@ function renderAISVessels(){
     if(inferred.length){
       const vfSt=vfLastStatus?`<div style="font-size:10px;opacity:.5;margin-top:2px;word-break:break-all;">${vfLastStatus}</div>`:'';
       const pktHint=`<div style="font-size:10px;opacity:.35;text-align:center;margin-top:4px;">${aisRawCount} пкт · AIS не видит · ${mtLink}</div>${vfSt}`;
-      el.innerHTML=inferred.map(v=>`
-        <div style="background:#17181c;border:1px dashed #333;border-radius:14px;padding:10px 14px;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;">
-          <div style="display:flex;align-items:center;gap:10px;">
-            <div style="font-size:20px;">${lineEmoji(v.line)}</div>
-            <div>
-              <div style="font-size:13px;font-weight:800;">${v.line}</div>
-              <div style="font-size:11px;color:${lineColor(v.line)};opacity:.7;">из ${v.from} · ${v.type}</div>
-              <div style="font-size:10px;opacity:.4;">📋 по расписанию · AIS не видит</div>
+      el.innerHTML=inferred.map(v=>{
+        const filled=Math.round(v.progress*12);
+        const bar='─'.repeat(filled)+'⬤'+'─'.repeat(12-filled);
+        const urgent=v.etaMins<=5;
+        const border=urgent?lineColor(v.line):'#333';
+        const bg=urgent?lineColor(v.line)+'15':'#17181c';
+        return `
+        <div style="background:${bg};border:1px dashed ${border};border-radius:14px;padding:10px 14px;margin-bottom:8px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+            <div style="display:flex;align-items:center;gap:8px;">
+              <div style="font-size:20px;">${lineEmoji(v.line)}</div>
+              <div>
+                <div style="font-size:13px;font-weight:800;">${v.line} · ${v.type.includes('High')?'⚡ HS':'🐢 Trad'}</div>
+                <div style="font-size:11px;color:${lineColor(v.line)};opacity:.8;">из ${v.from} · ${v.elapsedMins} мин в пути</div>
+              </div>
+            </div>
+            <div style="text-align:right;">
+              <div style="font-size:${urgent?'15':'14'}px;font-weight:800;color:${urgent?lineColor(v.line):'white'};">${urgent?'⚡ ':''}~${v.etaMins} мин</div>
+              <div style="font-size:10px;opacity:.4;">${v.time}</div>
             </div>
           </div>
-          <div style="text-align:right;">
-            <div style="font-size:14px;font-weight:800;">~${v.etaMins} мин</div>
-            <div style="font-size:10px;opacity:.4;">${v.time}</div>
+          <div style="font-family:monospace;font-size:11px;color:${lineColor(v.line)};letter-spacing:1px;margin:2px 0;">${bar}</div>
+          <div style="display:flex;justify-content:space-between;font-size:9px;opacity:.4;margin-top:1px;">
+            <span>${v.from}</span>
+            <span>~${v.distNm} nm до Nantucket</span>
+            <span>Nantucket</span>
           </div>
-        </div>`).join('')+pktHint;
+          <div style="font-size:9px;opacity:.3;margin-top:3px;">📋 расчётная позиция · AIS не доступен</div>
+        </div>`;
+      }).join('')+pktHint;
       return;
     }
     let hint='';
