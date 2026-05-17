@@ -1768,14 +1768,116 @@ async function pollVesselFinder(){
   renderAISVessels(); // always update UI even if all attempts failed
 }
 
+// ── SSA Vessel Tracker (steamshipauthority.com internal API) ──────────────
+// SSA publishes real-time vessel positions on their website.
+// We discover their API endpoint by fetching the tracker page HTML.
+let ssaApiUrl='', ssaDiscovered=false, ssaPollTimer=null;
+
+async function fetchJson(url){
+  const proxies=['https://api.allorigins.win/raw?url=','https://corsproxy.io/?'];
+  for(const base of proxies){
+    try{
+      const ctrl=new AbortController();
+      const t=setTimeout(()=>ctrl.abort(),9000);
+      const r=await fetch(base+encodeURIComponent(url),{signal:ctrl.signal});
+      clearTimeout(t);
+      const text=await r.text();
+      return JSON.parse(text);
+    }catch{}
+  }
+  return null;
+}
+
+async function discoverSSAApi(){
+  if(ssaDiscovered) return;
+  ssaDiscovered=true;
+  const proxies=['https://api.allorigins.win/raw?url=','https://corsproxy.io/?'];
+  const ssaPage='https://www.steamshipauthority.com/about/vessel_tracker';
+  for(const base of proxies){
+    try{
+      const ctrl=new AbortController();
+      const t=setTimeout(()=>ctrl.abort(),12000);
+      const r=await fetch(base+encodeURIComponent(ssaPage),{signal:ctrl.signal});
+      clearTimeout(t);
+      const html=await r.text();
+      // Look for API endpoint patterns in the page HTML/JS
+      const patterns=[
+        /['"`]([^'"`]*vessel[^'"`]*position[^'"`]{0,50})['"` ]/gi,
+        /['"`]([^'"`]*\/api\/[^'"`\s]{5,80})['"` ]/gi,
+        /fetch\(['"`]([^'"`]+)['"` ]/gi,
+        /url\s*[:=]\s*['"`]([^'"`]{10,120})['"` ]/gi,
+      ];
+      const found=new Set();
+      for(const p of patterns){
+        let m;
+        while((m=p.exec(html))!==null){
+          const u=m[1];
+          if(u.startsWith('http')||u.startsWith('/')) found.add(u);
+        }
+      }
+      // Try common SSA API patterns
+      const candidates=[...found].filter(u=>
+        u.includes('vessel')||u.includes('position')||u.includes('track')||u.includes('fleet')
+      );
+      // Also try known common patterns
+      candidates.push(
+        'https://www.steamshipauthority.com/api/vessel_positions',
+        'https://www.steamshipauthority.com/api/vessels',
+        'https://www.steamshipauthority.com/about/vessel_tracker_data',
+        'https://www.steamshipauthority.com/vesseltracker/api',
+      );
+      for(const candidate of candidates.slice(0,8)){
+        const data=await fetchJson(candidate.startsWith('/')?'https://www.steamshipauthority.com'+candidate:candidate);
+        if(data&&(Array.isArray(data)||(typeof data==='object'&&Object.keys(data).length>0))){
+          ssaApiUrl=candidate;
+          await pollSSA(); return;
+        }
+      }
+      if(html.length>100) break; // got a response, stop trying proxies
+    }catch{}
+  }
+}
+
+async function pollSSA(){
+  if(!ssaApiUrl) return;
+  const data=await fetchJson(ssaApiUrl);
+  if(!data) return;
+  const items=Array.isArray(data)?data:Object.values(data);
+  const now=Date.now();
+  let updated=0;
+  items.forEach(v=>{
+    const lat=Number(v.lat||v.latitude||v.Latitude||v.LAT);
+    const lon=Number(v.lon||v.lng||v.longitude||v.Longitude||v.LON);
+    if(!lat||!lon) return;
+    const mmsi=String(v.mmsi||v.MMSI||'');
+    const ferry=mmsi?MMSI_MAP[mmsi]:null;
+    if(!ferry&&!mmsi) return;
+    const name=v.name||v.Name||v.vessel_name||mmsi;
+    const sog=Number(v.speed||v.Speed||v.SOG||v.sog||0);
+    const cog=Number(v.course||v.Course||v.COG||v.cog||0);
+    const id=mmsi||name;
+    const prev=aisVessels[id];
+    const isInPort=aisDistNm(lat,lon,NANT_PORT.lat,NANT_PORT.lon)<0.4;
+    const portSince=isInPort?(prev?.portSince||now):null;
+    const info=ferry||{line:'Steamship',color:'#0A84FF',emoji:'🚢',name};
+    aisVessels[id]={mmsi:id,name:info.name,...info,lat,lon,sog,cog,ts:now,portSince,source:'SSA'};
+    updated++;
+  });
+  if(updated>0){
+    vfLastStatus=`🛳 SSA: ${updated} судов`;
+    renderAISVessels();
+  }
+}
+
 function startVfPoll(){
   stopVfPoll();
-  if(!getVfKey()) return;
   pollVesselFinder();
-  vfPollTimer=setInterval(pollVesselFinder, 65000); // 65s to stay within 1/min limit
+  discoverSSAApi();
+  vfPollTimer=setInterval(()=>{ pollVesselFinder(); if(ssaApiUrl)pollSSA(); }, 65000);
 }
 function stopVfPoll(){
   if(vfPollTimer){clearInterval(vfPollTimer);vfPollTimer=null;}
+  ssaDiscovered=false; ssaApiUrl=''; // reset so next startFerryTick re-discovers
 }
 
 // MMSI → known ferry identity map (built from FERRY_MMSIS)
