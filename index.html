@@ -1714,48 +1714,52 @@ async function pollVesselFinder(){
   if(!key) return;
   const batch=vfBatch%2===0 ? VF_BATCH1 : (VF_BATCH2||VF_BATCH1);
   vfBatch++;
-  // Try vessels endpoint with userkey, then with fleet endpoint
-  const vfUrl=`https://api.vesselfinder.com/vessels?userkey=${key}&mmsi=${batch}`;
-  const proxies=[
-    `https://api.allorigins.win/raw?url=${encodeURIComponent(vfUrl)}`,
-    `https://corsproxy.io/?${encodeURIComponent(vfUrl)}`,
+  // Try: 1) API key + MMSI list, 2) Fleet key + MMSI list, 3) Fleet key only (all fleet vessels)
+  const fleetKey=key.slice(0,-1)+'0'; // fleet key differs in last digit (see VF account page)
+  const urls=[
+    `https://api.vesselfinder.com/vessels?userkey=${key}&mmsi=${batch}`,
+    `https://api.vesselfinder.com/vessels?userkey=${fleetKey}&mmsi=${batch}`,
+    `https://api.vesselfinder.com/vessels?userkey=${fleetKey}`,
   ];
-  for(const proxy of proxies){
-    try{
-      const r=await fetch(proxy,{signal:AbortSignal.timeout(10000)});
-      const text=await r.text();
-      let data;
-      try{ data=JSON.parse(text); }catch{ vfLastStatus=`⚠️ VF: не JSON (${text.slice(0,60)})`; continue; }
-      // VF error responses: {"error":"..."} or {"msg":"..."}
-      if(data&&!Array.isArray(data)){
-        vfLastStatus=`⚠️ VF: ${data.error||data.msg||data.message||JSON.stringify(data).slice(0,80)}`;
-        renderAISVessels(); return;
-      }
-      if(!Array.isArray(data)){ vfLastStatus='⚠️ VF: неожиданный ответ'; continue; }
-      const now=Date.now();
-      let updated=0;
-      data.forEach(item=>{
-        const a=item.AIS;
-        if(!a||!a.MMSI) return;
-        const mmsi=String(a.MMSI);
-        const ferry=MMSI_MAP[mmsi];
-        if(!ferry) return;
-        const lat=Number(a.LATITUDE),lon=Number(a.LONGITUDE);
-        if(!lat||!lon) return;
-        const rawSpd=Number(a.SPEED)||0;
-        const sog=rawSpd>300 ? rawSpd/10 : rawSpd;
-        const cog=Number(a.COURSE)||0;
-        const prev=aisVessels[mmsi];
-        const isInPort=aisDistNm(lat,lon,NANT_PORT.lat,NANT_PORT.lon)<0.4;
-        const portSince=isInPort?(prev?.portSince||now):null;
-        aisVessels[mmsi]={mmsi,name:ferry.name,...ferry,lat,lon,sog,cog,ts:now,portSince,source:'VF'};
-        updated++;
-      });
-      vfLastStatus=updated>0?`🛰 VF: ${updated} судов`:`🛰 VF: 0 судов (пустой ответ)`;
-      renderAISVessels();
-      break;
-    }catch(e){ vfLastStatus=`⚠️ VF: ${e.message||'ошибка'}`; }
+  const proxies=['https://api.allorigins.win/raw?url=','https://corsproxy.io/?'];
+  for(const vfUrl of urls){
+    for(const base of proxies){
+      try{
+        const r=await fetch(base+encodeURIComponent(vfUrl),{signal:AbortSignal.timeout(10000)});
+        const text=await r.text();
+        let data;
+        try{ data=JSON.parse(text); }catch{ vfLastStatus=`⚠️ VF: не JSON · ${text.slice(0,50)}`; continue; }
+        if(data&&!Array.isArray(data)){
+          vfLastStatus=`⚠️ VF: ${data.error||data.msg||data.message||JSON.stringify(data).slice(0,80)}`;
+          renderAISVessels(); return;
+        }
+        if(!Array.isArray(data)){ vfLastStatus='⚠️ VF: неожиданный ответ'; continue; }
+        const now=Date.now();
+        let updated=0;
+        data.forEach(item=>{
+          const a=item.AIS;
+          if(!a||!a.MMSI) return;
+          const mmsi=String(a.MMSI);
+          const ferry=MMSI_MAP[mmsi];
+          if(!ferry) return;
+          const lat=Number(a.LATITUDE),lon=Number(a.LONGITUDE);
+          if(!lat||!lon) return;
+          const rawSpd=Number(a.SPEED)||0;
+          const sog=rawSpd>300?rawSpd/10:rawSpd;
+          const cog=Number(a.COURSE)||0;
+          const prev=aisVessels[mmsi];
+          const isInPort=aisDistNm(lat,lon,NANT_PORT.lat,NANT_PORT.lon)<0.4;
+          const portSince=isInPort?(prev?.portSince||now):null;
+          aisVessels[mmsi]={mmsi,name:ferry.name,...ferry,lat,lon,sog,cog,ts:now,portSince,source:'VF'};
+          updated++;
+        });
+        vfLastStatus=updated>0?`🛰 VF: ${updated} судов`:`🛰 VF: пустой ответ [${new URL(vfUrl).search.slice(0,30)}]`;
+        renderAISVessels();
+        return; // success — stop trying
+      }catch(e){ vfLastStatus=`⚠️ VF: ${e.message||'timeout'}`; }
+    }
   }
+  renderAISVessels(); // always update UI even if all attempts failed
 }
 
 function startVfPoll(){
