@@ -3842,10 +3842,183 @@ function renderHistory(trips){
           <div style="font-size:12px;opacity:.5;margin-top:2px;">${toZone}${showDest?'':''} · ${time} · ${extras}</div>
         </div>
         <div style="font-size:20px;font-weight:900;color:#30d158;flex-shrink:0;">$${t.fare||'?'}</div>
+        <button onclick="editTrip('${t.id}')" style="background:#1a2233;border:none;color:#0a84ff;border-radius:10px;width:34px;height:34px;font-size:16px;cursor:pointer;flex-shrink:0;">✏️</button>
         <button onclick="deleteTrip('${t.id}')" style="background:#2a1a1a;border:none;color:#ff453a;border-radius:10px;width:34px;height:34px;font-size:16px;cursor:pointer;flex-shrink:0;">🗑</button>
       </div>`;
     }).join('')}
   `).join('');
+}
+
+// ── Edit trip ─────────────────────────────────────────────
+let _editingTripId = null;
+
+function editTrip(id){
+  if(!fbDb||!fbUser) return;
+  fbDb.collection('users').doc(fbUser.uid).collection('trips').doc(id).get().then(doc=>{
+    if(!doc.exists) return;
+    _editingTripId = id;
+    const t = doc.data();
+    _showEditModal(t);
+  });
+}
+
+function _showEditModal(t){
+  const existing = document.getElementById('editTripOverlay');
+  if(existing) existing.remove();
+
+  const zoneOpts = (ALL_ZONES||[]).map(z=>`<option value="${z}">${z}</option>`).join('');
+
+  const overlay = document.createElement('div');
+  overlay.id = 'editTripOverlay';
+  overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:99999;display:flex;align-items:flex-end;justify-content:center;';
+  overlay.addEventListener('click', e=>{ if(e.target===overlay) overlay.remove(); });
+
+  overlay.innerHTML=`
+    <div style="background:#1e1e28;border:1px solid #333;border-radius:20px 20px 0 0;padding:20px 18px 34px;width:100%;max-width:420px;max-height:92vh;overflow-y:auto;">
+      <div style="width:40px;height:4px;background:#333;border-radius:2px;margin:0 auto 18px;"></div>
+      <div style="font-size:18px;font-weight:800;margin-bottom:16px;text-align:center;">Редактировать поездку</div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
+        <div>
+          <div style="font-size:11px;opacity:.5;margin-bottom:5px;">ИЗ ЗОНЫ</div>
+          <select id="et_fromZone" style="width:100%;background:#12121a;border:1px solid #333;color:white;border-radius:10px;padding:10px;font-size:14px;">
+            ${zoneOpts}
+          </select>
+        </div>
+        <div>
+          <div style="font-size:11px;opacity:.5;margin-bottom:5px;">В ЗОНУ</div>
+          <select id="et_toZone" style="width:100%;background:#12121a;border:1px solid #333;color:white;border-radius:10px;padding:10px;font-size:14px;">
+            ${zoneOpts}
+          </select>
+        </div>
+      </div>
+
+      <div style="margin-bottom:12px;">
+        <div style="font-size:11px;opacity:.5;margin-bottom:5px;">АДРЕС НАЗНАЧЕНИЯ</div>
+        <input id="et_dest" type="text" placeholder="Адрес или название" value="${(t.destination||'').replace(/"/g,'&quot;')}"
+          style="width:100%;box-sizing:border-box;background:#12121a;border:1px solid #333;color:white;border-radius:10px;padding:10px;font-size:14px;">
+      </div>
+
+      <div style="margin-bottom:16px;">
+        <div style="font-size:11px;opacity:.5;margin-bottom:5px;">ИТОГО ($)</div>
+        <input id="et_fare" type="number" min="0" step="0.01" value="${t.fare||0}"
+          style="width:100%;box-sizing:border-box;background:#12121a;border:1px solid #333;color:#30d158;border-radius:10px;padding:10px;font-size:22px;font-weight:900;">
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
+        <div>
+          <div style="font-size:11px;opacity:.5;margin-bottom:5px;">ПАССАЖИРЫ</div>
+          <div style="display:flex;align-items:center;gap:8px;background:#12121a;border:1px solid #333;border-radius:10px;padding:8px 10px;">
+            <button onclick="etStep('et_pax',-1,1,8)" style="background:#252530;border:none;color:white;border-radius:6px;width:28px;height:28px;font-size:18px;cursor:pointer;line-height:1;">−</button>
+            <span id="et_pax_disp" style="flex:1;text-align:center;font-size:16px;font-weight:700;">${t.passengers||1}</span>
+            <input id="et_pax" type="hidden" value="${t.passengers||1}">
+            <button onclick="etStep('et_pax',1,1,8)" style="background:#252530;border:none;color:white;border-radius:6px;width:28px;height:28px;font-size:18px;cursor:pointer;line-height:1;">+</button>
+          </div>
+        </div>
+        <div>
+          <div style="font-size:11px;opacity:.5;margin-bottom:5px;">ОЖИДАНИЕ ($)</div>
+          <input id="et_wait" type="number" min="0" step="0.01" value="${(t.waitCharge||0).toFixed(2)}"
+            style="width:100%;box-sizing:border-box;background:#12121a;border:1px solid #333;color:white;border-radius:10px;padding:10px;font-size:14px;">
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px;">
+        <div>
+          <div style="font-size:11px;opacity:.5;margin-bottom:5px;">🐕 СОБАКИ</div>
+          <div style="display:flex;align-items:center;gap:6px;background:#12121a;border:1px solid #333;border-radius:10px;padding:8px;">
+            <button onclick="etStep('et_dogs',-1,0,5)" style="background:#252530;border:none;color:white;border-radius:6px;width:26px;height:26px;font-size:16px;cursor:pointer;line-height:1;">−</button>
+            <span id="et_dogs_disp" style="flex:1;text-align:center;font-weight:700;">${t.dogs||0}</span>
+            <input id="et_dogs" type="hidden" value="${t.dogs||0}">
+            <button onclick="etStep('et_dogs',1,0,5)" style="background:#252530;border:none;color:white;border-radius:6px;width:26px;height:26px;font-size:16px;cursor:pointer;line-height:1;">+</button>
+          </div>
+        </div>
+        <div>
+          <div style="font-size:11px;opacity:.5;margin-bottom:5px;">🚲 ВЕЛИКИ</div>
+          <div style="display:flex;align-items:center;gap:6px;background:#12121a;border:1px solid #333;border-radius:10px;padding:8px;">
+            <button onclick="etStep('et_bikes',-1,0,5)" style="background:#252530;border:none;color:white;border-radius:6px;width:26px;height:26px;font-size:16px;cursor:pointer;line-height:1;">−</button>
+            <span id="et_bikes_disp" style="flex:1;text-align:center;font-weight:700;">${t.bikes||0}</span>
+            <input id="et_bikes" type="hidden" value="${t.bikes||0}">
+            <button onclick="etStep('et_bikes',1,0,5)" style="background:#252530;border:none;color:white;border-radius:6px;width:26px;height:26px;font-size:16px;cursor:pointer;line-height:1;">+</button>
+          </div>
+        </div>
+        <div>
+          <div style="font-size:11px;opacity:.5;margin-bottom:5px;">💼 СУМКИ</div>
+          <div style="display:flex;align-items:center;gap:6px;background:#12121a;border:1px solid #333;border-radius:10px;padding:8px;">
+            <button onclick="etStep('et_bags',-1,0,5)" style="background:#252530;border:none;color:white;border-radius:6px;width:26px;height:26px;font-size:16px;cursor:pointer;line-height:1;">−</button>
+            <span id="et_bags_disp" style="flex:1;text-align:center;font-weight:700;">${t.bags||0}</span>
+            <input id="et_bags" type="hidden" value="${t.bags||0}">
+            <button onclick="etStep('et_bags',1,0,5)" style="background:#252530;border:none;color:white;border-radius:6px;width:26px;height:26px;font-size:16px;cursor:pointer;line-height:1;">+</button>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:10px;margin-bottom:20px;">
+        <button id="et_dirt" data-on="${t.dirtRoad?'1':'0'}" onclick="etToggle('et_dirt','🌿 Грунт')" style="flex:1;border-radius:10px;padding:10px;font-size:13px;font-weight:700;cursor:pointer;border:none;${t.dirtRoad?'background:#1a3a1a;color:#30d158;':'background:#252530;color:white;'}">🌿 Грунт</button>
+        <button id="et_night" data-on="${t.nightFee?'1':'0'}" onclick="etToggle('et_night','🌙 Ночь')" style="flex:1;border-radius:10px;padding:10px;font-size:13px;font-weight:700;cursor:pointer;border:none;${t.nightFee?'background:#1a1a3a;color:#0a84ff;':'background:#252530;color:white;'}">🌙 Ночь</button>
+      </div>
+
+      <div style="display:flex;gap:10px;">
+        <button onclick="document.getElementById('editTripOverlay').remove()" style="flex:1;background:#252530;border:none;color:white;border-radius:14px;padding:14px;font-size:15px;font-weight:700;cursor:pointer;">Отмена</button>
+        <button onclick="saveEditTrip()" style="flex:1;background:#0a84ff;border:none;color:white;border-radius:14px;padding:14px;font-size:15px;font-weight:700;cursor:pointer;">Сохранить</button>
+      </div>
+    </div>`;
+
+  document.body.appendChild(overlay);
+
+  // Set selects after append
+  const fromSel = document.getElementById('et_fromZone');
+  const toSel   = document.getElementById('et_toZone');
+  if(fromSel && t.fromZone) fromSel.value = t.fromZone;
+  if(toSel   && t.toZone)   toSel.value   = t.toZone;
+}
+
+function etStep(id, delta, min, max){
+  const inp = document.getElementById(id);
+  const disp = document.getElementById(id+'_disp');
+  if(!inp||!disp) return;
+  let v = parseInt(inp.value)||0;
+  v = Math.min(max, Math.max(min, v+delta));
+  inp.value = v;
+  disp.textContent = v;
+}
+
+function etToggle(id, label){
+  const btn = document.getElementById(id);
+  if(!btn) return;
+  const on = btn.dataset.on === '1';
+  btn.dataset.on = on ? '0' : '1';
+  if(id==='et_dirt'){
+    btn.style.background = on ? '#252530' : '#1a3a1a';
+    btn.style.color       = on ? 'white'  : '#30d158';
+  } else {
+    btn.style.background = on ? '#252530' : '#1a1a3a';
+    btn.style.color       = on ? 'white'  : '#0a84ff';
+  }
+}
+
+function saveEditTrip(){
+  if(!_editingTripId||!fbDb||!fbUser) return;
+  const fromZone  = (document.getElementById('et_fromZone')||{}).value||'';
+  const toZone    = (document.getElementById('et_toZone')||{}).value||'';
+  const dest      = (document.getElementById('et_dest')||{}).value.trim()||'';
+  const fare      = parseFloat((document.getElementById('et_fare')||{}).value)||0;
+  const passengers= parseInt((document.getElementById('et_pax')||{}).value)||1;
+  const waitCharge= parseFloat((document.getElementById('et_wait')||{}).value)||0;
+  const dogs      = parseInt((document.getElementById('et_dogs')||{}).value)||0;
+  const bikes     = parseInt((document.getElementById('et_bikes')||{}).value)||0;
+  const bags      = parseInt((document.getElementById('et_bags')||{}).value)||0;
+  const dirtBtn   = document.getElementById('et_dirt');
+  const nightBtn  = document.getElementById('et_night');
+  const dirtRoad  = dirtBtn  ? dirtBtn.dataset.on  === '1' : false;
+  const nightFee  = nightBtn ? nightBtn.dataset.on === '1' : false;
+
+  fbDb.collection('users').doc(fbUser.uid).collection('trips').doc(_editingTripId)
+    .update({ fromZone, toZone, destination:dest, fare, passengers, waitCharge, dogs, bikes, bags, dirtRoad, nightFee })
+    .then(()=>{
+      const overlay = document.getElementById('editTripOverlay');
+      if(overlay) overlay.remove();
+      _editingTripId = null;
+    }).catch(()=>{});
 }
 
 // ── showTab hook for historyTab ───────────────────────────
