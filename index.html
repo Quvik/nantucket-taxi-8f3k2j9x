@@ -2974,8 +2974,9 @@ async function calculateFare() {
     const localMatch = localPlaces.find(p => {
         const pn = p.name.toLowerCase();
         if(addrCore === pn || addrCore.includes(pn) || pn.includes(addrCore)) return true;
-        // Word-level fuzzy: any word >3 chars from our place name found in the address core
-        return pn.split(' ').filter(w=>w.length>3).some(w=>addrCore.includes(w));
+        // Word-level fuzzy: only distinctive words (6+ chars) to avoid false matches
+        // on common words like "pond", "road", "lane", "drive", "beach" etc.
+        return pn.split(' ').filter(w=>w.length>5).some(w=>addrCore.includes(w));
     });
 
     if (localMatch) {
@@ -3000,7 +3001,7 @@ async function calculateFare() {
         // If KML returned nothing (shuttle stop / coordinates outside all polygons),
         // fall back to keyword match against localPlaces
         if(!destinationZone){
-            const words=address.toLowerCase().split(/[\s,]+/).filter(w=>w.length>3);
+            const words=address.toLowerCase().split(/[\s,]+/).filter(w=>w.length>5);
             const fuzzy=localPlaces.find(p=>words.some(w=>p.name.toLowerCase().includes(w)));
             if(fuzzy){ destinationZone=fuzzy.zone; destIsCrossTown=false; lat=null; lng=null; }
         }
@@ -3022,7 +3023,7 @@ async function calculateFare() {
         destinationZone = destZ2;
         destIsCrossTown = destCT2;
         if(!destinationZone){
-            const words=address.toLowerCase().split(/[\s,]+/).filter(w=>w.length>3);
+            const words=address.toLowerCase().split(/[\s,]+/).filter(w=>w.length>5);
             const fuzzy=localPlaces.find(p=>words.some(w=>p.name.toLowerCase().includes(w)));
             if(fuzzy){ destinationZone=fuzzy.zone; destIsCrossTown=false; lat=null; lng=null; }
         }
@@ -3253,7 +3254,7 @@ function fetchSuggestions(query){
           // Word-level check: any word >3 chars from our local name found in Google's main text
           const isDup = localNames.some(ln => {
             if(main.includes(ln) || ln.includes(main)) return true;
-            return ln.split(' ').filter(w=>w.length>3).some(w=>main.includes(w));
+            return ln.split(' ').filter(w=>w.length>5).some(w=>main.includes(w));
           });
           return !isDup;
         }).slice(0, Math.max(0, 5 - local.length))
