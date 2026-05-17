@@ -723,6 +723,9 @@ input[type="time"].form-input{ -webkit-appearance:auto; appearance:auto; }
     </div>
     <div style="font-size:11px;opacity:.35;margin-top:6px;">vesselfinder.com → бесплатно → API → Lite plan</div>
   </div>
+  <div style="padding:0 16px 16px 16px;border-top:1px solid #1e1e28;margin-top:4px;">
+    <button onclick="forceSwUpdate()" style="width:100%;background:#1e1e28;border:1px solid #333;color:#aaa;border-radius:10px;padding:10px;font-size:12px;cursor:pointer;">🔄 Принудительное обновление приложения</button>
+  </div>
 </div>
 
 <div class="bookings-panel" id="bookingsPanel">
@@ -973,7 +976,10 @@ input[type="time"].form-input{ -webkit-appearance:auto; appearance:auto; }
   <div id="aisLiveSection" style="margin-bottom:14px;">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
       <div style="font-size:11px;font-weight:700;opacity:.4;letter-spacing:1px;">📡 LIVE СУДА (AIS)</div>
-      <div id="aisDotStatus" style="width:8px;height:8px;border-radius:50%;background:#555;transition:background .3s;"></div>
+      <div style="display:flex;align-items:center;gap:6px;">
+        <span style="font-size:9px;opacity:.25;">v8</span>
+        <div id="aisDotStatus" style="width:8px;height:8px;border-radius:50%;background:#555;transition:background .3s;"></div>
+      </div>
     </div>
     <div id="aisVesselsList"><div style="font-size:13px;opacity:.5;text-align:center;padding:10px;">🔄 Подключение...</div></div>
   </div>
@@ -3727,6 +3733,17 @@ function saveVfKey(){
   closeDrawer();
   startVfPoll();
   alert('VesselFinder ключ сохранён. Запрашиваю позиции...');
+}
+
+async function forceSwUpdate(){
+  closeDrawer();
+  if('serviceWorker' in navigator){
+    const regs=await navigator.serviceWorker.getRegistrations();
+    for(const r of regs) await r.unregister();
+  }
+  const keys=await caches.keys();
+  for(const k of keys) await caches.delete(k);
+  location.reload(true);
 }
 
 function closeDrawer(){
