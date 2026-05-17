@@ -14,6 +14,7 @@ const CRITICAL = [
   '/nantucket-taxi-8f3k2j9x/places.json',
   '/nantucket-taxi-8f3k2j9x/places.json?v=7',
   '/nantucket-taxi-8f3k2j9x/streets.json',
+  '/nantucket-taxi-8f3k2j9x/streets.json?v=2',
   '/nantucket-taxi-8f3k2j9x/manifest.json',
 ];
 
