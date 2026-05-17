@@ -2135,7 +2135,7 @@ function renderAISVessels(){
             <div style="display:flex;align-items:center;gap:8px;">
               <div style="font-size:20px;">${lineEmoji(v.line)}</div>
               <div>
-                <div style="font-size:13px;font-weight:800;">${v.line} · ${v.type.includes('High')?'⚡ HS':'🐢 Trad'}</div>
+                <div style="font-size:13px;font-weight:800;">${v.line} · ${v.type.includes('High')?'⚡ High-Speed':'🚢 Traditional'}</div>
                 <div style="font-size:11px;color:${lineColor(v.line)};opacity:.8;">из ${v.from} · ${v.elapsedMins} мин в пути</div>
               </div>
             </div>
