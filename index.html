@@ -713,6 +713,16 @@ input[type="time"].form-input{ -webkit-appearance:auto; appearance:auto; }
     </div>
     <div style="font-size:11px;opacity:.35;margin-top:6px;">aisstream.io → My Account → API Keys</div>
   </div>
+  <div style="padding:0 16px 12px 16px;">
+    <div style="font-size:11px;font-weight:700;opacity:.4;letter-spacing:1px;margin-bottom:8px;">🛰 VESSEL FINDER KEY</div>
+    <div style="display:flex;gap:8px;align-items:center;">
+      <input id="vfKeyInput" type="password"
+        placeholder="VesselFinder free API key"
+        style="flex:1;background:#1e1e28;border:1px solid #333;border-radius:10px;padding:9px 12px;color:white;font-size:13px;outline:none;">
+      <button onclick="saveVfKey()" style="background:#30d158;border:none;color:white;border-radius:10px;padding:9px 14px;font-size:13px;font-weight:700;cursor:pointer;">OK</button>
+    </div>
+    <div style="font-size:11px;opacity:.35;margin-top:6px;">vesselfinder.com → бесплатно → API → Lite plan</div>
+  </div>
 </div>
 
 <div class="bookings-panel" id="bookingsPanel">
@@ -1657,7 +1667,7 @@ function renderRushCard(upcoming,now){
   card.innerHTML=`<div style="opacity:.5;font-size:13px;">Статус</div><div style="font-size:22px;font-weight:900;color:${color};margin-top:4px;">${icon} ${msg}</div><div style="font-size:13px;opacity:.7;margin-top:5px;">${sub}</div>`;
 }
 
-// ── AIS Live Ferry Tracking (aisstream.io) ────────────────────────────────
+// ── AIS Live Ferry Tracking (aisstream.io + VesselFinder fallback) ────────
 (function(){ if(!localStorage.getItem('aisstream_key')) localStorage.setItem('aisstream_key','584cd29a6cb23bd8b96551ba563b30d9954'); })();
 
 const NANT_PORT={lat:41.2720,lon:-70.0970};
@@ -1687,6 +1697,66 @@ const FERRY_MMSIS = [
 ];
 
 function getAisKey(){ return localStorage.getItem('aisstream_key')||''; }
+function getVfKey(){  return localStorage.getItem('vf_key')||''; }
+
+// ── VesselFinder REST API polling (satellite AIS fallback) ─────────────────
+// Free Lite plan: 1 req/min, up to 10 MMSIs per request.
+// Uses allorigins.win proxy to bypass CORS restrictions.
+const VF_BATCH1 = FERRY_MMSIS.slice(0,10).join(',');
+const VF_BATCH2 = FERRY_MMSIS.slice(10).join(',');
+let vfPollTimer=null, vfBatch=0;
+
+async function pollVesselFinder(){
+  const key=getVfKey();
+  if(!key) return;
+  const batch=vfBatch%2===0 ? VF_BATCH1 : (VF_BATCH2||VF_BATCH1);
+  vfBatch++;
+  const vfUrl=`https://api.vesselfinder.com/vessels?userkey=${key}&mmsi=${batch}`;
+  const proxies=[
+    `https://api.allorigins.win/raw?url=${encodeURIComponent(vfUrl)}`,
+    `https://corsproxy.io/?${encodeURIComponent(vfUrl)}`,
+  ];
+  for(const proxy of proxies){
+    try{
+      const r=await fetch(proxy,{signal:AbortSignal.timeout(8000)});
+      if(!r.ok) continue;
+      const data=await r.json();
+      if(!Array.isArray(data)) continue;
+      const now=Date.now();
+      let updated=0;
+      data.forEach(item=>{
+        const a=item.AIS;
+        if(!a||!a.MMSI) return;
+        const mmsi=String(a.MMSI);
+        const ferry=MMSI_MAP[mmsi];
+        if(!ferry) return;
+        const lat=Number(a.LATITUDE),lon=Number(a.LONGITUDE);
+        if(!lat||!lon) return;
+        // VF API returns speed in 1/10 knots (raw AIS encoding)
+        const rawSpd=Number(a.SPEED)||0;
+        const sog=rawSpd>300 ? rawSpd/10 : rawSpd; // guard against already-divided
+        const cog=Number(a.COURSE)||0;
+        const prev=aisVessels[mmsi];
+        const isInPort=aisDistNm(lat,lon,NANT_PORT.lat,NANT_PORT.lon)<0.4;
+        const portSince=isInPort?(prev?.portSince||now):null;
+        aisVessels[mmsi]={mmsi,name:ferry.name,...ferry,lat,lon,sog,cog,ts:now,portSince,source:'VF'};
+        updated++;
+      });
+      if(updated>0) renderAISVessels();
+      break;
+    }catch{}
+  }
+}
+
+function startVfPoll(){
+  stopVfPoll();
+  if(!getVfKey()) return;
+  pollVesselFinder();
+  vfPollTimer=setInterval(pollVesselFinder, 65000); // 65s to stay within 1/min limit
+}
+function stopVfPoll(){
+  if(vfPollTimer){clearInterval(vfPollTimer);vfPollTimer=null;}
+}
 
 // MMSI → known ferry identity map (built from FERRY_MMSIS)
 const MMSI_MAP = {
@@ -1888,17 +1958,18 @@ function renderAISVessels(){
       return;
     }
     let hint='';
+    const vfHint=!getVfKey()?`<div style="font-size:10px;opacity:.4;margin-top:3px;">🛰 Добавь <b>VesselFinder ключ</b> в настройках для спутникового AIS</div>`:'';
     if(aisRawCount===0){
-      hint=`<div style="font-size:11px;opacity:.4;margin-top:4px;">0 пакетов — нет ответа от сервера · ${mtLink}</div>`;
+      hint=`<div style="font-size:11px;opacity:.4;margin-top:4px;">0 пакетов — нет ответа от сервера · ${mtLink}</div>${vfHint}`;
     } else if(aisLastNames.length&&aisLastNames[0].startsWith('⚠️')){
-      hint=`<div style="font-size:10px;color:#ff9f0a;margin-top:4px;word-break:break-all;">${aisLastNames[0]}</div>`;
+      hint=`<div style="font-size:10px;color:#ff9f0a;margin-top:4px;word-break:break-all;">${aisLastNames[0]}</div>${vfHint}`;
     } else if(aisLastNames.length){
-      hint=`<div style="font-size:10px;opacity:.35;margin-top:4px;word-break:break-all;">Суда: ${aisLastNames.join(', ')}</div>`;
+      hint=`<div style="font-size:10px;opacity:.35;margin-top:4px;word-break:break-all;">Суда: ${aisLastNames.join(', ')}</div>${vfHint}`;
     } else {
       const typeEntries=Object.entries(aisMsgTypes);
       const typeInfo=typeEntries.map(([k,v])=>`${k==='PositionReport'?'PosRpt':k==='ShipStaticData'?'Static':k}:${v}`).join(' ');
       const pktLine=aisRawCount>0?`${aisRawCount} пкт${typeInfo?' ('+typeInfo+')':''}`:' ';
-      hint=`<div style="font-size:10px;opacity:.35;margin-top:4px;">${pktLine} · паромов нет · ${mtLink}</div>`;
+      hint=`<div style="font-size:10px;opacity:.35;margin-top:4px;">${pktLine} · паромов нет · ${mtLink}</div>${vfHint}`;
     }
     el.innerHTML=`<div style="font-size:13px;opacity:.5;text-align:center;padding:10px;">📡 Паромы не в пути${hint}</div>`;
     return;
@@ -1947,7 +2018,7 @@ function renderAISVessels(){
         <div>
           <div style="font-size:14px;font-weight:800;">${v.name}</div>
           <div style="font-size:12px;color:${v.color};font-weight:600;">${v.line} · ${v.origin}</div>
-          <div style="font-size:11px;opacity:.45;">${speed} · ${dist} до Nantucket</div>
+          <div style="font-size:11px;opacity:.45;">${speed} · ${dist} до Nantucket${v.source==='VF'?' · 🛰 VF':''}</div>
         </div>
       </div>
       <div style="text-align:right;min-width:55px;">${etaHtml}</div>
@@ -1959,6 +2030,7 @@ function renderAISVessels(){
 function startFerryTick(){
   stopFerryTick();
   connectAIS();
+  startVfPoll();
   ferryTickId=setInterval(()=>{
     const now=new Date();
     document.querySelectorAll('.fa-row').forEach(row=>{
@@ -1973,7 +2045,7 @@ function startFerryTick(){
     renderAISVessels();
   },30000);
 }
-function stopFerryTick(){ if(ferryTickId)clearInterval(ferryTickId); ferryTickId=null; disconnectAIS(); }
+function stopFerryTick(){ if(ferryTickId)clearInterval(ferryTickId); ferryTickId=null; disconnectAIS(); stopVfPoll(); }
 function shiftFerryDay(d){ ferryDayOffset=Math.max(0,ferryDayOffset+d); renderFerryTab(); }
 
 // ── Ferry Notifications ─────────────────────────────────────
@@ -3616,9 +3688,10 @@ function handleAuthClick(){
 function openDrawer(){
   const drawer = document.getElementById('sideDrawer');
   if(drawer.classList.contains('open')){ closeDrawer(); return; }
-  // Populate AIS key field (masked)
   const keyInput = document.getElementById('aisKeyInput');
   if(keyInput) keyInput.value = localStorage.getItem('aisstream_key') || '';
+  const vfInput = document.getElementById('vfKeyInput');
+  if(vfInput) vfInput.value = localStorage.getItem('vf_key') || '';
   drawer.classList.add('open');
   document.getElementById('drawerBackdrop').style.display='block';
 }
@@ -3628,9 +3701,17 @@ function saveAisKey(){
   if(!val) return;
   localStorage.setItem('aisstream_key', val);
   closeDrawer();
-  // Reconnect AIS with new key
   if(typeof disconnectAIS==='function'){ disconnectAIS(); setTimeout(connectAIS, 500); }
   alert('AIS ключ сохранён. Переподключаюсь...');
+}
+
+function saveVfKey(){
+  const val = (document.getElementById('vfKeyInput')?.value||'').trim();
+  if(!val) return;
+  localStorage.setItem('vf_key', val);
+  closeDrawer();
+  startVfPoll();
+  alert('VesselFinder ключ сохранён. Запрашиваю позиции...');
 }
 
 function closeDrawer(){
