@@ -1707,13 +1707,14 @@ function getVfKey(){  return localStorage.getItem('vf_key')||''; }
 // Uses allorigins.win proxy to bypass CORS restrictions.
 const VF_BATCH1 = FERRY_MMSIS.slice(0,10).join(',');
 const VF_BATCH2 = FERRY_MMSIS.slice(10).join(',');
-let vfPollTimer=null, vfBatch=0;
+let vfPollTimer=null, vfBatch=0, vfLastStatus='';
 
 async function pollVesselFinder(){
   const key=getVfKey();
   if(!key) return;
   const batch=vfBatch%2===0 ? VF_BATCH1 : (VF_BATCH2||VF_BATCH1);
   vfBatch++;
+  // Try vessels endpoint with userkey, then with fleet endpoint
   const vfUrl=`https://api.vesselfinder.com/vessels?userkey=${key}&mmsi=${batch}`;
   const proxies=[
     `https://api.allorigins.win/raw?url=${encodeURIComponent(vfUrl)}`,
@@ -1721,10 +1722,16 @@ async function pollVesselFinder(){
   ];
   for(const proxy of proxies){
     try{
-      const r=await fetch(proxy,{signal:AbortSignal.timeout(8000)});
-      if(!r.ok) continue;
-      const data=await r.json();
-      if(!Array.isArray(data)) continue;
+      const r=await fetch(proxy,{signal:AbortSignal.timeout(10000)});
+      const text=await r.text();
+      let data;
+      try{ data=JSON.parse(text); }catch{ vfLastStatus=`⚠️ VF: не JSON (${text.slice(0,60)})`; continue; }
+      // VF error responses: {"error":"..."} or {"msg":"..."}
+      if(data&&!Array.isArray(data)){
+        vfLastStatus=`⚠️ VF: ${data.error||data.msg||data.message||JSON.stringify(data).slice(0,80)}`;
+        renderAISVessels(); return;
+      }
+      if(!Array.isArray(data)){ vfLastStatus='⚠️ VF: неожиданный ответ'; continue; }
       const now=Date.now();
       let updated=0;
       data.forEach(item=>{
@@ -1735,9 +1742,8 @@ async function pollVesselFinder(){
         if(!ferry) return;
         const lat=Number(a.LATITUDE),lon=Number(a.LONGITUDE);
         if(!lat||!lon) return;
-        // VF API returns speed in 1/10 knots (raw AIS encoding)
         const rawSpd=Number(a.SPEED)||0;
-        const sog=rawSpd>300 ? rawSpd/10 : rawSpd; // guard against already-divided
+        const sog=rawSpd>300 ? rawSpd/10 : rawSpd;
         const cog=Number(a.COURSE)||0;
         const prev=aisVessels[mmsi];
         const isInPort=aisDistNm(lat,lon,NANT_PORT.lat,NANT_PORT.lon)<0.4;
@@ -1745,9 +1751,10 @@ async function pollVesselFinder(){
         aisVessels[mmsi]={mmsi,name:ferry.name,...ferry,lat,lon,sog,cog,ts:now,portSince,source:'VF'};
         updated++;
       });
-      if(updated>0) renderAISVessels();
+      vfLastStatus=updated>0?`🛰 VF: ${updated} судов`:`🛰 VF: 0 судов (пустой ответ)`;
+      renderAISVessels();
       break;
-    }catch{}
+    }catch(e){ vfLastStatus=`⚠️ VF: ${e.message||'ошибка'}`; }
   }
 }
 
@@ -1961,7 +1968,8 @@ function renderAISVessels(){
       return;
     }
     let hint='';
-    const vfHint=!getVfKey()?`<div style="font-size:10px;opacity:.4;margin-top:3px;">🛰 Добавь <b>VesselFinder ключ</b> в настройках для спутникового AIS</div>`:'';
+    const vfStatusHtml=vfLastStatus?`<div style="font-size:10px;opacity:.5;margin-top:3px;word-break:break-all;">${vfLastStatus}</div>`:'';
+    const vfHint=!getVfKey()?`<div style="font-size:10px;opacity:.4;margin-top:3px;">🛰 Добавь <b>VesselFinder ключ</b> в настройках для спутникового AIS</div>`:vfStatusHtml;
     if(aisRawCount===0){
       hint=`<div style="font-size:11px;opacity:.4;margin-top:4px;">0 пакетов — нет ответа от сервера · ${mtLink}</div>${vfHint}`;
     } else if(aisLastNames.length&&aisLastNames[0].startsWith('⚠️')){
