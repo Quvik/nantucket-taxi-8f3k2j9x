@@ -3899,10 +3899,12 @@ function _showEditModal(t){
           style="width:100%;box-sizing:border-box;background:#12121a;border:1px solid #333;color:white;border-radius:10px;padding:10px;font-size:14px;">
       </div>
 
+      <input id="et_baseFare" type="hidden" value="${t.baseFare||0}">
+
       <div style="margin-bottom:16px;">
         <div style="font-size:11px;opacity:.5;margin-bottom:5px;">ИТОГО ($)</div>
-        <input id="et_fare" type="number" min="0" step="0.01" value="${t.fare||0}"
-          style="width:100%;box-sizing:border-box;background:#12121a;border:1px solid #333;color:#30d158;border-radius:10px;padding:10px;font-size:22px;font-weight:900;">
+        <input id="et_fare" type="number" min="0" step="0.01" value="${t.fare||0}" readonly
+          style="width:100%;box-sizing:border-box;background:#12121a;border:1px solid #252530;color:#30d158;border-radius:10px;padding:10px;font-size:22px;font-weight:900;cursor:default;">
       </div>
 
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
@@ -3917,7 +3919,7 @@ function _showEditModal(t){
         </div>
         <div>
           <div style="font-size:11px;opacity:.5;margin-bottom:5px;">ОЖИДАНИЕ ($)</div>
-          <input id="et_wait" type="number" min="0" step="0.01" value="${(t.waitCharge||0).toFixed(2)}"
+          <input id="et_wait" type="number" min="0" step="0.01" value="${(t.waitCharge||0).toFixed(2)}" oninput="etRecalc()"
             style="width:100%;box-sizing:border-box;background:#12121a;border:1px solid #333;color:white;border-radius:10px;padding:10px;font-size:14px;">
         </div>
       </div>
@@ -3980,6 +3982,7 @@ function etStep(id, delta, min, max){
   v = Math.min(max, Math.max(min, v+delta));
   inp.value = v;
   disp.textContent = v;
+  etRecalc();
 }
 
 function etToggle(id, label){
@@ -3994,6 +3997,30 @@ function etToggle(id, label){
     btn.style.background = on ? '#252530' : '#1a1a3a';
     btn.style.color       = on ? 'white'  : '#0a84ff';
   }
+  etRecalc();
+}
+
+function etRecalc(){
+  const baseFare   = parseFloat((document.getElementById('et_baseFare')||{}).value)||0;
+  const passengers = parseInt((document.getElementById('et_pax')||{}).value)||1;
+  const dogs       = parseInt((document.getElementById('et_dogs')||{}).value)||0;
+  const bikes      = parseInt((document.getElementById('et_bikes')||{}).value)||0;
+  const bags       = parseInt((document.getElementById('et_bags')||{}).value)||0;
+  const waitCharge = parseFloat((document.getElementById('et_wait')||{}).value)||0;
+  const dirtOn     = (document.getElementById('et_dirt')||{}).dataset?.on === '1';
+  const nightOn    = (document.getElementById('et_night')||{}).dataset?.on === '1';
+
+  const total = baseFare
+    + Math.max(0, passengers - 1) * 3
+    + dogs * 5
+    + bikes * 5
+    + bags * 2
+    + (nightOn ? 5 : 0)
+    + (dirtOn  ? 5 : 0)
+    + waitCharge;
+
+  const fareEl = document.getElementById('et_fare');
+  if(fareEl) fareEl.value = Number.isInteger(total) ? total : total.toFixed(2);
 }
 
 function saveEditTrip(){
