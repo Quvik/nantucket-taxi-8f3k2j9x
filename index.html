@@ -963,16 +963,7 @@ input[type="time"].form-input{ -webkit-appearance:auto; appearance:auto; }
     <div id="ferrySourceBadge" style="font-size:11px;padding:4px 10px;border-radius:20px;background:#1e1e28;color:#aaa;"></div>
   </div>
 
-  <div id="aisLiveSection" style="margin-bottom:14px;">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
-      <div style="font-size:11px;font-weight:700;opacity:.4;letter-spacing:1px;">📡 LIVE СУДА (AIS)</div>
-      <div style="display:flex;align-items:center;gap:6px;">
-        <span style="font-size:9px;opacity:.25;">v8</span>
-        <div id="aisDotStatus" style="width:8px;height:8px;border-radius:50%;background:#555;transition:background .3s;"></div>
-      </div>
-    </div>
-    <div id="aisVesselsList"><div style="font-size:13px;opacity:.5;text-align:center;padding:10px;">🔄 Подключение...</div></div>
-  </div>
+  <div id="aisLiveSection" style="display:none;"></div>
 
   <div id="ferryArrivalsContainer">
     <div style="text-align:center;padding:40px;opacity:.4;">Загрузка...</div>
@@ -1588,13 +1579,9 @@ function renderFerryTab(forceSource){
   let html='';
   const season=FERRY_BUILTIN.find(s=>{const k=dateKey(td);return k>=s.from&&k<=s.to;});
   if(season&&source==='builtin') html+=`<div style="font-size:11px;color:#0A84FF;font-weight:700;margin-bottom:8px;opacity:.8;">📋 ${season.label}</div>`;
-  const upcomingNotDeparted=upcoming.filter(a=>{
-    const crossMs=(a.type||'').includes('Traditional')?140*60000:70*60000;
-    return !(now>a.dateObj.getTime()-crossMs);
-  });
-  if(upcomingNotDeparted.length){
+  if(upcoming.length){
     html+=`<div style="font-size:11px;font-weight:700;opacity:.4;letter-spacing:1px;margin-bottom:8px;">СЛЕДУЮЩИЕ ПРИБЫТИЯ</div>`;
-    upcomingNotDeparted.forEach((a,i)=>{
+    upcoming.forEach((a,i)=>{
       const isNext=i===0, mins=Math.floor((a.dateObj-now)/60000);
       const isLate=mins<0, hot=!isLate&&mins<=20;
       const bg=isLate?'#1a1000':(isNext?(hot?'#2a1200':'#0f1f14'):'#17181c');
