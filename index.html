@@ -1959,7 +1959,8 @@ function renderAISVessels(){
     // Show schedule-inferred vessels when AIS has no signal
     const inferred=getScheduledVesselsAtSea();
     if(inferred.length){
-      const pktHint=`<div style="font-size:10px;opacity:.35;text-align:center;margin-top:4px;">${aisRawCount} пкт · AIS не видит · ${mtLink}</div>`;
+      const vfSt=vfLastStatus?`<div style="font-size:10px;opacity:.5;margin-top:2px;word-break:break-all;">${vfLastStatus}</div>`:'';
+      const pktHint=`<div style="font-size:10px;opacity:.35;text-align:center;margin-top:4px;">${aisRawCount} пкт · AIS не видит · ${mtLink}</div>${vfSt}`;
       el.innerHTML=inferred.map(v=>`
         <div style="background:#17181c;border:1px dashed #333;border-radius:14px;padding:10px 14px;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;">
           <div style="display:flex;align-items:center;gap:10px;">
