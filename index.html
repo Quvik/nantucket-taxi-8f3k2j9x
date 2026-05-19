@@ -958,11 +958,6 @@ input[type="time"].form-input{ -webkit-appearance:auto; appearance:auto; }
     <div style="text-align:center;padding:40px;opacity:.4;">Загрузка...</div>
   </div>
 
-  <div style="display:flex;gap:10px;margin-top:12px;">
-    <button class="quick-btn" style="flex:1;" onclick="window.open('https://www.steamshipauthority.com/traveling_today/status','_blank')">🚢 Steamship</button>
-    <button class="quick-btn" style="flex:1;" onclick="window.open('https://hylinecruises.com/schedules/','_blank')">🚤 Hy-Line</button>
-  </div>
-
   <button id="notifyBtn" onclick="toggleFerryNotifications()" style="margin-top:10px;width:100%;background:#1b1c22;border:1px solid #2a2a2a;color:#fff;border-radius:16px;padding:14px;font-size:16px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:8px;">
     🔔 Enable Ferry Alerts
   </button>
@@ -1051,10 +1046,16 @@ input[type="time"].form-input{ -webkit-appearance:auto; appearance:auto; }
 </div>
 
 <div class="sticky-bar">
-<button class="primary" onclick="openWaze()">Waze</button>
-<button class="secondary" onclick="openGoogleMaps()">Maps</button>
-<button id="saveTripBtn" onclick="saveTripManual()" style="display:none;background:#1a2a1a;border:none;color:#30d158;border-radius:16px;padding:16px;font-size:15px;font-weight:700;cursor:pointer;flex:1;">💾 Сохранить</button>
-<button class="secondary" onclick="showResetConfirm()" style="background:#2a1a1a;color:#ff453a;">↺</button>
+<div id="taxiBar" style="display:contents;">
+  <button class="primary" onclick="openWaze()">Waze</button>
+  <button class="secondary" onclick="openGoogleMaps()">Maps</button>
+  <button id="saveTripBtn" onclick="saveTripManual()" style="display:none;background:#1a2a1a;border:none;color:#30d158;border-radius:16px;padding:16px;font-size:15px;font-weight:700;cursor:pointer;flex:1;">💾 Сохранить</button>
+  <button class="secondary" onclick="showResetConfirm()" style="background:#2a1a1a;color:#ff453a;">↺</button>
+</div>
+<div id="ferryBar" style="display:none;flex:1;gap:10px;display:none;">
+  <button class="secondary" style="flex:1;font-size:15px;" onclick="window.open('https://www.steamshipauthority.com/traveling_today/status','_blank')">🚢 Steamship</button>
+  <button class="secondary" style="flex:1;font-size:15px;" onclick="window.open('https://hylinecruises.com/schedules/','_blank')">🚤 Hy-Line</button>
+</div>
 </div>
 
 <div id="resetConfirmOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;display:none;align-items:flex-end;justify-content:center;padding-bottom:40px;">
@@ -1292,6 +1293,10 @@ function showTab(tabId, btn){
   document.getElementById(tabId).style.display='block';
   document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active-tab'));
   btn.classList.add('active-tab');
+  const taxiBar=document.getElementById('taxiBar');
+  const ferryBar=document.getElementById('ferryBar');
+  if(taxiBar) taxiBar.style.display = tabId==='ferryTab' ? 'none' : 'contents';
+  if(ferryBar) ferryBar.style.display = tabId==='ferryTab' ? 'flex' : 'none';
   if(tabId==='ferryTab'){
     renderFerryTab();
     startFerryTick();
