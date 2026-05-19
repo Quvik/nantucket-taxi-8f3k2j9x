@@ -1072,6 +1072,8 @@ input[type="time"].form-input{ -webkit-appearance:auto; appearance:auto; }
 <button class="secondary" onclick="showResetConfirm()" style="background:#2a1a1a;color:#ff453a;">↺</button>
 </div>
 
+<button id="fsCollapseBtn" onclick="toggleMapFullscreen()" style="display:none;position:fixed;bottom:90px;right:14px;z-index:2147483647;background:rgba(0,0,0,.82);border:none;color:white;border-radius:50%;width:46px;height:46px;font-size:22px;cursor:pointer;box-shadow:0 2px 12px rgba(0,0,0,.6);">⛶</button>
+
 <div id="resetConfirmOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;display:none;align-items:flex-end;justify-content:center;padding-bottom:40px;">
   <div style="background:#1e1e28;border:1px solid #333;border-radius:20px;padding:24px 20px;width:90%;max-width:340px;text-align:center;">
     <div style="font-size:22px;margin-bottom:8px;">↺</div>
@@ -3485,18 +3487,20 @@ function renderAddressPreview(label){
 function toggleMapFullscreen(){
   mapFullscreen = !mapFullscreen;
   const card      = document.getElementById('streetViewCard');
-  const mapDiv    = document.getElementById('addressMapDiv');
-  const expandBtn = document.getElementById('mapExpandBtn');
+  const mapDiv      = document.getElementById('addressMapDiv');
+  const expandBtn   = document.getElementById('mapExpandBtn');
+  const fsCloseBtn  = document.getElementById('fsCollapseBtn');
   if(mapFullscreen){
     card.style.cssText      = 'display:block;position:fixed;inset:0;z-index:9999;border-radius:0;margin:0;overflow:hidden;';
     mapDiv.style.cssText    = 'position:absolute;inset:0;display:block;';
-    expandBtn.innerHTML     = _COLLAPSE_SVG;
-    expandBtn.style.display = 'flex';
+    expandBtn.style.display = 'none';
+    if(fsCloseBtn) fsCloseBtn.style.display = 'flex';
   } else {
     card.style.cssText      = 'display:block;border-radius:16px;overflow:hidden;margin-bottom:12px;position:relative;';
     mapDiv.style.cssText    = 'width:100%;height:220px;display:block;';
     expandBtn.innerHTML     = _EXPAND_SVG;
     expandBtn.style.display = 'flex';
+    if(fsCloseBtn) fsCloseBtn.style.display = 'none';
   }
   setTimeout(()=>{
     if(previewMap){
@@ -3507,8 +3511,10 @@ function toggleMapFullscreen(){
 }
 
 function hideStreetView(){
-  const card   = document.getElementById('streetViewCard');
-  const mapDiv = document.getElementById('addressMapDiv');
+  const card      = document.getElementById('streetViewCard');
+  const mapDiv    = document.getElementById('addressMapDiv');
+  const fsCloseBtn= document.getElementById('fsCollapseBtn');
+  if(fsCloseBtn) fsCloseBtn.style.display = 'none';
   if(mapFullscreen){
     mapFullscreen = false;
     card.style.cssText   = 'display:none;border-radius:16px;overflow:hidden;margin-bottom:12px;position:relative;';
