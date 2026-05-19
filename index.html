@@ -3006,27 +3006,43 @@ async function calculateFare() {
         }
         _geoCache = { addr: address, zone: destinationZone, isCrossTown: destIsCrossTown, lat, lng };
     } else {
-        const url =
-            `https://photon.komoot.io/api/?q=${encodeURIComponent(address + " Nantucket")}&limit=5`;
-        const response = await fetch(url);
-        const data = await response.json();
-        if (!data.features || !data.features.length) {
-            document.getElementById('fare').innerText = '$ ?';
-            return;
+        try {
+            const url =
+                `https://photon.komoot.io/api/?q=${encodeURIComponent(address + " Nantucket")}&limit=5`;
+            const response = await fetch(url);
+            const data = await response.json();
+            if (!data.features || !data.features.length) {
+                document.getElementById('fare').innerText = '$ ?';
+                return;
+            }
+            const best = data.features[0];
+            lat = best.geometry.coordinates[1];
+            lng = best.geometry.coordinates[0];
+            const point = turf.point([lng, lat]);
+            const { zone: destZ2, isCrossTown: destCT2 } = findZoneInfo(point);
+            destinationZone = destZ2;
+            destIsCrossTown = destCT2;
+            if(!destinationZone){
+                const words=address.toLowerCase().split(/[\s,]+/).filter(w=>w.length>5);
+                const fuzzy=fuzzyPool.find(p=>words.some(w=>p.name.toLowerCase().includes(w)));
+                if(fuzzy){ destinationZone=fuzzy.zone; destIsCrossTown=false; lat=null; lng=null; }
+            }
+            _geoCache = { addr: address, zone: destinationZone, isCrossTown: destIsCrossTown, lat, lng };
+        } catch(e) {
+            // Offline: strip house number, match street name → approximate zone
+            if(hasHouseNumber){
+                const streetOnly = addrCore.replace(/^\d+\s+/,'');
+                const offlineMatch = localPlaces.find(p=>{
+                    const pn = p.name.toLowerCase();
+                    if(streetOnly===pn || streetOnly.includes(pn) || pn.includes(streetOnly)) return true;
+                    return pn.split(' ').filter(w=>w.length>5).some(w=>streetOnly.includes(w));
+                });
+                if(offlineMatch){
+                    destinationZone = offlineMatch.zone;
+                    _geoCache = { addr: address, zone: destinationZone, isCrossTown: false, lat:null, lng:null };
+                }
+            }
         }
-        const best = data.features[0];
-        lat = best.geometry.coordinates[1];
-        lng = best.geometry.coordinates[0];
-        const point = turf.point([lng, lat]);
-        const { zone: destZ2, isCrossTown: destCT2 } = findZoneInfo(point);
-        destinationZone = destZ2;
-        destIsCrossTown = destCT2;
-        if(!destinationZone){
-            const words=address.toLowerCase().split(/[\s,]+/).filter(w=>w.length>5);
-            const fuzzy=localPlaces.find(p=>words.some(w=>p.name.toLowerCase().includes(w)));
-            if(fuzzy){ destinationZone=fuzzy.zone; destIsCrossTown=false; lat=null; lng=null; }
-        }
-        _geoCache = { addr: address, zone: destinationZone, isCrossTown: destIsCrossTown, lat, lng };
     }
 
     document.getElementById('destinationZone').innerText =
