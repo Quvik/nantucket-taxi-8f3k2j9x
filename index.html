@@ -3425,7 +3425,7 @@ const _EXPAND_SVG   = `<svg xmlns='http://www.w3.org/2000/svg' width='16' height
 const _COLLAPSE_SVG = `<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='#555' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><polyline points='4 14 10 14 10 20'/><polyline points='20 10 14 10 14 4'/><line x1='10' y1='14' x2='3' y2='21'/><line x1='21' y1='3' x2='14' y2='10'/></svg>`;
 
 function showAddressPreview(lat, lng, label){
-  svLat = lat; svLng = lng; svMode = 'map';
+  svLat = lat; svLng = lng; svMode = 'satellite';
   renderAddressPreview(label);
 }
 
@@ -3440,17 +3440,19 @@ function renderAddressPreview(label){
   if(label) lbl.textContent = label;
   card.style.display = 'block';
 
-  if(svMode === 'map'){
+  if(svMode === 'map' || svMode === 'satellite'){
     img.style.display       = 'none';
     mapDiv.style.display    = 'block';
-    btn.textContent         = '📷 Street View';
     expandBtn.innerHTML     = _EXPAND_SVG;
     expandBtn.style.display = 'flex';
+    btn.textContent         = svMode === 'map' ? '🛰 Спутник' : '📷 Street View';
+    const typeId            = svMode === 'map' ? 'roadmap' : 'satellite';
     setTimeout(()=>{
       if(!previewMap){
         previewMap = new google.maps.Map(document.getElementById('addressMapDiv'), {
           center: {lat: svLat, lng: svLng},
-          zoom: 16,
+          zoom: 17,
+          mapTypeId: typeId,
           mapTypeControl: false,
           streetViewControl: false,
           fullscreenControl: false,
@@ -3462,8 +3464,9 @@ function renderAddressPreview(label){
           map: previewMap
         });
       } else {
+        previewMap.setMapTypeId(typeId);
         previewMap.setCenter({lat: svLat, lng: svLng});
-        previewMap.setZoom(16);
+        previewMap.setZoom(17);
         previewMarker.setPosition({lat: svLat, lng: svLng});
         google.maps.event.trigger(previewMap, 'resize');
       }
@@ -3471,16 +3474,12 @@ function renderAddressPreview(label){
     return;
   }
 
+  // Street View — статичное фото
   img.style.display       = 'block';
   mapDiv.style.display    = 'none';
   expandBtn.style.display = 'none';
-  if(svMode === 'street'){
-    img.src         = `https://maps.googleapis.com/maps/api/streetview?size=600x360&location=${svLat},${svLng}&fov=80&pitch=5&key=${GMAPS_KEY}`;
-    btn.textContent = '🛰 Satellite';
-  } else {
-    img.src         = `https://maps.googleapis.com/maps/api/staticmap?center=${svLat},${svLng}&zoom=18&size=600x360&maptype=satellite&markers=color:red%7Csize:large%7C${svLat},${svLng}&key=${GMAPS_KEY}`;
-    btn.textContent = '🗺 Map';
-  }
+  img.src         = `https://maps.googleapis.com/maps/api/streetview?size=600x360&location=${svLat},${svLng}&fov=80&pitch=5&key=${GMAPS_KEY}`;
+  btn.textContent = '🗺 Карта';
 }
 
 function toggleMapFullscreen(){
@@ -3527,7 +3526,7 @@ function closeOrCollapsePreview(){
 
 function toggleStreetViewMode(){
   if(mapFullscreen) toggleMapFullscreen();
-  svMode = svMode === 'map' ? 'street' : svMode === 'street' ? 'satellite' : 'map';
+  svMode = svMode === 'satellite' ? 'street' : svMode === 'street' ? 'map' : 'satellite';
   renderAddressPreview(null);
 }
 </script>
