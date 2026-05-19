@@ -2970,13 +2970,23 @@ async function calculateFare() {
     // LOCAL DATABASE FIRST
     // Strip city/state suffix Google Places adds (e.g. "Cisco Brewery Shuttle, Nantucket, MA")
     const addrCore = address.toLowerCase().split(',')[0].trim();
-    const localMatch = localPlaces.find(p => {
+    // If address starts with a house number (e.g. "31 Sparks Ave"), skip name-based lookup
+    // entirely and rely on geocoding + KML polygon for accurate zone detection.
+    const hasHouseNumber = /^\d/.test(addrCore);
+    const localMatch = !hasHouseNumber && localPlaces.find(p => {
         const pn = p.name.toLowerCase();
         if(addrCore === pn || addrCore.includes(pn) || pn.includes(addrCore)) return true;
         // Word-level fuzzy: only distinctive words (6+ chars) to avoid false matches
         // on common words like "pond", "road", "lane", "drive", "beach" etc.
         return pn.split(' ').filter(w=>w.length>5).some(w=>addrCore.includes(w));
     });
+
+    // For numbered addresses the fallback word-match should only use named places
+    // (hotels, restaurants, etc.) — never street-name entries which are single-zone
+    // approximations that break on long roads crossing multiple zones.
+    const fuzzyPool = hasHouseNumber
+        ? localPlaces.filter(p => p.type !== 'street')
+        : localPlaces;
 
     if (localMatch) {
         destinationZone = localMatch.zone;
@@ -3001,7 +3011,7 @@ async function calculateFare() {
         // fall back to keyword match against localPlaces
         if(!destinationZone){
             const words=address.toLowerCase().split(/[\s,]+/).filter(w=>w.length>5);
-            const fuzzy=localPlaces.find(p=>words.some(w=>p.name.toLowerCase().includes(w)));
+            const fuzzy=fuzzyPool.find(p=>words.some(w=>p.name.toLowerCase().includes(w)));
             if(fuzzy){ destinationZone=fuzzy.zone; destIsCrossTown=false; lat=null; lng=null; }
         }
         _geoCache = { addr: address, zone: destinationZone, isCrossTown: destIsCrossTown, lat, lng };
@@ -3023,7 +3033,7 @@ async function calculateFare() {
         destIsCrossTown = destCT2;
         if(!destinationZone){
             const words=address.toLowerCase().split(/[\s,]+/).filter(w=>w.length>5);
-            const fuzzy=localPlaces.find(p=>words.some(w=>p.name.toLowerCase().includes(w)));
+            const fuzzy=fuzzyPool.find(p=>words.some(w=>p.name.toLowerCase().includes(w)));
             if(fuzzy){ destinationZone=fuzzy.zone; destIsCrossTown=false; lat=null; lng=null; }
         }
         _geoCache = { addr: address, zone: destinationZone, isCrossTown: destIsCrossTown, lat, lng };
