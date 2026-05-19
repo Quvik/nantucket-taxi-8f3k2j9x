@@ -829,9 +829,9 @@ input[type="time"].form-input{ -webkit-appearance:auto; appearance:auto; }
   <img id="streetViewImg" src="" alt="" style="width:100%;height:220px;object-fit:cover;display:none;"/>
   <div id="addressMapDiv" style="width:100%;height:220px;display:none;"></div>
   <div id="streetViewLabel" style="position:absolute;bottom:0;left:0;right:0;background:linear-gradient(transparent,rgba(0,0,0,.75));padding:10px 14px 10px;font-size:13px;font-weight:600;color:white;pointer-events:none;"></div>
-  <button onclick="closeOrCollapsePreview()" style="position:absolute;top:8px;right:8px;background:rgba(0,0,0,.55);border:none;color:white;border-radius:50%;width:28px;height:28px;font-size:16px;line-height:28px;text-align:center;cursor:pointer;z-index:1000;">×</button>
-  <button onclick="toggleStreetViewMode()" id="svModeBtn" style="position:absolute;top:8px;left:8px;background:rgba(0,0,0,.55);border:none;color:white;border-radius:20px;padding:4px 10px;font-size:12px;font-weight:700;cursor:pointer;z-index:1000;">📷 Street View</button>
-  <button onclick="toggleMapFullscreen()" id="mapExpandBtn" style="position:absolute;bottom:10px;right:10px;background:white;border:none;border-radius:8px;width:32px;height:32px;display:none;align-items:center;justify-content:center;cursor:pointer;z-index:1000;box-shadow:0 1px 5px rgba(0,0,0,.3);padding:0;"></button>
+  <button onclick="closeOrCollapsePreview()" style="position:absolute;top:8px;right:8px;background:rgba(0,0,0,.7);border:none;color:white;border-radius:50%;width:32px;height:32px;font-size:18px;line-height:32px;text-align:center;cursor:pointer;z-index:99999;">×</button>
+  <button onclick="toggleStreetViewMode()" id="svModeBtn" style="position:absolute;top:8px;left:8px;background:rgba(0,0,0,.7);border:none;color:white;border-radius:20px;padding:4px 10px;font-size:12px;font-weight:700;cursor:pointer;z-index:99999;">🛰 Спутник</button>
+  <button onclick="toggleMapFullscreen()" id="mapExpandBtn" style="position:absolute;bottom:10px;right:10px;background:white;border:none;border-radius:8px;width:32px;height:32px;display:none;align-items:center;justify-content:center;cursor:pointer;z-index:99999;box-shadow:0 1px 5px rgba(0,0,0,.3);padding:0;"></button>
 </div>
 
 <div style="display:flex;gap:8px;margin-bottom:12px;">
@@ -3425,7 +3425,7 @@ const _EXPAND_SVG   = `<svg xmlns='http://www.w3.org/2000/svg' width='16' height
 const _COLLAPSE_SVG = `<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='#555' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><polyline points='4 14 10 14 10 20'/><polyline points='20 10 14 10 14 4'/><line x1='10' y1='14' x2='3' y2='21'/><line x1='21' y1='3' x2='14' y2='10'/></svg>`;
 
 function showAddressPreview(lat, lng, label){
-  svLat = lat; svLng = lng; svMode = 'satellite';
+  svLat = lat; svLng = lng; svMode = 'map';
   renderAddressPreview(label);
 }
 
