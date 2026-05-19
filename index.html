@@ -1154,7 +1154,7 @@ const fareTable = {
 let currentZoneName = null;
 let zonesGeoJSON = null;
 
-const map = L.map('map').setView([41.2835, -70.0995], 12);
+const map = L.map('map').setView([41.2835, -70.0995], 13);
 
 L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
     maxZoom: 19
@@ -1185,7 +1185,7 @@ fetch('zones.kml')
                 });
             }
         }).addTo(map);
-        map.fitBounds(layer.getBounds());
+        // don't fitBounds — keep the street-level zoom set on init
     } catch(e) {}
 
     detectCurrentLocation();
