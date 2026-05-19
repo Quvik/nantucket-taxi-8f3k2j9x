@@ -3233,18 +3233,30 @@ function selectLocalPlace(place){
   const input = document.getElementById('destination');
   input.value = place.name;
   window.selectedPlace = null;
-  // Pre-seed the geocache with the known zone so calculateFare works
-  // immediately even if localPlaces hasn't finished loading yet
   _geoCache = { addr: place.name, zone: place.zone, isCrossTown: false, lat: null, lng: null };
   hideDropdown();
   try{
     calculateFare();
-    // Scroll fare section into view so user sees the result
     setTimeout(()=>{
       const fareCard = document.getElementById('destinationZone')?.closest('.card');
       if(fareCard) fareCard.scrollIntoView({behavior:'smooth', block:'nearest'});
     }, 100);
   }catch(e){}
+
+  // Геокодируем название чтобы показать карту
+  if(place.lat && place.lng){
+    showAddressPreview(place.lat, place.lng, place.name);
+  } else {
+    fetch(`https://photon.komoot.io/api/?q=${encodeURIComponent(place.name + ' Nantucket')}&limit=1`)
+      .then(r => r.json())
+      .then(data => {
+        if(data.features?.length){
+          const [lng, lat] = data.features[0].geometry.coordinates;
+          showAddressPreview(lat, lng, place.name);
+          _geoCache = { addr: place.name, zone: place.zone, isCrossTown: false, lat, lng };
+        }
+      }).catch(()=>{});
+  }
 }
 
 function renderLocalItem(place, isLast){
