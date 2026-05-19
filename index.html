@@ -700,6 +700,14 @@ input[type="time"].form-input{ -webkit-appearance:auto; appearance:auto; }
   <button class="drawer-item" onclick="navigateTo('bookings');">
     <span style="font-size:20px;">📅</span> Бронирования
   </button>
+  <div style="border-bottom:1px solid #252528;margin:8px 0;"></div>
+  <div style="padding:4px 16px 6px;font-size:11px;opacity:.4;letter-spacing:1px;font-weight:700;">НАВИГАЦИЯ К ПАРОМАМ</div>
+  <button class="drawer-item" onclick="closeDrawer();window.open('https://maps.google.com/maps?daddr=Steamship+Wharf,+Nantucket,+MA','_blank');">
+    <span style="font-size:20px;">🚢</span> Steamship Wharf
+  </button>
+  <button class="drawer-item" onclick="closeDrawer();window.open('https://maps.google.com/maps?daddr=Straight+Wharf,+Nantucket,+MA','_blank');">
+    <span style="font-size:20px;">🚤</span> Hy-Line · Straight Wharf
+  </button>
   <div id="drawerAuthSection"></div>
   <div style="border-bottom:1px solid #252528;margin:8px 0;"></div>
   <div style="padding:0 16px 16px 16px;">
@@ -1046,16 +1054,10 @@ input[type="time"].form-input{ -webkit-appearance:auto; appearance:auto; }
 </div>
 
 <div class="sticky-bar">
-<div id="taxiBar" style="display:contents;">
-  <button class="primary" onclick="openWaze()">Waze</button>
-  <button class="secondary" onclick="openGoogleMaps()">Maps</button>
-  <button id="saveTripBtn" onclick="saveTripManual()" style="display:none;background:#1a2a1a;border:none;color:#30d158;border-radius:16px;padding:16px;font-size:15px;font-weight:700;cursor:pointer;flex:1;">💾 Сохранить</button>
-  <button class="secondary" onclick="showResetConfirm()" style="background:#2a1a1a;color:#ff453a;">↺</button>
-</div>
-<div id="ferryBar" style="display:none;flex:1;gap:10px;display:none;">
-  <button class="secondary" style="flex:1;font-size:15px;" onclick="window.open('https://www.steamshipauthority.com/traveling_today/status','_blank')">🚢 Steamship</button>
-  <button class="secondary" style="flex:1;font-size:15px;" onclick="window.open('https://hylinecruises.com/schedules/','_blank')">🚤 Hy-Line</button>
-</div>
+<button class="primary" onclick="openWaze()">Waze</button>
+<button class="secondary" onclick="openGoogleMaps()">Maps</button>
+<button id="saveTripBtn" onclick="saveTripManual()" style="display:none;background:#1a2a1a;border:none;color:#30d158;border-radius:16px;padding:16px;font-size:15px;font-weight:700;cursor:pointer;flex:1;">💾 Сохранить</button>
+<button class="secondary" onclick="showResetConfirm()" style="background:#2a1a1a;color:#ff453a;">↺</button>
 </div>
 
 <div id="resetConfirmOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;display:none;align-items:flex-end;justify-content:center;padding-bottom:40px;">
@@ -1293,10 +1295,6 @@ function showTab(tabId, btn){
   document.getElementById(tabId).style.display='block';
   document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active-tab'));
   btn.classList.add('active-tab');
-  const taxiBar=document.getElementById('taxiBar');
-  const ferryBar=document.getElementById('ferryBar');
-  if(taxiBar) taxiBar.style.display = tabId==='ferryTab' ? 'none' : 'contents';
-  if(ferryBar) ferryBar.style.display = tabId==='ferryTab' ? 'flex' : 'none';
   if(tabId==='ferryTab'){
     renderFerryTab();
     startFerryTick();
