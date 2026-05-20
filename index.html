@@ -566,8 +566,6 @@ to{opacity:1;transform:translateY(0);}
   text-shadow: 0 0 3px #000, 0 0 6px #000;
   white-space: nowrap;
   pointer-events: none;
-  position: absolute;
-  transform: translate(-50%, -50%);
 }
 .zone-map-label::before { display: none !important; }
 .zone-picker-overlay{
@@ -1373,16 +1371,12 @@ fetch('zones.kml')
                         const c = turf.centroid(feature).geometry.coordinates;
                         lng = c[0]; lat = c[1];
                     }
-                    L.marker([lat, lng], {
-                        icon: L.divIcon({
-                            className: 'zone-map-label',
-                            html: name,
-                            iconSize: [0, 0],
-                            iconAnchor: [0, 0]
-                        }),
-                        interactive: false,
-                        keyboard: false
-                    }).addTo(map);
+                    L.tooltip({
+                        permanent: true,
+                        direction: 'center',
+                        className: 'zone-map-label',
+                        interactive: false
+                    }).setContent(name).setLatLng([lat, lng]).addTo(map);
                 } catch(e2) {
                     lyr.bindTooltip(name, { permanent: true, direction: 'center', className: 'zone-map-label' });
                 }
