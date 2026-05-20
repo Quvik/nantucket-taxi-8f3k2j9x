@@ -705,16 +705,18 @@ input[type="time"].form-input{ -webkit-appearance:auto; appearance:auto; }
   </div>
   <div style="border-bottom:1px solid #252528;margin:8px 0;"></div>
   <button class="drawer-item" onclick="navigateTo('main');">
-    <span style="font-size:20px;">🏠</span> Home
+    <span style="font-size:20px;">🏠</span> <span data-i18n="home">Home</span>
   </button>
   <button class="drawer-item" onclick="navigateTo('history');">
-    <span style="font-size:20px;">📋</span> Trip History
+    <span style="font-size:20px;">📋</span> <span data-i18n="tripHistory">Trip History</span>
   </button>
   <button class="drawer-item" onclick="navigateTo('bookings');">
-    <span style="font-size:20px;">📅</span> Bookings
+    <span style="font-size:20px;">📅</span> <span data-i18n="bookings">Bookings</span>
   </button>
   <div style="border-bottom:1px solid #252528;margin:8px 0;"></div>
-  <div style="padding:4px 16px 6px;font-size:11px;opacity:.4;letter-spacing:1px;font-weight:700;">FERRY NAVIGATION</div>
+  <button id="langToggleBtn" onclick="setLang(currentLang==='en'?'ru':'en')" class="drawer-item" style="color:#0A84FF;font-weight:800;">🌐 RU</button>
+  <div style="border-bottom:1px solid #252528;margin:8px 0;"></div>
+  <div style="padding:4px 16px 6px;font-size:11px;opacity:.4;letter-spacing:1px;font-weight:700;" data-i18n="ferryNav">FERRY NAVIGATION</div>
   <button class="drawer-item" onclick="closeDrawer();window.open('https://maps.google.com/maps?daddr=Steamship+Wharf,+Nantucket,+MA','_blank');">
     <span style="font-size:20px;">🚢</span> Steamship Wharf
   </button>
@@ -724,29 +726,29 @@ input[type="time"].form-input{ -webkit-appearance:auto; appearance:auto; }
   <div style="border-bottom:1px solid #252528;margin:8px 0;"></div>
   <div id="drawerAuthSection"></div>
   <div style="padding:0 16px 12px 16px;">
-    <button onclick="forceSwUpdate()" style="width:100%;background:#1e1e28;border:1px solid #333;color:#aaa;border-radius:10px;padding:10px;font-size:12px;cursor:pointer;">🔄 Force App Update</button>
+    <button onclick="forceSwUpdate()" style="width:100%;background:#1e1e28;border:1px solid #333;color:#aaa;border-radius:10px;padding:10px;font-size:12px;cursor:pointer;">🔄 <span data-i18n="forceUpdate">Force App Update</span></button>
   </div>
 </div>
 
 <div class="bookings-panel" id="bookingsPanel">
   <div class="bookings-header">
-    <div style="font-size:18px;font-weight:800;">📅 Bookings</div>
+    <div style="font-size:18px;font-weight:800;">📅 <span data-i18n="bookings">Bookings</span></div>
   </div>
   <div class="bookings-body">
 
     <div class="add-booking-form" id="addBookingForm">
-      <div style="font-size:15px;font-weight:800;margin-bottom:14px;">New Booking</div>
+      <div style="font-size:15px;font-weight:800;margin-bottom:14px;" data-i18n="newBooking">New Booking</div>
 
       <div class="form-field">
-        <div class="form-label">DATE *</div>
+        <div class="form-label" data-i18n="dateLabel">DATE *</div>
         <input class="form-input" type="date" id="bDate">
       </div>
 
       <div style="display:flex;gap:10px;">
         <div class="form-field" style="flex:1;">
-          <div class="form-label">TIME</div>
+          <div class="form-label" data-i18n="timeLabel">TIME</div>
           <select class="form-input" id="bTime">
-            <option value="">Not specified</option>
+            <option value="" data-i18n="notSpecified">Not specified</option>
             <option value="Morning">🌅 Morning</option>
             <option value="Afternoon">☀️ Afternoon</option>
             <option value="Evening">🌆 Evening</option>
@@ -754,41 +756,41 @@ input[type="time"].form-input{ -webkit-appearance:auto; appearance:auto; }
           </select>
         </div>
         <div class="form-field" style="flex:1;">
-          <div class="form-label">EXACT TIME</div>
+          <div class="form-label" data-i18n="exactTime">EXACT TIME</div>
           <input class="form-input" type="time" id="bTimeCustom">
         </div>
       </div>
 
       <div class="form-field">
-        <div class="form-label">CLIENT NAME</div>
-        <input class="form-input" type="text" id="bName" placeholder="Optional">
+        <div class="form-label" data-i18n="clientName">CLIENT NAME</div>
+        <input class="form-input" type="text" id="bName" placeholder="Optional" data-i18n="optional">
       </div>
 
       <div style="display:flex;gap:10px;">
         <div class="form-field" style="flex:1;">
-          <div class="form-label">FROM</div>
-          <input class="form-input" type="text" id="bFrom" placeholder="Optional">
+          <div class="form-label" data-i18n="fromLabel">FROM</div>
+          <input class="form-input" type="text" id="bFrom" placeholder="Optional" data-i18n="optional">
         </div>
         <div class="form-field" style="flex:1;">
-          <div class="form-label">TO</div>
-          <input class="form-input" type="text" id="bTo" placeholder="Optional">
+          <div class="form-label" data-i18n="toLabel">TO</div>
+          <input class="form-input" type="text" id="bTo" placeholder="Optional" data-i18n="optional">
         </div>
       </div>
 
       <div class="form-field">
-        <div class="form-label">NOTES</div>
-        <textarea class="form-input" id="bNotes" placeholder="Notes, requests..." rows="2" style="resize:none;"></textarea>
+        <div class="form-label" data-i18n="notesLabel">NOTES</div>
+        <textarea class="form-input" id="bNotes" placeholder="Notes, requests..." rows="2" style="resize:none;" data-i18n="notesPlaceholder"></textarea>
       </div>
 
       <div style="display:flex;gap:10px;margin-top:4px;">
-        <button onclick="hideAddBooking()" style="flex:1;background:#2a2a2e;border:none;color:white;border-radius:14px;padding:13px;font-size:15px;font-weight:700;cursor:pointer;">Cancel</button>
-        <button onclick="saveBooking()" style="flex:1;background:#0A84FF;border:none;color:white;border-radius:14px;padding:13px;font-size:15px;font-weight:700;cursor:pointer;">Save</button>
+        <button onclick="hideAddBooking()" style="flex:1;background:#2a2a2e;border:none;color:white;border-radius:14px;padding:13px;font-size:15px;font-weight:700;cursor:pointer;" data-i18n="cancel">Cancel</button>
+        <button onclick="saveBooking()" style="flex:1;background:#0A84FF;border:none;color:white;border-radius:14px;padding:13px;font-size:15px;font-weight:700;cursor:pointer;" data-i18n="save">Save</button>
       </div>
     </div>
 
-    <button onclick="showAddBooking()" id="addBookingBtn" style="width:100%;background:#17181c;border:1px dashed #2a2a2e;color:#0A84FF;border-radius:16px;padding:16px;font-size:16px;font-weight:700;cursor:pointer;margin-bottom:14px;">+ Add Booking</button>
+    <button onclick="showAddBooking()" id="addBookingBtn" style="width:100%;background:#17181c;border:1px dashed #2a2a2e;color:#0A84FF;border-radius:16px;padding:16px;font-size:16px;font-weight:700;cursor:pointer;margin-bottom:14px;" data-i18n="addBooking">+ Add Booking</button>
 
-    <div id="bookingsList"><div style="text-align:center;padding:40px;opacity:.4;">No bookings</div></div>
+    <div id="bookingsList"><div style="text-align:center;padding:40px;opacity:.4;" data-i18n="noBookings">No bookings</div></div>
   </div>
 </div>
 
@@ -1050,25 +1052,25 @@ input[type="time"].form-input{ -webkit-appearance:auto; appearance:auto; }
 <div id="loginOverlay" style="display:flex;position:fixed;inset:0;z-index:99999;background:#0f0f10;flex-direction:column;align-items:center;justify-content:center;padding:32px;">
   <div style="font-size:64px;margin-bottom:16px;">🚕</div>
   <div style="font-size:26px;font-weight:900;margin-bottom:6px;">Nantucket Taxi</div>
-  <div style="font-size:14px;opacity:.45;margin-bottom:48px;">Fare Calculator</div>
+  <div style="font-size:14px;opacity:.45;margin-bottom:48px;" data-i18n="fareCalc">Fare Calculator</div>
   <button onclick="handleAuthClick()" style="display:flex;align-items:center;gap:12px;background:white;color:#111;border:none;border-radius:16px;padding:16px 28px;font-size:16px;font-weight:700;cursor:pointer;width:100%;max-width:300px;justify-content:center;box-shadow:0 4px 20px rgba(0,0,0,.4);">
     <svg width="20" height="20" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20.1H42V20H24v8h11.3C33.7 32.7 29.3 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.1 7.9 3l5.7-5.7C34.1 6.5 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.6-.4-3.9z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.6 16 19 13 24 13c3.1 0 5.8 1.1 7.9 3l5.7-5.7C34.1 6.5 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.4 35.5 26.8 36 24 36c-5.3 0-9.7-3.3-11.3-8H6.4C9.7 35.5 16.4 44 24 44z"/><path fill="#1976D2" d="M43.6 20.1H42V20H24v8h11.3c-.8 2.3-2.3 4.3-4.3 5.7l6.2 5.2C41.3 35.4 44 30 44 24c0-1.3-.1-2.6-.4-3.9z"/></svg>
-    Sign in with Google
+    <span data-i18n="signInGoogle">Sign in with Google</span>
   </button>
-  <div style="font-size:12px;opacity:.3;margin-top:24px;text-align:center;">Sign-in is saved automatically.<br>No need to sign in again.</div>
+  <div style="font-size:12px;opacity:.3;margin-top:24px;text-align:center;" data-i18n="autoSave">Sign-in is saved automatically.<br>No need to sign in again.</div>
 </div>
 
 <div class="bookings-panel" id="historyPanel">
   <div class="bookings-header">
-    <div style="font-size:18px;font-weight:800;">📋 Trip History</div>
+    <div style="font-size:18px;font-weight:800;">📋 <span data-i18n="tripHistory">Trip History</span></div>
     <div style="display:flex;align-items:center;gap:10px;">
-      <button id="clearAllBtn" onclick="confirmClearAll()" style="display:none;background:#2a1a1a;border:none;color:#ff453a;border-radius:10px;padding:7px 12px;font-size:13px;font-weight:700;cursor:pointer;">Clear All</button>
+      <button id="clearAllBtn" onclick="confirmClearAll()" style="display:none;background:#2a1a1a;border:none;color:#ff453a;border-radius:10px;padding:7px 12px;font-size:13px;font-weight:700;cursor:pointer;" data-i18n="clearAll">Clear All</button>
     </div>
   </div>
   <div class="bookings-body">
     <div id="historyAuthHint" style="font-size:12px;opacity:.5;text-align:center;margin-bottom:8px;"></div>
     <div id="historyStats" style="display:flex;gap:8px;margin-bottom:14px;"></div>
-    <div id="historyList"><div style="text-align:center;padding:40px;opacity:.4;">Sign in to view history</div></div>
+    <div id="historyList"><div style="text-align:center;padding:40px;opacity:.4;" data-i18n="signInHistory">Sign in to view history</div></div>
   </div>
 </div>
 
@@ -1084,15 +1086,182 @@ input[type="time"].form-input{ -webkit-appearance:auto; appearance:auto; }
 <div id="resetConfirmOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;display:none;align-items:flex-end;justify-content:center;padding-bottom:40px;">
   <div style="background:#1e1e28;border:1px solid #333;border-radius:20px;padding:24px 20px;width:90%;max-width:340px;text-align:center;">
     <div style="font-size:22px;margin-bottom:8px;">↺</div>
-    <div style="font-size:17px;font-weight:800;margin-bottom:6px;">Reset everything?</div>
-    <div style="font-size:13px;opacity:.5;margin-bottom:20px;">Amount, timer and all fields will be cleared</div>
+    <div style="font-size:17px;font-weight:800;margin-bottom:6px;" data-i18n="resetTitle">Reset everything?</div>
+    <div style="font-size:13px;opacity:.5;margin-bottom:20px;" data-i18n="resetDesc">Amount, timer and all fields will be cleared</div>
     <div style="display:flex;gap:10px;">
-      <button onclick="hideResetConfirm()" style="flex:1;background:#2a2a2a;border:none;color:white;border-radius:14px;padding:13px;font-size:15px;font-weight:700;cursor:pointer;">Cancel</button>
-      <button onclick="hideResetConfirm();resetAll()" style="flex:1;background:#ff453a;border:none;color:white;border-radius:14px;padding:13px;font-size:15px;font-weight:700;cursor:pointer;">Reset</button>
+      <button onclick="hideResetConfirm()" style="flex:1;background:#2a2a2a;border:none;color:white;border-radius:14px;padding:13px;font-size:15px;font-weight:700;cursor:pointer;" data-i18n="cancel">Cancel</button>
+      <button onclick="hideResetConfirm();resetAll()" style="flex:1;background:#ff453a;border:none;color:white;border-radius:14px;padding:13px;font-size:15px;font-weight:700;cursor:pointer;" data-i18n="reset">Reset</button>
     </div>
   </div>
 </div>
 
+
+<script>
+// ── Localization ──────────────────────────────────────────────
+let currentLang = localStorage.getItem('ntaxi_lang') || 'en';
+
+const TRANSLATIONS = {
+  en: {
+    home:'Home', tripHistory:'Trip History', bookings:'Bookings',
+    ferryNav:'FERRY NAVIGATION', signOut:'Sign out', signInGoogle:'Sign in with Google',
+    notSignedIn:'Not signed in', forceUpdate:'Force App Update', user:'User',
+    showMap:'🗺 Show Map', satellite:'🛰 Satellite', mapMode:'🗺 Map',
+    clearAll:'Clear All', signInHistory:'Sign in to view history',
+    noTrips:'No trips yet', todayLabel:'TODAY', totalLabel:'TOTAL', tripsUnit:'trips',
+    paxUnit:'pax', dirtTag:'🌿 dirt', nightTag:'🌙 night',
+    clearAllHistoryTitle:'Clear all history?', clearAllHistoryDesc:'All trips will be permanently deleted',
+    cancel:'Cancel', deleteAll:'Delete all', saveTripBtn:'💾 Save Trip',
+    resetTitle:'Reset everything?', resetDesc:'Amount, timer and all fields will be cleared', reset:'Reset',
+    editTrip:'Edit Trip', fromZone:'FROM ZONE', toZone:'TO ZONE',
+    destination:'DESTINATION', destPlaceholder:'Address or name',
+    totalField:'TOTAL ($)', passengers:'PASSENGERS', waitField:'WAIT ($)',
+    dogs:'🐕 DOGS', bikes:'🚲 BIKES', bags:'💼 BAGS',
+    dirtRoad:'🌿 Dirt', nightFee:'🌙 Night', save:'Save',
+    newBooking:'New Booking', dateLabel:'DATE *', timeLabel:'TIME',
+    notSpecified:'Not specified', exactTime:'EXACT TIME', clientName:'CLIENT NAME',
+    optional:'Optional', fromLabel:'FROM', toLabel:'TO',
+    notesLabel:'NOTES', notesPlaceholder:'Notes, requests...',
+    addBooking:'+ Add Booking', noBookings:'No bookings',
+    deleteBookingTitle:'Delete booking?', cannotUndo:'This action cannot be undone',
+    deleteBtn:'Delete', signInBookings:'Sign in to view bookings',
+    noUpcomingBookings:'No upcoming bookings', past:'— PAST —',
+    loading:'Loading...', status:'Status',
+    noMoreFerries:'🌙 No more ferries', ferryIn:'Ferry in ', minUnit:'min',
+    delayed:'Delayed · ', minAgo:' min ago', clearStatus:'Clear · ',
+    arrivingAt:' arriving at ', inPort:'IN PORT', arrivingNow:'⚡ Arriving!',
+    noMoreFerries2:'No more ferries', departed:'departed',
+    upcomingArrivals:'UPCOMING ARRIVALS', arrivedLabel:'ARRIVED',
+    departures:'🚢 DEPARTURES FROM NANTUCKET', delayedBadge:'⏱ DELAYED',
+    soon:'⚡SOON', fromPrep:'from ', ferryFallback:'Ferry',
+    liveUpdate:'Live update', noLiveData:'No live data', noConnection:'No connection',
+    builtIn:'📋 Built-in', noSchedule:'No schedule', noData2:'No schedule data',
+    noMoreFlights:'🌙 No more flights', flightIn:'Flight in ',
+    approachingACK:'📡 APPROACHING ACK', noFlightData:'No flight data',
+    noDataPress:'No data · press Live update', flightArrived:'ARRIVED',
+    landingIn:'Landing in ~', approachingIn:'Approaching in ~',
+    noMoreFlights2:'No more flights', mayHaveArrived:' may have arrived',
+    fareCalc:'Fare Calculator', autoSave:'Sign-in is saved automatically.<br>No need to sign in again.',
+    aisKeyNotSet:'AIS key not set', connectingAIS:'🔄 Connecting to AIS...',
+    noFerriesUnderway:'📡 No ferries underway', idleStatus:'idle', ktsUnit:' kts',
+    waitLabel:'⏱ Wait ', savedMsg:'✅ Saved',
+    signInAccount:'Sign in to your account', enterDate:'Please enter a date',
+    todayDay:'Today', tomorrowDay:'Tomorrow', yesterdayDay:'Yesterday',
+    arrivedStatus:'Arrived', liveBuiltIn:'Live past · built-in schedule',
+  },
+  ru: {
+    home:'Главная', tripHistory:'История поездок', bookings:'Бронирования',
+    ferryNav:'НАВИГАЦИЯ К ПАРОМАМ', signOut:'Выйти', signInGoogle:'Войти через Google',
+    notSignedIn:'Не вошли', forceUpdate:'Принудительное обновление', user:'Пользователь',
+    showMap:'🗺 Показать карту', satellite:'🛰 Спутник', mapMode:'🗺 Карта',
+    clearAll:'Очистить всё', signInHistory:'Войдите чтобы видеть историю',
+    noTrips:'Поездок пока нет', todayLabel:'СЕГОДНЯ', totalLabel:'ВСЕГО', tripsUnit:'поезд.',
+    paxUnit:'пас.', dirtTag:'🌿 грунт', nightTag:'🌙 ночь',
+    clearAllHistoryTitle:'Очистить всю историю?', clearAllHistoryDesc:'Все поездки будут удалены навсегда',
+    cancel:'Отмена', deleteAll:'Удалить всё', saveTripBtn:'💾 Сохранить поездку',
+    resetTitle:'Сбросить всё?', resetDesc:'Сумма, таймер и все поля очистятся', reset:'Сбросить',
+    editTrip:'Редактировать поездку', fromZone:'ИЗ ЗОНЫ', toZone:'В ЗОНУ',
+    destination:'АДРЕС НАЗНАЧЕНИЯ', destPlaceholder:'Адрес или название',
+    totalField:'ИТОГО ($)', passengers:'ПАССАЖИРЫ', waitField:'ОЖИДАНИЕ ($)',
+    dogs:'🐕 СОБАКИ', bikes:'🚲 ВЕЛИКИ', bags:'💼 СУМКИ',
+    dirtRoad:'🌿 Грунт', nightFee:'🌙 Ночь', save:'Сохранить',
+    newBooking:'Новое бронирование', dateLabel:'ДАТА *', timeLabel:'ВРЕМЯ',
+    notSpecified:'Не указано', exactTime:'ТОЧНОЕ ВРЕМЯ', clientName:'ИМЯ КЛИЕНТА',
+    optional:'Необязательно', fromLabel:'ОТКУДА', toLabel:'КУДА',
+    notesLabel:'ЗАМЕТКИ', notesPlaceholder:'Примечания, пожелания...',
+    addBooking:'+ Добавить бронирование', noBookings:'Нет бронирований',
+    deleteBookingTitle:'Удалить бронирование?', cannotUndo:'Это действие нельзя отменить',
+    deleteBtn:'Удалить', signInBookings:'Войдите чтобы видеть бронирования',
+    noUpcomingBookings:'Нет предстоящих бронирований', past:'— ПРОШЕДШИЕ —',
+    loading:'Загрузка...', status:'Статус',
+    noMoreFerries:'🌙 Больше паромов нет', ferryIn:'Паром через ', minUnit:'мин',
+    delayed:'Задержка · ', minAgo:' мин назад', clearStatus:'Спокойно · ',
+    arrivingAt:' прибудет в ', inPort:'В ПОРТУ', arrivingNow:'⚡ Прибывает!',
+    noMoreFerries2:'Паромов больше нет', departed:'ушёл',
+    upcomingArrivals:'СЛЕДУЮЩИЕ ПРИБЫТИЯ', arrivedLabel:'УЖЕ ПРИБЫЛИ',
+    departures:'🚢 ОТПРАВЛЕНИЯ С НАНТАКЕТА', delayedBadge:'⏱ ЗАДЕРЖКА',
+    soon:'⚡СКОРО', fromPrep:'из ', ferryFallback:'Паром',
+    liveUpdate:'Live-обновление', noLiveData:'Нет live данных', noConnection:'Нет связи',
+    builtIn:'📋 Встроенные', noSchedule:'Нет расписания', noData2:'Нет расписания',
+    noMoreFlights:'🌙 Рейсов больше нет', flightIn:'Рейс через ',
+    approachingACK:'📡 СЕЙЧАС ЛЕТЯТ К ACK', noFlightData:'Нет данных о рейсах',
+    noDataPress:'Нет данных · нажми Live обновление', flightArrived:'УЖЕ ПРИЛЕТЕЛИ',
+    landingIn:'Посадка через ~', approachingIn:'Подлетает через ~',
+    noMoreFlights2:'Рейсов больше нет', mayHaveArrived:' мог прилететь',
+    fareCalc:'Калькулятор тарифов', autoSave:'Вход сохраняется автоматически.<br>Повторно входить не нужно.',
+    aisKeyNotSet:'AIS ключ не задан', connectingAIS:'🔄 Подключение к AIS...',
+    noFerriesUnderway:'📡 Паромы не в пути', idleStatus:'стоит', ktsUnit:' уз',
+    waitLabel:'⏱ Ожидание ', savedMsg:'✅ Сохранено',
+    signInAccount:'Войдите в аккаунт', enterDate:'Укажи дату',
+    todayDay:'Сегодня', tomorrowDay:'Завтра', yesterdayDay:'Вчера',
+    arrivedStatus:'Прибыл', liveBuiltIn:'Live прошедшие · расписание встроенное',
+  }
+};
+
+function t(key){ const L=TRANSLATIONS[currentLang]||TRANSLATIONS.en; return L[key]!==undefined?L[key]:(TRANSLATIONS.en[key]||key); }
+
+function setLang(lang){
+  currentLang=lang;
+  localStorage.setItem('ntaxi_lang',lang);
+  applyLang();
+  if(typeof updateAuthUI==='function') updateAuthUI();
+  if(document.getElementById('ferryTab')&&document.getElementById('ferryTab').style.display!=='none' && typeof renderFerryTab==='function') renderFerryTab();
+  if(document.getElementById('flightTab')&&document.getElementById('flightTab').style.display!=='none' && typeof renderFlightTab==='function') renderFlightTab();
+  if(document.getElementById('historyPanel')&&document.getElementById('historyPanel').classList.contains('open') && typeof loadHistory==='function') loadHistory();
+  if(document.getElementById('bookingsPanel')&&document.getElementById('bookingsPanel').classList.contains('open') && typeof loadBookings==='function') loadBookings();
+}
+
+function applyLang(){
+  // All data-i18n elements
+  document.querySelectorAll('[data-i18n]').forEach(el=>{
+    const key=el.getAttribute('data-i18n');
+    const val=t(key);
+    if(el.tagName==='INPUT'||el.tagName==='TEXTAREA') el.placeholder=val;
+    else if(val.includes('<')) el.innerHTML=val;
+    else el.textContent=val;
+  });
+  // Lang button
+  const btn=document.getElementById('langToggleBtn');
+  if(btn) btn.textContent=currentLang==='en'?'🌐 RU':'🌐 EN';
+  // Show map button (reopenMapRow)
+  const reopenBtn=document.querySelector('#reopenMapRow button');
+  if(reopenBtn) reopenBtn.textContent=t('showMap');
+  // svModeBtn
+  const svBtn=document.getElementById('svModeBtn');
+  if(svBtn){ const m=typeof svMode!=='undefined'?svMode:'map'; svBtn.textContent=m==='map'?t('satellite'):m==='satellite'?'📷 Street View':t('mapMode'); }
+  // saveTripBtn if visible
+  const stb=document.getElementById('saveTripBtn');
+  if(stb&&stb.style.display!=='none'&&!stb.disabled) stb.textContent=t('saveTripBtn');
+  // waitBtn idle state
+  const wb=document.getElementById('waitBtn');
+  if(wb){const ms=typeof getWaitMs==='function'?getWaitMs():0;if(ms<500&&!window.waitStartTime)wb.innerText=t('waitLabel').trim();}
+  // mapToggleBtn
+  const mtb=document.getElementById('mapToggleBtn');
+  if(mtb&&typeof map!=='undefined'){const mapEl=document.getElementById('map');if(mapEl&&mapEl.style.display!=='block')mtb.textContent=t('showMap');}
+  // Ferry / Flight refresh button labels (only if not mid-refresh)
+  const rl=document.getElementById('refreshLabel');
+  if(rl&&rl.innerText!==t('loading'))rl.innerText=t('liveUpdate');
+  const rfl=document.getElementById('refreshFlightLabel');
+  if(rfl&&rfl.innerText!==t('loading'))rfl.innerText=t('liveUpdate');
+  // Ferry date label
+  if(typeof ferryLabel==='function'&&typeof ferryTargetDate==='function'){
+    const fdl=document.getElementById('ferryDateLabel');
+    if(fdl) fdl.innerText=ferryLabel(ferryTargetDate(typeof ferryDayOffset!=='undefined'?ferryDayOffset:0));
+  }
+  // Flight day label
+  if(typeof getFlightDayLabel==='function'){
+    const flbl=document.getElementById('flightDayLabel');
+    if(flbl) flbl.innerText=getFlightDayLabel();
+  }
+  // Ferry source badge "Built-in" text
+  const fsb=document.getElementById('ferrySourceBadge');
+  if(fsb&&fsb.innerText.startsWith('📋'))fsb.innerText=t('builtIn');
+  // Flight source badge "Built-in" text
+  const flsb=document.getElementById('flightSourceBadge');
+  if(flsb&&flsb.innerText.startsWith('📋'))flsb.innerText=t('builtIn');
+}
+
+document.addEventListener('DOMContentLoaded',()=>{ applyLang(); });
+</script>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/togeojson/0.16.0/togeojson.min.js"></script>
@@ -1436,7 +1605,7 @@ function ferryTargetDate(off){ const d=new Date(); d.setDate(d.getDate()+(off||0
 function dateKey(d){ return d.toISOString().slice(0,10); }
 function ferryLabel(d){
   const diff=Math.round((new Date(dateKey(d))-new Date(dateKey(new Date())))/86400000);
-  if(diff===0) return 'Today'; if(diff===1) return 'Tomorrow'; if(diff===-1) return 'Yesterday';
+  if(diff===0) return t('todayDay'); if(diff===1) return t('tomorrowDay'); if(diff===-1) return t('yesterdayDay');
   return d.toLocaleDateString('ru-RU',{weekday:'short',day:'numeric',month:'short'});
 }
 function parseFT(t,base){
@@ -1445,7 +1614,7 @@ function parseFT(t,base){
   const d=new Date(base); d.setHours(h,m,0,0); return d;
 }
 function fmtCD(ms){
-  if(ms<0){ const m=Math.floor(-ms/60000); return m===0?'Arrived':`${m} min ago`; }
+  if(ms<0){ const m=Math.floor(-ms/60000); return m===0?t('arrivedStatus'):`${m}${t('minAgo')}`; }
   const m=Math.floor(ms/60000),h=Math.floor(m/60);
   return h>0?`${h}h ${m%60}min`:`${m} min`;
 }
@@ -1532,7 +1701,7 @@ async function refreshFerryLive(){
   const btn=document.getElementById('refreshFerryBtn');
   const icon=document.getElementById('refreshIcon');
   const lbl=document.getElementById('refreshLabel');
-  icon.innerText='⏳'; lbl.innerText='Connecting...'; btn.disabled=true;
+  icon.innerText='⏳'; lbl.innerText=t('loading'); btn.disabled=true;
   try{
     const td=ferryTargetDate(ferryDayOffset);
     // Fetch both sources in parallel
@@ -1571,12 +1740,12 @@ async function refreshFerryLive(){
         ferryLiveCache[dateKey(td)]=hybrid;
         renderFerryTab('live');
         icon.innerText='📋';
-        lbl.innerText=`Live past · built-in schedule`;
+        lbl.innerText=t('liveBuiltIn');
       }
-    } else { icon.innerText='📋'; lbl.innerText='No live data'; }
-  }catch(e){ icon.innerText='⚠️'; lbl.innerText='No connection'; }
+    } else { icon.innerText='📋'; lbl.innerText=t('noLiveData'); }
+  }catch(e){ icon.innerText='⚠️'; lbl.innerText=t('noConnection'); }
   btn.disabled=false;
-  setTimeout(()=>{ icon.innerText='🔄'; lbl.innerText='Live update'; },4000);
+  setTimeout(()=>{ icon.innerText='🔄'; lbl.innerText=t('liveUpdate'); },4000);
 }
 
 function renderFerryTab(forceSource){
@@ -1589,10 +1758,10 @@ function renderFerryTab(forceSource){
   else { arrivals=builtinArrivals(td); source='builtin'; }
   const badge=document.getElementById('ferrySourceBadge');
   if(source==='live'){ badge.style.background='#0a2a0a'; badge.style.color='#30d158'; badge.innerText='🟢 Live'; }
-  else { badge.style.background='#1e1e28'; badge.style.color='#aaa'; badge.innerText='📋 Built-in'; }
+  else { badge.style.background='#1e1e28'; badge.style.color='#aaa'; badge.innerText=t('builtIn'); }
   if(!arrivals||!arrivals.length){
-    document.getElementById('ferryArrivalsContainer').innerHTML=`<div style="text-align:center;padding:32px;opacity:.5;">No data. <a href="https://www.nantucketferries.com" target="_blank" style="color:#0A84FF;">nantucketferries.com</a></div>`;
-    document.getElementById('rushIndicatorCard').innerHTML=`<div style="opacity:.5;font-size:13px;">Status</div><div style="font-size:18px;font-weight:800;margin-top:4px;">📅 No schedule</div>`;
+    document.getElementById('ferryArrivalsContainer').innerHTML=`<div style="text-align:center;padding:32px;opacity:.5;">${t('noData2')}. <a href="https://www.nantucketferries.com" target="_blank" style="color:#0A84FF;">nantucketferries.com</a></div>`;
+    document.getElementById('rushIndicatorCard').innerHTML=`<div style="opacity:.5;font-size:13px;">${t('status')}</div><div style="font-size:18px;font-weight:800;margin-top:4px;">📅 ${t('noSchedule')}</div>`;
     return;
   }
   const GRACE_MS=20*60*1000;
@@ -1604,7 +1773,7 @@ function renderFerryTab(forceSource){
   const season=FERRY_BUILTIN.find(s=>{const k=dateKey(td);return k>=s.from&&k<=s.to;});
   if(season&&source==='builtin') html+=`<div style="font-size:11px;color:#0A84FF;font-weight:700;margin-bottom:8px;opacity:.8;">📋 ${season.label}</div>`;
   if(upcoming.length){
-    html+=`<div style="font-size:11px;font-weight:700;opacity:.4;letter-spacing:1px;margin-bottom:8px;">UPCOMING ARRIVALS</div>`;
+    html+=`<div style="font-size:11px;font-weight:700;opacity:.4;letter-spacing:1px;margin-bottom:8px;">${t('upcomingArrivals')}</div>`;
     upcoming.forEach((a,i)=>{
       const isNext=i===0, mins=Math.floor((a.dateObj-now)/60000);
       const isLate=mins<0, hot=!isLate&&mins<=20;
@@ -1612,15 +1781,15 @@ function renderFerryTab(forceSource){
       const br=isLate?'#ff9f0a':(isNext?(hot?'#ff9f0a':'#30d158'):'#252528');
       const cdColor=isLate?'#ff9f0a':(hot&&isNext?'#ff9f0a':'white');
       let badge='';
-      if(isLate) badge=`<div style="font-size:10px;font-weight:800;color:#ff9f0a;margin-top:3px;">⏱ DELAYED</div>`;
-      else if(isNext) badge=`<div style="font-size:10px;font-weight:800;color:${hot?'#ff9f0a':'#30d158'};margin-top:3px;">${hot?'⚡SOON':'▶ NEXT'}</div>`;
+      if(isLate) badge=`<div style="font-size:10px;font-weight:800;color:#ff9f0a;margin-top:3px;">${t('delayedBadge')}</div>`;
+      else if(isNext) badge=`<div style="font-size:10px;font-weight:800;color:${hot?'#ff9f0a':'#30d158'};margin-top:3px;">${hot?t('soon'):'▶ NEXT'}</div>`;
       html+=`<div class="fa-row" data-iso="${a.dateObj.toISOString()}" style="background:${bg};border:1px solid ${br};border-radius:15px;padding:13px 15px;margin-bottom:9px;display:flex;align-items:center;justify-content:space-between;">
         <div style="display:flex;align-items:center;gap:11px;">
           <div style="font-size:24px;">${lineEmoji(a.line)}</div>
           <div>
             <div style="font-size:18px;font-weight:800;">${a.time}</div>
             <div style="font-size:13px;color:${lineColor(a.line)};font-weight:600;">${a.line}</div>
-            <div style="font-size:11px;opacity:.5;">from ${a.from} · ${a.type}${a.note?` · ${a.note}`:''}</div>
+            <div style="font-size:11px;opacity:.5;">${t('fromPrep')}${a.from} · ${a.type}${a.note?` · ${a.note}`:''}</div>
           </div>
         </div>
         <div style="text-align:right;min-width:60px;">
@@ -1631,10 +1800,10 @@ function renderFerryTab(forceSource){
     });
   }
   if(past.length){
-    html+=`<div style="font-size:11px;font-weight:700;opacity:.3;letter-spacing:1px;margin:14px 0 8px;">ARRIVED</div>`;
+    html+=`<div style="font-size:11px;font-weight:700;opacity:.3;letter-spacing:1px;margin:14px 0 8px;">${t('arrivedLabel')}</div>`;
     past.slice().reverse().forEach(a=>{
       html+=`<div style="background:#111;border:1px solid #1e1e1e;border-radius:13px;padding:10px 14px;margin-bottom:7px;opacity:.35;display:flex;align-items:center;justify-content:space-between;">
-        <div style="display:flex;align-items:center;gap:9px;"><div style="font-size:18px;">${lineEmoji(a.line)}</div><div><div style="font-size:15px;font-weight:700;text-decoration:line-through;">${a.time}</div><div style="font-size:11px;color:${lineColor(a.line)};">${a.line} · from ${a.from}</div></div></div>
+        <div style="display:flex;align-items:center;gap:9px;"><div style="font-size:18px;">${lineEmoji(a.line)}</div><div><div style="font-size:15px;font-weight:700;text-decoration:line-through;">${a.time}</div><div style="font-size:11px;color:${lineColor(a.line)};">${a.line} · ${t('fromPrep')}${a.from}</div></div></div>
         <div style="font-size:12px;opacity:.6;">✓</div></div>`;
     });
   }
@@ -1643,12 +1812,12 @@ function renderFerryTab(forceSource){
   const depsData = ferryLiveDepsCache[dateKey(td)] || [];
   const upcomingDeps = depsData.filter(d=>d.dateObj>now-20*60*1000);
   if(upcomingDeps.length){
-    html+=`<div style="font-size:11px;font-weight:700;opacity:.4;letter-spacing:1px;margin:16px 0 8px;">🚢 DEPARTURES FROM NANTUCKET</div>`;
+    html+=`<div style="font-size:11px;font-weight:700;opacity:.4;letter-spacing:1px;margin:16px 0 8px;">${t('departures')}</div>`;
     upcomingDeps.forEach(a=>{
       const mins=Math.floor((a.dateObj-now)/60000);
       const gone=mins<-5, soon=!gone&&mins<=20;
       const cdColor=gone?'#555':(soon?'#ff9f0a':'white');
-      const cdText=gone?'departed':fmtCD(a.dateObj-now);
+      const cdText=gone?t('departed'):fmtCD(a.dateObj-now);
       html+=`<div style="background:${soon?lineColor(a.line)+'18':'#111'};border:1px solid ${soon?lineColor(a.line):'#252528'};border-radius:13px;padding:11px 14px;margin-bottom:7px;display:flex;align-items:center;justify-content:space-between;${gone?'opacity:.35;':''}">
         <div style="display:flex;align-items:center;gap:9px;">
           <div style="font-size:20px;">${lineEmoji(a.line)}</div>
@@ -1668,14 +1837,14 @@ function renderFerryTab(forceSource){
 
 function renderRushCard(upcoming,now){
   const card=document.getElementById('rushIndicatorCard');
-  if(!upcoming||!upcoming.length){ card.innerHTML=`<div style="opacity:.5;font-size:13px;">Status</div><div style="font-size:20px;font-weight:800;margin-top:4px;">🌙 No more ferries</div>`; return; }
+  if(!upcoming||!upcoming.length){ card.innerHTML=`<div style="opacity:.5;font-size:13px;">${t('status')}</div><div style="font-size:20px;font-weight:800;margin-top:4px;">${t('noMoreFerries')}</div>`; return; }
   const next=upcoming[0],mins=Math.floor((next.dateObj-now)/60000);
   let icon,color,msg,sub;
-  if(mins<0){icon='⏱';color='#ff9f0a';msg=`Delayed · ${Math.abs(mins)} min ago`;sub=`${lineEmoji(next.line)} ${next.line} · ${next.time} from ${next.from}`;}
-  else if(mins<=20){icon='🚨';color='#ff453a';msg=`Ferry in ${mins} min!`;sub=`${lineEmoji(next.line)} ${next.line} · ${next.time} from ${next.from}`;}
-  else if(mins<=45){icon='⚠️';color='#ffd60a';msg=`Ferry in ${Math.floor(mins/60)?Math.floor(mins/60)+'h ':''}${mins%60}min`;sub=`${lineEmoji(next.line)} ${next.line} · ${next.time}`;}
-  else{icon='🟢';color='#30d158';const h=Math.floor(mins/60),m=mins%60;msg=`Clear · ${h?h+'h ':''}${m}m`;sub=`${lineEmoji(next.line)} ${next.line} arriving at ${next.time}`;}
-  card.innerHTML=`<div style="opacity:.5;font-size:13px;">Status</div><div style="font-size:22px;font-weight:900;color:${color};margin-top:4px;">${icon} ${msg}</div><div style="font-size:13px;opacity:.7;margin-top:5px;">${sub}</div>`;
+  if(mins<0){icon='⏱';color='#ff9f0a';msg=`${t('delayed')}${Math.abs(mins)}${t('minAgo')}`;sub=`${lineEmoji(next.line)} ${next.line} · ${next.time} ${t('fromPrep')}${next.from}`;}
+  else if(mins<=20){icon='🚨';color='#ff453a';msg=`${t('ferryIn')}${mins} ${t('minUnit')}!`;sub=`${lineEmoji(next.line)} ${next.line} · ${next.time} ${t('fromPrep')}${next.from}`;}
+  else if(mins<=45){icon='⚠️';color='#ffd60a';msg=`${t('ferryIn')}${Math.floor(mins/60)?Math.floor(mins/60)+'h ':''}${mins%60}${t('minUnit')}`;sub=`${lineEmoji(next.line)} ${next.line} · ${next.time}`;}
+  else{icon='🟢';color='#30d158';const h=Math.floor(mins/60),m=mins%60;msg=`${t('clearStatus')}${h?h+'h ':''}${m}m`;sub=`${lineEmoji(next.line)} ${next.line}${t('arrivingAt')}${next.time}`;}
+  card.innerHTML=`<div style="opacity:.5;font-size:13px;">${t('status')}</div><div style="font-size:22px;font-weight:900;color:${color};margin-top:4px;">${icon} ${msg}</div><div style="font-size:13px;opacity:.7;margin-top:5px;">${sub}</div>`;
 }
 
 // ── AIS Live Ferry Tracking (aisstream.io + VesselFinder fallback) ────────
@@ -1884,14 +2053,14 @@ function getScheduledVesselsAtSea(){
 function renderAISVessels(){
   const el=document.getElementById('aisVesselsList');
   if(!el)return;
-  if(!getAisKey()){el.innerHTML='<div style="font-size:13px;opacity:.5;text-align:center;padding:10px;">AIS key not set</div>';return;}
+  if(!getAisKey()){el.innerHTML=`<div style="font-size:13px;opacity:.5;text-align:center;padding:10px;">${t('aisKeyNotSet')}</div>`;return;}
   const now=Date.now();
   Object.keys(aisVessels).forEach(m=>{
     const v=aisVessels[m];
     const ttl=aisDistNm(v.lat,v.lon,NANT_PORT.lat,NANT_PORT.lon)<0.5?15*60*1000:8*60*1000;
     if(now-v.ts>ttl)delete aisVessels[m];
   });
-  if(!aisConnected&&!Object.keys(aisVessels).length){el.innerHTML='<div style="font-size:13px;opacity:.5;text-align:center;padding:10px;">🔄 Connecting to AIS...</div>';return;}
+  if(!aisConnected&&!Object.keys(aisVessels).length){el.innerHTML=`<div style="font-size:13px;opacity:.5;text-align:center;padding:10px;">${t('connectingAIS')}</div>`;return;}
   const vessels=Object.values(aisVessels);
   if(!vessels.length){
     const mtLink=`<a href="https://www.marinetraffic.com/en/ais/home/centerx:-70.1/centery:41.27/zoom:12" target="_blank" style="color:#0A84FF;font-size:11px;text-decoration:none;">🗺 MarineTraffic</a>`;
@@ -1923,7 +2092,7 @@ function renderAISVessels(){
           <div style="font-family:monospace;font-size:11px;color:${lineColor(v.line)};letter-spacing:1px;margin:2px 0;">${bar}</div>
           <div style="display:flex;justify-content:space-between;font-size:9px;opacity:.4;margin-top:1px;">
             <span>${v.from}</span>
-            <span>~${v.distNm} nm до Nantucket</span>
+            <span>~${v.distNm} nm to Nantucket</span>
             <span>Nantucket</span>
           </div>
           <div style="font-size:9px;opacity:.3;margin-top:3px;">📋 estimated position · AIS unavailable</div>
@@ -1944,7 +2113,7 @@ function renderAISVessels(){
       const pktLine=aisRawCount>0?`${aisRawCount} pkts${typeInfo?' ('+typeInfo+')':''}`:' ';
       hint=`<div style="font-size:10px;opacity:.35;margin-top:4px;">${pktLine} · no ferries · ${mtLink}</div>`;
     }
-    el.innerHTML=`<div style="font-size:13px;opacity:.5;text-align:center;padding:10px;">📡 No ferries underway${hint}</div>`;
+    el.innerHTML=`<div style="font-size:13px;opacity:.5;text-align:center;padding:10px;">${t('noFerriesUnderway')}${hint}</div>`;
     return;
   }
   const annotated=vessels.map(v=>{
@@ -1956,12 +2125,12 @@ function renderAISVessels(){
     const inPort=dn<0.4;
     const dh=aisDistNm(v.lat,v.lon,HYAN_PORT.lat,HYAN_PORT.lon);
     const db=aisDistNm(v.lat,v.lon,NEWB_PORT.lat,NEWB_PORT.lon);
-    let origin=inPort?'📍 Nantucket':dh<0.5?'⚓ Hyannis':db<0.5?'⚓ New Bedford':approaching?'из '+(dh<db?'Hyannis':'New Bedford'):'↩ уходит';
+    let origin=inPort?'📍 Nantucket':dh<0.5?'⚓ Hyannis':db<0.5?'⚓ New Bedford':approaching?'from '+(dh<db?'Hyannis':'New Bedford'):'↩ departing';
     return{...v,dn,approaching,etaMins,inPort,origin};
   }).sort((a,b)=>a.approaching!==b.approaching?(a.approaching?-1:1):a.dn-b.dn);
   let html='';
   annotated.forEach(v=>{
-    const speed=v.sog>0.5?`${v.sog.toFixed(1)} kts`:'idle';
+    const speed=v.sog>0.5?`${v.sog.toFixed(1)}${t('ktsUnit')}`:t('idleStatus');
     const dist=`${v.dn.toFixed(1)} nm`;
     let etaHtml='', delayMins=null;
     if(v.inPort){
@@ -1975,10 +2144,10 @@ function renderAISVessels(){
         etaHtml=`<div style="font-size:12px;font-weight:800;color:#ff9f0a;text-align:right;">⚠️ Delayed<br>~${delayMins} min</div>`;
       } else {
         const portStr=minsInPort>0?`<br><span style="opacity:.6;font-size:11px;">${minsInPort} min</span>`:'';
-        etaHtml=`<div style="font-size:12px;color:#30d158;font-weight:700;">IN PORT${portStr}</div>`;
+        etaHtml=`<div style="font-size:12px;color:#30d158;font-weight:700;">${t('inPort')}${portStr}</div>`;
       }
     } else if(v.etaMins!==null){
-      etaHtml=`<div style="font-size:13px;font-weight:800;color:${v.color};">${v.etaMins<=2?'⚡ Arriving!':'~'+v.etaMins+' min'}</div>`;
+      etaHtml=`<div style="font-size:13px;font-weight:800;color:${v.color};">${v.etaMins<=2?t('arrivingNow'):'~'+v.etaMins+' min'}</div>`;
     } else if(v.sog>0.5){
       etaHtml=`<div style="font-size:12px;opacity:.4;">↩</div>`;
     }
@@ -1991,7 +2160,7 @@ function renderAISVessels(){
         <div>
           <div style="font-size:14px;font-weight:800;">${v.name}</div>
           <div style="font-size:12px;color:${v.color};font-weight:600;">${v.line} · ${v.origin}</div>
-          <div style="font-size:11px;opacity:.45;">${speed} · ${dist} до Nantucket</div>
+          <div style="font-size:11px;opacity:.45;">${speed} · ${dist} to Nantucket</div>
         </div>
       </div>
       <div style="text-align:right;min-width:55px;">${etaHtml}</div>
@@ -2104,7 +2273,7 @@ function updateFerryWidget(){
   if(!widget) return;
   if(!next){
     document.getElementById('fwEmoji').innerText = '🌙';
-    document.getElementById('fwTitle').innerText = 'No more ferries';
+    document.getElementById('fwTitle').innerText = t('noMoreFerries2');
     document.getElementById('fwCountdown').innerText = '—';
     widget.style.borderColor = '#2a2a2a';
     return;
@@ -2112,9 +2281,9 @@ function updateFerryWidget(){
   const mins = Math.floor((next.dateObj - now) / 60000);
   const isLate = mins < 0;
   const hot = !isLate && mins <= 20;
-  const cd = isLate ? `${Math.abs(mins)} min ago` : (Math.floor(mins/60)>0 ? `${Math.floor(mins/60)}h ${mins%60}m` : `${mins} min`);
+  const cd = isLate ? `${Math.abs(mins)}${t('minAgo')}` : (Math.floor(mins/60)>0 ? `${Math.floor(mins/60)}h ${mins%60}m` : `${mins} min`);
   document.getElementById('fwTitle').innerText = `${next.line} · ${next.time}`;
-  document.getElementById('fwCountdown').innerText = isLate ? '✓ departed' : cd;
+  document.getElementById('fwCountdown').innerText = isLate ? `✓ ${t('departed')}` : cd;
   document.getElementById('fwCountdown').style.color = hot ? '#ff9f0a' : isLate ? '#555' : 'white';
   widget.style.borderColor = hot ? '#ff9f0a' : '#2a2a2a';
 }
@@ -2134,8 +2303,8 @@ let flightTickId = null;
 let selectedFlightDay = 0;
 
 function getFlightDayLabel(){
-  if(selectedFlightDay===0) return 'Today';
-  if(selectedFlightDay===1) return 'Tomorrow';
+  if(selectedFlightDay===0) return t('todayDay');
+  if(selectedFlightDay===1) return t('tomorrowDay');
   const d=new Date(); d.setDate(d.getDate()+selectedFlightDay);
   return d.toLocaleDateString('ru-RU',{weekday:'long',day:'numeric',month:'short'});
 }
@@ -2149,7 +2318,7 @@ function changeFlightDay(delta){
   document.getElementById('flightDayLabel').innerText=getFlightDayLabel();
   document.getElementById('flightDayPrev').style.opacity=selectedFlightDay===0?'0.3':'1';
   document.getElementById('flightDayNext').style.opacity=selectedFlightDay>=2?'0.3':'1';
-  document.getElementById('flightArrivalsContainer').innerHTML='<div style="text-align:center;padding:40px;opacity:.4;">Loading...</div>';
+  document.getElementById('flightArrivalsContainer').innerHTML=`<div style="text-align:center;padding:40px;opacity:.4;">${t('loading')}</div>`;
   if(selectedFlightDay===0){
     document.getElementById('flightRushCard').style.display='';
     refreshFlightsLive();
@@ -2159,7 +2328,7 @@ function changeFlightDay(delta){
       flightScheduleData=data||builtinFlightArrivals(new Date(Date.now()+selectedFlightDay*86400000));
       const badge=document.getElementById('flightSourceBadge');
       if(data?.length){badge.innerText='🟢 AirLabs';badge.style.color='#30d158';badge.style.background='#0f2a1a';}
-      else{badge.innerText='📋 Approx';badge.style.color='#aaa';badge.style.background='#1e1e28';}
+      else{badge.innerText=t('builtIn');badge.style.color='#aaa';badge.style.background='#1e1e28';}
       renderFlightTab();
     });
   }
@@ -2486,7 +2655,7 @@ async function refreshFlightsLive(){
   const icon=document.getElementById('refreshFlightIcon');
   const lbl=document.getElementById('refreshFlightLabel');
   const badge=document.getElementById('flightSourceBadge');
-  icon.innerText='⏳'; lbl.innerText='Loading...'; btn.disabled=true;
+  icon.innerText='⏳'; lbl.innerText=t('loading'); btn.disabled=true;
 
   const [airlabsRes, aeroRes, infaxRes, adsbRes]=await Promise.allSettled([
     fetchAirLabs(),
@@ -2541,8 +2710,8 @@ async function refreshFlightsLive(){
     badge.innerText='🟡 ADS-B only';
     icon.innerText='📡';lbl.innerText=`ADS-B · ${flightLiveData.length} aircraft`;
   }else{
-    badge.style.background='#1e1e28';badge.style.color='#aaa';badge.innerText='📋 Built-in';
-    icon.innerText='⚠️';lbl.innerText='No live data';
+    badge.style.background='#1e1e28';badge.style.color='#aaa';badge.innerText=t('builtIn');
+    icon.innerText='⚠️';lbl.innerText=t('noLiveData');
   }
   lastFlightRefresh=Date.now();
   renderFlightTab('live');
@@ -2574,13 +2743,13 @@ function renderFlightTab(source){
 
   // ADS-B approaching (today only)
   if(isToday&&flightLiveData&&flightLiveData.length>0){
-    html+=`<div style="font-size:11px;font-weight:700;opacity:.4;letter-spacing:1px;margin-bottom:8px;">📡 APPROACHING ACK</div>`;
+    html+=`<div style="font-size:11px;font-weight:700;opacity:.4;letter-spacing:1px;margin-bottom:8px;">${t('approachingACK')}</div>`;
     flightLiveData.forEach((ac,i)=>{
       const isNext=i===0,hot=ac.etaMin<=15;
       const bg=isNext?(hot?'#2a1200':'#0f1f14'):'#17181c';
       const br=isNext?(hot?'#ff9f0a':'#30d158'):'#252528';
       const etaStr=ac.etaMin!=null?(ac.etaMin<=1?'~1 min':`~${ac.etaMin} min`):'—';
-      const badge=isNext?`<div style="font-size:10px;font-weight:800;color:${hot?'#ff9f0a':'#30d158'};margin-top:3px;">${hot?'⚡SOON':'▶ NEXT'}</div>`:'';
+      const badge=isNext?`<div style="font-size:10px;font-weight:800;color:${hot?'#ff9f0a':'#30d158'};margin-top:3px;">${hot?t('soon'):'▶ NEXT'}</div>`:'';
       html+=`<div style="background:${bg};border:1px solid ${br};border-radius:15px;padding:13px 15px;margin-bottom:9px;display:flex;align-items:center;justify-content:space-between;">
         <div style="display:flex;align-items:center;gap:11px;"><div style="font-size:24px;">${ac.emoji}</div>
         <div><div style="font-size:18px;font-weight:800;">${ac.callsign||'???'}</div>
@@ -2617,16 +2786,16 @@ function renderFlightTab(source){
   if(isToday){
     if(upcoming.length) upcoming.forEach(a=>{ html+=makeRow(a,false); });
     if(past.length){
-      html+=`<div style="font-size:11px;font-weight:700;opacity:.3;letter-spacing:1px;margin:12px 0 8px;">ARRIVED</div>`;
+      html+=`<div style="font-size:11px;font-weight:700;opacity:.3;letter-spacing:1px;margin:12px 0 8px;">${t('flightArrived')}</div>`;
       past.slice().reverse().forEach(a=>{ html+=makeRow(a,true); });
     }
   } else {
     // Future day — show all, no countdown
     if(schedule.length) schedule.forEach(a=>{ html+=makeRow(a,false); });
-    else html=`<div style="text-align:center;padding:40px;opacity:.5;">No flight data</div>`;
+    else html=`<div style="text-align:center;padding:40px;opacity:.5;">${t('noFlightData')}</div>`;
   }
 
-  if(!html) html=`<div style="text-align:center;padding:40px;opacity:.5;">No data · press Live update</div>`;
+  if(!html) html=`<div style="text-align:center;padding:40px;opacity:.5;">${t('noDataPress')}</div>`;
 
   document.getElementById('flightArrivalsContainer').innerHTML=html;
   if(isToday){ renderFlightStatusCard(upcoming,now); try{updateFlightWidget();}catch(e){} }
@@ -2641,20 +2810,20 @@ function renderFlightStatusCard(upcoming,now){
     const next=flightLiveData[0];
     const hot=next.etaMin<=15;
     sl.style.color=hot?'#ff9f0a':'white';
-    sl.innerText=hot?`🚨 Landing in ~${next.etaMin} min!`:`✈️ Approaching in ~${next.etaMin} min`;
+    sl.innerText=hot?`🚨 ${t('landingIn')}${next.etaMin} min!`:`✈️ ${t('approachingIn')}${next.etaMin} min`;
     ss.innerText=`${next.emoji} ${next.callsign} · ${next.airline} · ${Math.round(next.distNm*1.852)} km`;
     return;
   }
   if(!upcoming||!upcoming.length){
     sl.style.color='white';
-    sl.innerText='🌙 No more flights';
+    sl.innerText=t('noMoreFlights');
     ss.innerText='';
     return;
   }
   const next=upcoming[0], mins=Math.floor((next.dateObj-now)/60000);
   const {emoji}=airlineInfo(next.airline);
   if(mins<0){
-    sl.style.color='#ff9f0a'; sl.innerText=`⏱ ${next.airline} may have arrived`;
+    sl.style.color='#ff9f0a'; sl.innerText=`⏱ ${next.airline}${t('mayHaveArrived')}`;
     ss.innerText=`${next.time} · ±30min (approx)`;
   } else if(mins<=20){
     sl.style.color='#ff453a'; sl.innerText=`🚨 Flight in ${mins} min!`;
@@ -2689,7 +2858,7 @@ function updateFlightWidget(){
   // Find next upcoming flight (not past)
   const next=sched.find(a=>a.dateObj>now);
   if(!next){
-    document.getElementById('fltTitle').innerText='No more flights';
+    document.getElementById('fltTitle').innerText=t('noMoreFlights2');
     document.getElementById('fltCountdown').innerText='🌙';
     document.getElementById('fltCountdown').style.color='#555';
     widget.style.borderColor='#2a2a2a';
@@ -2828,7 +2997,7 @@ function toggleMap(){
     const btn = document.getElementById('mapToggleBtn');
     const visible = mapEl.style.display === 'block';
     mapEl.style.display = visible ? 'none' : 'block';
-    btn.textContent = visible ? '🗺 Show Map' : '🗺 Hide Map';
+    btn.textContent = visible ? t('showMap') : '🗺 Hide Map';
     if(!visible) map.invalidateSize();
 }
 
@@ -2922,7 +3091,7 @@ function updateWaitDisplay(){
   if(!btn) return;
   const ms=getWaitMs(), wc=getWaitCharge(), isRunning=!!waitStartTime;
   if(ms<500&&!isRunning){
-    btn.innerText='⏱ Wait';
+    btn.innerText=t('waitLabel').trim();
     btn.style.cssText='width:100%;margin-top:8px;background:#1e1e28;border:1px solid #333;color:#aaa;border-radius:14px;padding:11px;font-size:15px;font-weight:700;cursor:pointer;transition:all .2s;letter-spacing:.3px;';
   } else {
     btn.innerText=isRunning?`⏱ ${fmtWait()} · $${wc.toFixed(2)}`:`✓ ${fmtWait()} · $${wc.toFixed(2)}`;
@@ -2934,7 +3103,7 @@ function updateWaitDisplay(){
     const fareEl=document.getElementById('fare');
     if(fareEl) fareEl.innerText=`$${Number.isInteger(total)?total:total.toFixed(2)}`;
     const waitRow=document.getElementById('waitBreakdownRow');
-    if(waitRow) waitRow.innerHTML=wc>0?`<span>⏱ Wait ${fmtWait()}</span><span>+$${wc.toFixed(2)}</span>`:'';
+    if(waitRow) waitRow.innerHTML=wc>0?`<span>${t('waitLabel')}${fmtWait()}</span><span>+$${wc.toFixed(2)}</span>`:'';
     const totRow=document.querySelector('.total-row span:last-child');
     if(totRow) totRow.innerText=`$${Number.isInteger(total)?total:total.toFixed(2)}`;
   }
@@ -3145,7 +3314,7 @@ async function calculateFare() {
     ).join('');
 
     const waitRow = waitCharge > 0
-        ? `<div class="fare-row" id="waitBreakdownRow"><span>⏱ Wait ${fmtWait()}</span><span>+$${waitCharge.toFixed(2)}</span></div>`
+        ? `<div class="fare-row" id="waitBreakdownRow"><span>${t('waitLabel')}${fmtWait()}</span><span>+$${waitCharge.toFixed(2)}</span></div>`
         : `<div class="fare-row" id="waitBreakdownRow"></div>`;
 
     document.getElementById('fareBreakdown').innerHTML =
@@ -3173,7 +3342,7 @@ ${extraRows}${waitRow}
     };
 
     const saveBtn = document.getElementById('saveTripBtn');
-    if(saveBtn){ saveBtn.style.display='flex'; saveBtn.textContent='💾 Save Trip'; saveBtn.disabled=false; }
+    if(saveBtn){ saveBtn.style.display='flex'; saveBtn.textContent=t('saveTripBtn'); saveBtn.disabled=false; }
 }
 
 </script>
@@ -3466,7 +3635,7 @@ function renderAddressPreview(label){
     mapDiv.style.display    = 'block';
     expandBtn.innerHTML     = _EXPAND_SVG;
     expandBtn.style.display = 'flex';
-    btn.textContent         = svMode === 'map' ? '🛰 Satellite' : '📷 Street View';
+    btn.textContent         = svMode === 'map' ? t('satellite') : '📷 Street View';
     const typeId            = svMode === 'map' ? 'roadmap' : 'satellite';
     setTimeout(()=>{
       if(!previewMap){
@@ -3500,7 +3669,7 @@ function renderAddressPreview(label){
   mapDiv.style.display    = 'none';
   expandBtn.style.display = 'none';
   img.src         = `https://maps.googleapis.com/maps/api/streetview?size=600x360&location=${svLat},${svLng}&fov=80&pitch=5&key=${GMAPS_KEY}`;
-  btn.textContent = '🗺 Map';
+  btn.textContent = t('mapMode');
 }
 
 function toggleMapFullscreen(){
@@ -3753,21 +3922,21 @@ function updateAuthUI(){
     if(avatar) avatar.innerHTML = fbUser.photoURL
       ? `<img src="${fbUser.photoURL}">`
       : `<span style="font-size:22px;">👤</span>`;
-    if(name) name.innerText = fbUser.displayName || 'User';
+    if(name) name.innerText = fbUser.displayName || t('user');
     if(email) email.innerText = fbUser.email || '';
     if(section) section.innerHTML = `
       <button class="drawer-item danger" onclick="fbAuth.signOut();closeDrawer();">
-        <span style="font-size:20px;">🚪</span> Sign out
+        <span style="font-size:20px;">🚪</span> ${t('signOut')}
       </button>`;
     if(hint) hint.innerText = fbUser.displayName || fbUser.email || '';
   } else {
     if(avatar) avatar.innerHTML = '👤';
-    if(name) name.innerText = 'Not signed in';
+    if(name) name.innerText = t('notSignedIn');
     if(email) email.innerText = '';
     if(section) section.innerHTML = `
       <button class="drawer-item" onclick="handleAuthClick();closeDrawer();">
         <svg width="20" height="20" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20.1H42V20H24v8h11.3C33.7 32.7 29.3 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.1 7.9 3l5.7-5.7C34.1 6.5 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.6-.4-3.9z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.6 16 19 13 24 13c3.1 0 5.8 1.1 7.9 3l5.7-5.7C34.1 6.5 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.4 35.5 26.8 36 24 36c-5.3 0-9.7-3.3-11.3-8H6.4C9.7 35.5 16.4 44 24 44z"/><path fill="#1976D2" d="M43.6 20.1H42V20H24v8h11.3c-.8 2.3-2.3 4.3-4.3 5.7l6.2 5.2C41.3 35.4 44 30 44 24c0-1.3-.1-2.6-.4-3.9z"/></svg>
-        Sign in with Google
+        ${t('signInGoogle')}
       </button>`;
     if(hint) hint.innerText = '';
   }
@@ -3804,7 +3973,7 @@ function saveTripManual(){
   if(!_lastTripData) return;
   const btn = document.getElementById('saveTripBtn');
   saveTrip(_lastTripData);
-  if(btn){ btn.textContent='✅ Saved'; btn.disabled=true; }
+  if(btn){ btn.textContent=t('savedMsg'); btn.disabled=true; }
   _lastTripData = null;
 }
 
@@ -3821,10 +3990,10 @@ function saveTrip(data){
 function loadHistory(){
   const list = document.getElementById('historyList');
   if(!fbDb||!fbUser){
-    if(list) list.innerHTML='<div style="text-align:center;padding:40px;opacity:.4;">Sign in to view history</div>';
+    if(list) list.innerHTML=`<div style="text-align:center;padding:40px;opacity:.4;">${t('signInHistory')}</div>`;
     return;
   }
-  if(list) list.innerHTML='<div style="text-align:center;padding:40px;opacity:.4;">Loading...</div>';
+  if(list) list.innerHTML=`<div style="text-align:center;padding:40px;opacity:.4;">${t('loading')}</div>`;
   if(_unsubTrips) _unsubTrips();
   _unsubTrips = fbDb.collection('users').doc(fbUser.uid).collection('trips')
     .orderBy('ts','desc').limit(100)
@@ -3845,11 +4014,11 @@ function confirmClearAll(){
   el.innerHTML=`
     <div style="background:#1e1e28;border:1px solid #333;border-radius:20px;padding:24px 20px;width:90%;max-width:340px;text-align:center;">
       <div style="font-size:22px;margin-bottom:8px;">🗑️</div>
-      <div style="font-size:17px;font-weight:800;margin-bottom:6px;">Clear all history?</div>
-      <div style="font-size:13px;opacity:.5;margin-bottom:20px;">All trips will be permanently deleted</div>
+      <div style="font-size:17px;font-weight:800;margin-bottom:6px;">${t('clearAllHistoryTitle')}</div>
+      <div style="font-size:13px;opacity:.5;margin-bottom:20px;">${t('clearAllHistoryDesc')}</div>
       <div style="display:flex;gap:10px;">
-        <button onclick="document.getElementById('clearAllOverlay').remove()" style="flex:1;background:#2a2a2a;border:none;color:white;border-radius:14px;padding:13px;font-size:15px;font-weight:700;cursor:pointer;">Cancel</button>
-        <button onclick="clearAllTrips();document.getElementById('clearAllOverlay').remove()" style="flex:1;background:#ff453a;border:none;color:white;border-radius:14px;padding:13px;font-size:15px;font-weight:700;cursor:pointer;">Delete all</button>
+        <button onclick="document.getElementById('clearAllOverlay').remove()" style="flex:1;background:#2a2a2a;border:none;color:white;border-radius:14px;padding:13px;font-size:15px;font-weight:700;cursor:pointer;">${t('cancel')}</button>
+        <button onclick="clearAllTrips();document.getElementById('clearAllOverlay').remove()" style="flex:1;background:#ff453a;border:none;color:white;border-radius:14px;padding:13px;font-size:15px;font-weight:700;cursor:pointer;">${t('deleteAll')}</button>
       </div>
     </div>`;
   document.body.appendChild(el);
@@ -3873,63 +4042,63 @@ function renderHistory(trips){
   if(clearBtn) clearBtn.style.display = trips.length ? 'block' : 'none';
 
   if(!trips.length){
-    list.innerHTML='<div style="text-align:center;padding:40px;opacity:.4;">No trips yet</div>';
+    list.innerHTML=`<div style="text-align:center;padding:40px;opacity:.4;">${t('noTrips')}</div>`;
     if(stats) stats.innerHTML='';
     return;
   }
 
-  const total = trips.reduce((s,t)=>s+(t.fare||0),0);
-  const today = trips.filter(t=>t.ts&&new Date(t.ts.toDate?t.ts.toDate():t.ts).toDateString()===new Date().toDateString());
-  const todayTotal = today.reduce((s,t)=>s+(t.fare||0),0);
+  const total = trips.reduce((s,tr)=>s+(tr.fare||0),0);
+  const today = trips.filter(tr=>tr.ts&&new Date(tr.ts.toDate?tr.ts.toDate():tr.ts).toDateString()===new Date().toDateString());
+  const todayTotal = today.reduce((s,tr)=>s+(tr.fare||0),0);
   if(stats) stats.innerHTML=`
     <div style="flex:1;background:#17181c;border:1px solid #252528;border-radius:14px;padding:12px;text-align:center;">
-      <div style="font-size:11px;opacity:.5;margin-bottom:4px;">TODAY</div>
+      <div style="font-size:11px;opacity:.5;margin-bottom:4px;">${t('todayLabel')}</div>
       <div style="font-size:20px;font-weight:900;color:#30d158;">$${todayTotal}</div>
-      <div style="font-size:11px;opacity:.4;">${today.length} trips</div>
+      <div style="font-size:11px;opacity:.4;">${today.length} ${t('tripsUnit')}</div>
     </div>
     <div style="flex:1;background:#17181c;border:1px solid #252528;border-radius:14px;padding:12px;text-align:center;">
-      <div style="font-size:11px;opacity:.5;margin-bottom:4px;">TOTAL</div>
+      <div style="font-size:11px;opacity:.5;margin-bottom:4px;">${t('totalLabel')}</div>
       <div style="font-size:20px;font-weight:900;">$${total}</div>
-      <div style="font-size:11px;opacity:.4;">${trips.length} trips</div>
+      <div style="font-size:11px;opacity:.4;">${trips.length} ${t('tripsUnit')}</div>
     </div>`;
 
   const byDate = {};
-  trips.forEach(t=>{
-    const d = t.ts ? (t.ts.toDate ? t.ts.toDate() : new Date(t.ts)) : new Date();
+  trips.forEach(trip=>{
+    const d = trip.ts ? (trip.ts.toDate ? trip.ts.toDate() : new Date(trip.ts)) : new Date();
     const key = d.toLocaleDateString('ru-RU',{day:'numeric',month:'short',weekday:'short'});
     if(!byDate[key]) byDate[key]={label:key,trips:[],sum:0};
-    byDate[key].trips.push({...t,_date:d});
-    byDate[key].sum+=(t.fare||0);
+    byDate[key].trips.push({...trip,_date:d});
+    byDate[key].sum+=(trip.fare||0);
   });
 
   list.innerHTML = Object.values(byDate).map(group=>`
     <div style="font-size:11px;font-weight:700;opacity:.4;letter-spacing:1px;margin:14px 0 8px;display:flex;justify-content:space-between;">
       <span>${group.label.toUpperCase()}</span><span>$${group.sum}</span>
     </div>
-    ${group.trips.map(t=>{
-      const time = t._date.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',hour12:true});
-      const from = t.fromZone||'—';
-      const toZone = t.toZone||'—';
-      const dest = t.destination||toZone;
+    ${group.trips.map(trip=>{
+      const time = trip._date.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',hour12:true});
+      const from = trip.fromZone||'—';
+      const toZone = trip.toZone||'—';
+      const dest = trip.destination||toZone;
       const showDest = dest && dest.toLowerCase()!==toZone.toLowerCase();
-      const pax = t.passengers||1;
+      const pax = trip.passengers||1;
       const extras = [
-        `${pax} pax`,
-        t.dirtRoad?'🌿 dirt':'',
-        t.nightFee?'🌙 night':'',
-        (t.dogs||0)>0?`🐕 ${t.dogs}`:'',
-        (t.bikes||0)>0?`🚲 ${t.bikes}`:'',
-        (t.bags||0)>0?`💼 ${t.bags}`:'',
-        (t.waitCharge||0)>0?`⏱ $${(t.waitCharge).toFixed(2)}`:'',
+        `${pax} ${t('paxUnit')}`,
+        trip.dirtRoad?t('dirtTag'):'',
+        trip.nightFee?t('nightTag'):'',
+        (trip.dogs||0)>0?`🐕 ${trip.dogs}`:'',
+        (trip.bikes||0)>0?`🚲 ${trip.bikes}`:'',
+        (trip.bags||0)>0?`💼 ${trip.bags}`:'',
+        (trip.waitCharge||0)>0?`⏱ $${(trip.waitCharge).toFixed(2)}`:'',
       ].filter(Boolean).join(' · ');
       return `<div style="background:#17181c;border:1px solid #252528;border-radius:14px;padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;gap:10px;">
         <div style="flex:1;min-width:0;">
           <div style="font-size:15px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${from} → ${dest}</div>
           <div style="font-size:12px;opacity:.5;margin-top:2px;">${toZone}${showDest?'':''} · ${time} · ${extras}</div>
         </div>
-        <div style="font-size:20px;font-weight:900;color:#30d158;flex-shrink:0;">$${t.fare||'?'}</div>
-        <button onclick="editTrip('${t.id}')" style="background:#1a2233;border:none;color:#0a84ff;border-radius:10px;width:34px;height:34px;font-size:16px;cursor:pointer;flex-shrink:0;">✏️</button>
-        <button onclick="deleteTrip('${t.id}')" style="background:#2a1a1a;border:none;color:#ff453a;border-radius:10px;width:34px;height:34px;font-size:16px;cursor:pointer;flex-shrink:0;">🗑</button>
+        <div style="font-size:20px;font-weight:900;color:#30d158;flex-shrink:0;">$${trip.fare||'?'}</div>
+        <button onclick="editTrip('${trip.id}')" style="background:#1a2233;border:none;color:#0a84ff;border-radius:10px;width:34px;height:34px;font-size:16px;cursor:pointer;flex-shrink:0;">✏️</button>
+        <button onclick="deleteTrip('${trip.id}')" style="background:#2a1a1a;border:none;color:#ff453a;border-radius:10px;width:34px;height:34px;font-size:16px;cursor:pointer;flex-shrink:0;">🗑</button>
       </div>`;
     }).join('')}
   `).join('');
@@ -3943,12 +4112,13 @@ function editTrip(id){
   fbDb.collection('users').doc(fbUser.uid).collection('trips').doc(id).get().then(doc=>{
     if(!doc.exists) return;
     _editingTripId = id;
-    const t = doc.data();
-    _showEditModal(t);
+    const tripDoc = doc.data();
+    _showEditModal(tripDoc);
   });
 }
 
-function _showEditModal(t){
+function _showEditModal(tripData){
+  const td = tripData; // trip data alias (td) to avoid shadowing the global t() function
   const existing = document.getElementById('editTripOverlay');
   if(existing) existing.remove();
 
@@ -3962,17 +4132,17 @@ function _showEditModal(t){
   overlay.innerHTML=`
     <div style="background:#1e1e28;border:1px solid #333;border-radius:20px 20px 0 0;padding:20px 18px 34px;width:100%;max-width:420px;max-height:92vh;overflow-y:auto;">
       <div style="width:40px;height:4px;background:#333;border-radius:2px;margin:0 auto 18px;"></div>
-      <div style="font-size:18px;font-weight:800;margin-bottom:16px;text-align:center;">Edit Trip</div>
+      <div style="font-size:18px;font-weight:800;margin-bottom:16px;text-align:center;">${t('editTrip')}</div>
 
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
         <div>
-          <div style="font-size:11px;opacity:.5;margin-bottom:5px;">FROM ZONE</div>
+          <div style="font-size:11px;opacity:.5;margin-bottom:5px;">${t('fromZone')}</div>
           <select id="et_fromZone" style="width:100%;background:#12121a;border:1px solid #333;color:white;border-radius:10px;padding:10px;font-size:14px;">
             ${zoneOpts}
           </select>
         </div>
         <div>
-          <div style="font-size:11px;opacity:.5;margin-bottom:5px;">TO ZONE</div>
+          <div style="font-size:11px;opacity:.5;margin-bottom:5px;">${t('toZone')}</div>
           <select id="et_toZone" style="width:100%;background:#12121a;border:1px solid #333;color:white;border-radius:10px;padding:10px;font-size:14px;">
             ${zoneOpts}
           </select>
@@ -3980,74 +4150,74 @@ function _showEditModal(t){
       </div>
 
       <div style="margin-bottom:12px;">
-        <div style="font-size:11px;opacity:.5;margin-bottom:5px;">DESTINATION</div>
-        <input id="et_dest" type="text" placeholder="Address or name" value="${(t.destination||'').replace(/"/g,'&quot;')}"
+        <div style="font-size:11px;opacity:.5;margin-bottom:5px;">${t('destination')}</div>
+        <input id="et_dest" type="text" placeholder="${t('destPlaceholder')}" value="${(td.destination||'').replace(/"/g,'&quot;')}"
           style="width:100%;box-sizing:border-box;background:#12121a;border:1px solid #333;color:white;border-radius:10px;padding:10px;font-size:14px;">
       </div>
 
-      <input id="et_baseFare" type="hidden" value="${t.baseFare||0}">
+      <input id="et_baseFare" type="hidden" value="${td.baseFare||0}">
 
       <div style="margin-bottom:16px;">
-        <div style="font-size:11px;opacity:.5;margin-bottom:5px;">TOTAL ($)</div>
-        <input id="et_fare" type="number" min="0" step="0.01" value="${t.fare||0}" readonly
+        <div style="font-size:11px;opacity:.5;margin-bottom:5px;">${t('totalField')}</div>
+        <input id="et_fare" type="number" min="0" step="0.01" value="${td.fare||0}" readonly
           style="width:100%;box-sizing:border-box;background:#12121a;border:1px solid #252530;color:#30d158;border-radius:10px;padding:10px;font-size:22px;font-weight:900;cursor:default;">
       </div>
 
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
         <div>
-          <div style="font-size:11px;opacity:.5;margin-bottom:5px;">PASSENGERS</div>
+          <div style="font-size:11px;opacity:.5;margin-bottom:5px;">${t('passengers')}</div>
           <div style="display:flex;align-items:center;gap:8px;background:#12121a;border:1px solid #333;border-radius:10px;padding:8px 10px;">
             <button onclick="etStep('et_pax',-1,1,8)" style="background:#252530;border:none;color:white;border-radius:6px;width:28px;height:28px;font-size:18px;cursor:pointer;line-height:1;">−</button>
-            <span id="et_pax_disp" style="flex:1;text-align:center;font-size:16px;font-weight:700;">${t.passengers||1}</span>
-            <input id="et_pax" type="hidden" value="${t.passengers||1}">
+            <span id="et_pax_disp" style="flex:1;text-align:center;font-size:16px;font-weight:700;">${td.passengers||1}</span>
+            <input id="et_pax" type="hidden" value="${td.passengers||1}">
             <button onclick="etStep('et_pax',1,1,8)" style="background:#252530;border:none;color:white;border-radius:6px;width:28px;height:28px;font-size:18px;cursor:pointer;line-height:1;">+</button>
           </div>
         </div>
         <div>
-          <div style="font-size:11px;opacity:.5;margin-bottom:5px;">WAIT ($)</div>
-          <input id="et_wait" type="number" min="0" step="0.01" value="${(t.waitCharge||0).toFixed(2)}" oninput="etRecalc()"
+          <div style="font-size:11px;opacity:.5;margin-bottom:5px;">${t('waitField')}</div>
+          <input id="et_wait" type="number" min="0" step="0.01" value="${(td.waitCharge||0).toFixed(2)}" oninput="etRecalc()"
             style="width:100%;box-sizing:border-box;background:#12121a;border:1px solid #333;color:white;border-radius:10px;padding:10px;font-size:14px;">
         </div>
       </div>
 
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px;">
         <div>
-          <div style="font-size:11px;opacity:.5;margin-bottom:5px;">🐕 DOGS</div>
+          <div style="font-size:11px;opacity:.5;margin-bottom:5px;">${t('dogs')}</div>
           <div style="display:flex;align-items:center;gap:6px;background:#12121a;border:1px solid #333;border-radius:10px;padding:8px;">
             <button onclick="etStep('et_dogs',-1,0,5)" style="background:#252530;border:none;color:white;border-radius:6px;width:26px;height:26px;font-size:16px;cursor:pointer;line-height:1;">−</button>
-            <span id="et_dogs_disp" style="flex:1;text-align:center;font-weight:700;">${t.dogs||0}</span>
-            <input id="et_dogs" type="hidden" value="${t.dogs||0}">
+            <span id="et_dogs_disp" style="flex:1;text-align:center;font-weight:700;">${td.dogs||0}</span>
+            <input id="et_dogs" type="hidden" value="${td.dogs||0}">
             <button onclick="etStep('et_dogs',1,0,5)" style="background:#252530;border:none;color:white;border-radius:6px;width:26px;height:26px;font-size:16px;cursor:pointer;line-height:1;">+</button>
           </div>
         </div>
         <div>
-          <div style="font-size:11px;opacity:.5;margin-bottom:5px;">🚲 BIKES</div>
+          <div style="font-size:11px;opacity:.5;margin-bottom:5px;">${t('bikes')}</div>
           <div style="display:flex;align-items:center;gap:6px;background:#12121a;border:1px solid #333;border-radius:10px;padding:8px;">
             <button onclick="etStep('et_bikes',-1,0,5)" style="background:#252530;border:none;color:white;border-radius:6px;width:26px;height:26px;font-size:16px;cursor:pointer;line-height:1;">−</button>
-            <span id="et_bikes_disp" style="flex:1;text-align:center;font-weight:700;">${t.bikes||0}</span>
-            <input id="et_bikes" type="hidden" value="${t.bikes||0}">
+            <span id="et_bikes_disp" style="flex:1;text-align:center;font-weight:700;">${td.bikes||0}</span>
+            <input id="et_bikes" type="hidden" value="${td.bikes||0}">
             <button onclick="etStep('et_bikes',1,0,5)" style="background:#252530;border:none;color:white;border-radius:6px;width:26px;height:26px;font-size:16px;cursor:pointer;line-height:1;">+</button>
           </div>
         </div>
         <div>
-          <div style="font-size:11px;opacity:.5;margin-bottom:5px;">💼 BAGS</div>
+          <div style="font-size:11px;opacity:.5;margin-bottom:5px;">${t('bags')}</div>
           <div style="display:flex;align-items:center;gap:6px;background:#12121a;border:1px solid #333;border-radius:10px;padding:8px;">
             <button onclick="etStep('et_bags',-1,0,5)" style="background:#252530;border:none;color:white;border-radius:6px;width:26px;height:26px;font-size:16px;cursor:pointer;line-height:1;">−</button>
-            <span id="et_bags_disp" style="flex:1;text-align:center;font-weight:700;">${t.bags||0}</span>
-            <input id="et_bags" type="hidden" value="${t.bags||0}">
+            <span id="et_bags_disp" style="flex:1;text-align:center;font-weight:700;">${td.bags||0}</span>
+            <input id="et_bags" type="hidden" value="${td.bags||0}">
             <button onclick="etStep('et_bags',1,0,5)" style="background:#252530;border:none;color:white;border-radius:6px;width:26px;height:26px;font-size:16px;cursor:pointer;line-height:1;">+</button>
           </div>
         </div>
       </div>
 
       <div style="display:flex;gap:10px;margin-bottom:20px;">
-        <button id="et_dirt" data-on="${t.dirtRoad?'1':'0'}" onclick="etToggle('et_dirt','🌿 Dirt')" style="flex:1;border-radius:10px;padding:10px;font-size:13px;font-weight:700;cursor:pointer;border:none;${t.dirtRoad?'background:#1a3a1a;color:#30d158;':'background:#252530;color:white;'}">🌿 Dirt</button>
-        <button id="et_night" data-on="${t.nightFee?'1':'0'}" onclick="etToggle('et_night','🌙 Night')" style="flex:1;border-radius:10px;padding:10px;font-size:13px;font-weight:700;cursor:pointer;border:none;${t.nightFee?'background:#1a1a3a;color:#0a84ff;':'background:#252530;color:white;'}">🌙 Night</button>
+        <button id="et_dirt" data-on="${td.dirtRoad?'1':'0'}" onclick="etToggle('et_dirt','🌿 Dirt')" style="flex:1;border-radius:10px;padding:10px;font-size:13px;font-weight:700;cursor:pointer;border:none;${td.dirtRoad?'background:#1a3a1a;color:#30d158;':'background:#252530;color:white;'}">${t('dirtRoad')}</button>
+        <button id="et_night" data-on="${td.nightFee?'1':'0'}" onclick="etToggle('et_night','🌙 Night')" style="flex:1;border-radius:10px;padding:10px;font-size:13px;font-weight:700;cursor:pointer;border:none;${td.nightFee?'background:#1a1a3a;color:#0a84ff;':'background:#252530;color:white;'}">${t('nightFee')}</button>
       </div>
 
       <div style="display:flex;gap:10px;">
-        <button onclick="document.getElementById('editTripOverlay').remove()" style="flex:1;background:#252530;border:none;color:white;border-radius:14px;padding:14px;font-size:15px;font-weight:700;cursor:pointer;">Cancel</button>
-        <button onclick="saveEditTrip()" style="flex:1;background:#0a84ff;border:none;color:white;border-radius:14px;padding:14px;font-size:15px;font-weight:700;cursor:pointer;">Save</button>
+        <button onclick="document.getElementById('editTripOverlay').remove()" style="flex:1;background:#252530;border:none;color:white;border-radius:14px;padding:14px;font-size:15px;font-weight:700;cursor:pointer;">${t('cancel')}</button>
+        <button onclick="saveEditTrip()" style="flex:1;background:#0a84ff;border:none;color:white;border-radius:14px;padding:14px;font-size:15px;font-weight:700;cursor:pointer;">${t('save')}</button>
       </div>
     </div>`;
 
@@ -4056,8 +4226,8 @@ function _showEditModal(t){
   // Set selects after append
   const fromSel = document.getElementById('et_fromZone');
   const toSel   = document.getElementById('et_toZone');
-  if(fromSel && t.fromZone) fromSel.value = t.fromZone;
-  if(toSel   && t.toZone)   toSel.value   = t.toZone;
+  if(fromSel && td.fromZone) fromSel.value = td.fromZone;
+  if(toSel   && td.toZone)   toSel.value   = td.toZone;
 }
 
 function etStep(id, delta, min, max){
@@ -4187,9 +4357,9 @@ function hideAddBooking(){
 }
 
 function saveBooking(){
-  if(!fbDb||!fbUser){ alert('Sign in to your account'); return; }
+  if(!fbDb||!fbUser){ alert(t('signInAccount')); return; }
   const date = document.getElementById('bDate').value;
-  if(!date){ alert('Please enter a date'); return; }
+  if(!date){ alert(t('enterDate')); return; }
 
   const timeVal = document.getElementById('bTime').value;
   const time = timeVal === 'custom'
@@ -4223,11 +4393,11 @@ function deleteBooking(id){
   el.innerHTML=`
     <div style="background:#1e1e28;border:1px solid #333;border-radius:20px;padding:24px 20px;width:90%;max-width:340px;text-align:center;">
       <div style="font-size:22px;margin-bottom:8px;">🗑️</div>
-      <div style="font-size:17px;font-weight:800;margin-bottom:6px;">Delete booking?</div>
-      <div style="font-size:13px;opacity:.5;margin-bottom:20px;">This action cannot be undone</div>
+      <div style="font-size:17px;font-weight:800;margin-bottom:6px;">${t('deleteBookingTitle')}</div>
+      <div style="font-size:13px;opacity:.5;margin-bottom:20px;">${t('cannotUndo')}</div>
       <div style="display:flex;gap:10px;">
-        <button onclick="document.getElementById('deleteBookingOverlay').remove()" style="flex:1;background:#2a2a2a;border:none;color:white;border-radius:14px;padding:13px;font-size:15px;font-weight:700;cursor:pointer;">Cancel</button>
-        <button onclick="fbDb.collection('users').doc(fbUser.uid).collection('bookings').doc('${id}').delete();document.getElementById('deleteBookingOverlay').remove()" style="flex:1;background:#ff453a;border:none;color:white;border-radius:14px;padding:13px;font-size:15px;font-weight:700;cursor:pointer;">Delete</button>
+        <button onclick="document.getElementById('deleteBookingOverlay').remove()" style="flex:1;background:#2a2a2a;border:none;color:white;border-radius:14px;padding:13px;font-size:15px;font-weight:700;cursor:pointer;">${t('cancel')}</button>
+        <button onclick="fbDb.collection('users').doc(fbUser.uid).collection('bookings').doc('${id}').delete();document.getElementById('deleteBookingOverlay').remove()" style="flex:1;background:#ff453a;border:none;color:white;border-radius:14px;padding:13px;font-size:15px;font-weight:700;cursor:pointer;">${t('deleteBtn')}</button>
       </div>
     </div>`;
   document.body.appendChild(el);
@@ -4236,7 +4406,7 @@ function deleteBooking(id){
 function loadBookings(){
   const list = document.getElementById('bookingsList');
   if(!fbDb||!fbUser){
-    if(list) list.innerHTML='<div style="text-align:center;padding:40px;opacity:.4;">Sign in to view bookings</div>';
+    if(list) list.innerHTML=`<div style="text-align:center;padding:40px;opacity:.4;">${t('signInBookings')}</div>`;
     return;
   }
   if(_unsubBookings) _unsubBookings();
@@ -4251,7 +4421,7 @@ function renderBookings(bookings){
   const list = document.getElementById('bookingsList');
   if(!list) return;
   if(!bookings.length){
-    list.innerHTML='<div style="text-align:center;padding:40px;opacity:.4;">No bookings</div>';
+    list.innerHTML=`<div style="text-align:center;padding:40px;opacity:.4;">${t('noBookings')}</div>`;
     return;
   }
 
@@ -4281,11 +4451,11 @@ function renderBookings(bookings){
   if(upcoming.length){
     html += upcoming.map(b=>bookingCard(b,false)).join('');
   } else {
-    html += '<div style="text-align:center;padding:20px;opacity:.4;font-size:14px;">No upcoming bookings</div>';
+    html += `<div style="text-align:center;padding:20px;opacity:.4;font-size:14px;">${t('noUpcomingBookings')}</div>`;
   }
 
   if(past.length){
-    html += `<div style="font-size:11px;font-weight:700;opacity:.35;letter-spacing:1px;margin:20px 0 10px;text-align:center;">— PAST —</div>`;
+    html += `<div style="font-size:11px;font-weight:700;opacity:.35;letter-spacing:1px;margin:20px 0 10px;text-align:center;">${t('past')}</div>`;
     html += past.map(b=>bookingCard(b,true)).join('');
   }
 
