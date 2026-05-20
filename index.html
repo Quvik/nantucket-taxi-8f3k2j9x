@@ -3695,6 +3695,7 @@ function handleAuthClick(){
 function openDrawer(){
   const drawer = document.getElementById('sideDrawer');
   if(drawer.classList.contains('open')){ closeDrawer(); return; }
+  closeOrCollapsePreview();
   const keyInput = document.getElementById('aisKeyInput');
   if(keyInput) keyInput.value = localStorage.getItem('aisstream_key') || '';
   drawer.classList.add('open');
@@ -4126,6 +4127,7 @@ document.addEventListener('DOMContentLoaded',()=>{});
 
 // ── History panel ─────────────────────────────────────────
 function openHistory(){
+  closeOrCollapsePreview();
   document.getElementById('historyPanel').classList.add('open');
   loadHistory();
 }
@@ -4146,6 +4148,7 @@ function navigateTo(dest){
 let _unsubBookings = null;
 
 function openBookings(){
+  closeOrCollapsePreview();
   document.getElementById('bookingsPanel').classList.add('open');
   loadBookings();
 }
