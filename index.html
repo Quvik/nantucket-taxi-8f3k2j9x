@@ -566,7 +566,6 @@ to{opacity:1;transform:translateY(0);}
   text-shadow: 0 0 3px #000, 0 0 6px #000;
   white-space: nowrap;
   pointer-events: none;
-  transform: translate(-50%, -50%);
 }
 .zone-map-label::before { display: none !important; }
 .zone-picker-overlay{
@@ -1352,20 +1351,12 @@ fetch('zones.kml')
             onEachFeature: function(feature, lyr) {
                 const name = feature.properties?.name || feature.properties?.Name || '';
                 if(!name) return;
-                try {
-                    const c = turf.centroid(feature).geometry.coordinates;
-                    L.marker([c[1], c[0]], {
-                        icon: L.divIcon({
-                            className: 'zone-map-label',
-                            html: name,
-                            iconSize: null,
-                            iconAnchor: null
-                        }),
-                        interactive: false
-                    }).addTo(map);
-                } catch(e2) {
-                    lyr.bindTooltip(name, { permanent: true, direction: 'center', className: 'zone-map-label' });
-                }
+                lyr.bindTooltip(name, {
+                    permanent: true,
+                    direction: 'center',
+                    className: 'zone-map-label'
+                });
+                lyr.on('click', function() { lyr.openTooltip(); });
             }
         }).addTo(map);
         // don't fitBounds — keep the street-level zoom set on init
