@@ -1347,6 +1347,13 @@ fetch('zones.kml')
 
     zonesGeoJSON = toGeoJSON.kml(kml);
 
+    // Manual label position overrides for zones where centroid is off
+    const LABEL_POS = {
+        'Mid Island A':  [41.252, -70.062],
+        'Mid Island B':  [41.243, -70.042],
+        'Mid Island C':  [41.263, -70.103],
+    };
+
     try {
         const layer = L.geoJSON(zonesGeoJSON, {
             style: { color: '#00bfff', weight: 2, fillOpacity: 0.15 },
@@ -1354,8 +1361,14 @@ fetch('zones.kml')
                 const name = feature.properties?.name || feature.properties?.Name || '';
                 if(!name) return;
                 try {
-                    const c = turf.centroid(feature).geometry.coordinates;
-                    L.marker([c[1], c[0]], {
+                    let lat, lng;
+                    if(LABEL_POS[name]){
+                        [lat, lng] = LABEL_POS[name];
+                    } else {
+                        const c = turf.centroid(feature).geometry.coordinates;
+                        lng = c[0]; lat = c[1];
+                    }
+                    L.marker([lat, lng], {
                         icon: L.divIcon({
                             className: 'zone-map-label',
                             html: name,
