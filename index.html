@@ -1923,7 +1923,7 @@ function renderAISVessels(){
           <div style="font-family:monospace;font-size:11px;color:${lineColor(v.line)};letter-spacing:1px;margin:2px 0;">${bar}</div>
           <div style="display:flex;justify-content:space-between;font-size:9px;opacity:.4;margin-top:1px;">
             <span>${v.from}</span>
-            <span>~${v.distNm} nm до Nantucket</span>
+            <span>~${v.distNm} nm to Nantucket</span>
             <span>Nantucket</span>
           </div>
           <div style="font-size:9px;opacity:.3;margin-top:3px;">📋 estimated position · AIS unavailable</div>
@@ -1956,7 +1956,7 @@ function renderAISVessels(){
     const inPort=dn<0.4;
     const dh=aisDistNm(v.lat,v.lon,HYAN_PORT.lat,HYAN_PORT.lon);
     const db=aisDistNm(v.lat,v.lon,NEWB_PORT.lat,NEWB_PORT.lon);
-    let origin=inPort?'📍 Nantucket':dh<0.5?'⚓ Hyannis':db<0.5?'⚓ New Bedford':approaching?'из '+(dh<db?'Hyannis':'New Bedford'):'↩ уходит';
+    let origin=inPort?'📍 Nantucket':dh<0.5?'⚓ Hyannis':db<0.5?'⚓ New Bedford':approaching?'from '+(dh<db?'Hyannis':'New Bedford'):'↩ departing';
     return{...v,dn,approaching,etaMins,inPort,origin};
   }).sort((a,b)=>a.approaching!==b.approaching?(a.approaching?-1:1):a.dn-b.dn);
   let html='';
@@ -1991,7 +1991,7 @@ function renderAISVessels(){
         <div>
           <div style="font-size:14px;font-weight:800;">${v.name}</div>
           <div style="font-size:12px;color:${v.color};font-weight:600;">${v.line} · ${v.origin}</div>
-          <div style="font-size:11px;opacity:.45;">${speed} · ${dist} до Nantucket</div>
+          <div style="font-size:11px;opacity:.45;">${speed} · ${dist} to Nantucket</div>
         </div>
       </div>
       <div style="text-align:right;min-width:55px;">${etaHtml}</div>
