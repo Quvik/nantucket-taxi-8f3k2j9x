@@ -705,16 +705,16 @@ input[type="time"].form-input{ -webkit-appearance:auto; appearance:auto; }
   </div>
   <div style="border-bottom:1px solid #252528;margin:8px 0;"></div>
   <button class="drawer-item" onclick="navigateTo('main');">
-    <span style="font-size:20px;">🏠</span> Главная
+    <span style="font-size:20px;">🏠</span> Home
   </button>
   <button class="drawer-item" onclick="navigateTo('history');">
-    <span style="font-size:20px;">📋</span> История поездок
+    <span style="font-size:20px;">📋</span> Trip History
   </button>
   <button class="drawer-item" onclick="navigateTo('bookings');">
-    <span style="font-size:20px;">📅</span> Бронирования
+    <span style="font-size:20px;">📅</span> Bookings
   </button>
   <div style="border-bottom:1px solid #252528;margin:8px 0;"></div>
-  <div style="padding:4px 16px 6px;font-size:11px;opacity:.4;letter-spacing:1px;font-weight:700;">НАВИГАЦИЯ К ПАРОМАМ</div>
+  <div style="padding:4px 16px 6px;font-size:11px;opacity:.4;letter-spacing:1px;font-weight:700;">FERRY NAVIGATION</div>
   <button class="drawer-item" onclick="closeDrawer();window.open('https://maps.google.com/maps?daddr=Steamship+Wharf,+Nantucket,+MA','_blank');">
     <span style="font-size:20px;">🚢</span> Steamship Wharf
   </button>
@@ -724,29 +724,29 @@ input[type="time"].form-input{ -webkit-appearance:auto; appearance:auto; }
   <div style="border-bottom:1px solid #252528;margin:8px 0;"></div>
   <div id="drawerAuthSection"></div>
   <div style="padding:0 16px 12px 16px;">
-    <button onclick="forceSwUpdate()" style="width:100%;background:#1e1e28;border:1px solid #333;color:#aaa;border-radius:10px;padding:10px;font-size:12px;cursor:pointer;">🔄 Принудительное обновление приложения</button>
+    <button onclick="forceSwUpdate()" style="width:100%;background:#1e1e28;border:1px solid #333;color:#aaa;border-radius:10px;padding:10px;font-size:12px;cursor:pointer;">🔄 Force App Update</button>
   </div>
 </div>
 
 <div class="bookings-panel" id="bookingsPanel">
   <div class="bookings-header">
-    <div style="font-size:18px;font-weight:800;">📅 Бронирования</div>
+    <div style="font-size:18px;font-weight:800;">📅 Bookings</div>
   </div>
   <div class="bookings-body">
 
     <div class="add-booking-form" id="addBookingForm">
-      <div style="font-size:15px;font-weight:800;margin-bottom:14px;">Новое бронирование</div>
+      <div style="font-size:15px;font-weight:800;margin-bottom:14px;">New Booking</div>
 
       <div class="form-field">
-        <div class="form-label">ДАТА *</div>
+        <div class="form-label">DATE *</div>
         <input class="form-input" type="date" id="bDate">
       </div>
 
       <div style="display:flex;gap:10px;">
         <div class="form-field" style="flex:1;">
-          <div class="form-label">ВРЕМЯ</div>
+          <div class="form-label">TIME</div>
           <select class="form-input" id="bTime">
-            <option value="">Не указано</option>
+            <option value="">Not specified</option>
             <option value="Morning">🌅 Morning</option>
             <option value="Afternoon">☀️ Afternoon</option>
             <option value="Evening">🌆 Evening</option>
@@ -754,41 +754,41 @@ input[type="time"].form-input{ -webkit-appearance:auto; appearance:auto; }
           </select>
         </div>
         <div class="form-field" style="flex:1;">
-          <div class="form-label">ТОЧНОЕ ВРЕМЯ</div>
+          <div class="form-label">EXACT TIME</div>
           <input class="form-input" type="time" id="bTimeCustom">
         </div>
       </div>
 
       <div class="form-field">
-        <div class="form-label">ИМЯ КЛИЕНТА</div>
-        <input class="form-input" type="text" id="bName" placeholder="Необязательно">
+        <div class="form-label">CLIENT NAME</div>
+        <input class="form-input" type="text" id="bName" placeholder="Optional">
       </div>
 
       <div style="display:flex;gap:10px;">
         <div class="form-field" style="flex:1;">
-          <div class="form-label">ОТКУДА</div>
-          <input class="form-input" type="text" id="bFrom" placeholder="Необязательно">
+          <div class="form-label">FROM</div>
+          <input class="form-input" type="text" id="bFrom" placeholder="Optional">
         </div>
         <div class="form-field" style="flex:1;">
-          <div class="form-label">КУДА</div>
-          <input class="form-input" type="text" id="bTo" placeholder="Необязательно">
+          <div class="form-label">TO</div>
+          <input class="form-input" type="text" id="bTo" placeholder="Optional">
         </div>
       </div>
 
       <div class="form-field">
-        <div class="form-label">ЗАМЕТКИ</div>
-        <textarea class="form-input" id="bNotes" placeholder="Примечания, пожелания..." rows="2" style="resize:none;"></textarea>
+        <div class="form-label">NOTES</div>
+        <textarea class="form-input" id="bNotes" placeholder="Notes, requests..." rows="2" style="resize:none;"></textarea>
       </div>
 
       <div style="display:flex;gap:10px;margin-top:4px;">
-        <button onclick="hideAddBooking()" style="flex:1;background:#2a2a2e;border:none;color:white;border-radius:14px;padding:13px;font-size:15px;font-weight:700;cursor:pointer;">Отмена</button>
-        <button onclick="saveBooking()" style="flex:1;background:#0A84FF;border:none;color:white;border-radius:14px;padding:13px;font-size:15px;font-weight:700;cursor:pointer;">Сохранить</button>
+        <button onclick="hideAddBooking()" style="flex:1;background:#2a2a2e;border:none;color:white;border-radius:14px;padding:13px;font-size:15px;font-weight:700;cursor:pointer;">Cancel</button>
+        <button onclick="saveBooking()" style="flex:1;background:#0A84FF;border:none;color:white;border-radius:14px;padding:13px;font-size:15px;font-weight:700;cursor:pointer;">Save</button>
       </div>
     </div>
 
-    <button onclick="showAddBooking()" id="addBookingBtn" style="width:100%;background:#17181c;border:1px dashed #2a2a2e;color:#0A84FF;border-radius:16px;padding:16px;font-size:16px;font-weight:700;cursor:pointer;margin-bottom:14px;">+ Добавить бронирование</button>
+    <button onclick="showAddBooking()" id="addBookingBtn" style="width:100%;background:#17181c;border:1px dashed #2a2a2e;color:#0A84FF;border-radius:16px;padding:16px;font-size:16px;font-weight:700;cursor:pointer;margin-bottom:14px;">+ Add Booking</button>
 
-    <div id="bookingsList"><div style="text-align:center;padding:40px;opacity:.4;">Нет бронирований</div></div>
+    <div id="bookingsList"><div style="text-align:center;padding:40px;opacity:.4;">No bookings</div></div>
   </div>
 </div>
 
@@ -828,7 +828,7 @@ input[type="time"].form-input{ -webkit-appearance:auto; appearance:auto; }
 
 <div id="reopenMapRow" style="display:none;margin-bottom:10px;">
   <button onclick="reopenAddressPreview()" style="background:#17181c;border:1px solid #2a3a5a;color:#4da6ff;border-radius:14px;padding:8px 16px;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:6px;">
-    🗺 Показать карту
+    🗺 Show Map
   </button>
 </div>
 
@@ -837,22 +837,22 @@ input[type="time"].form-input{ -webkit-appearance:auto; appearance:auto; }
   <div id="addressMapDiv" style="width:100%;height:220px;display:none;"></div>
   <div id="streetViewLabel" style="position:absolute;bottom:0;left:0;right:0;background:linear-gradient(transparent,rgba(0,0,0,.75));padding:10px 14px 10px;font-size:13px;font-weight:600;color:white;pointer-events:none;"></div>
   <button onclick="closeOrCollapsePreview()" style="position:absolute;top:8px;right:8px;background:rgba(0,0,0,.7);border:none;color:white;border-radius:50%;width:32px;height:32px;font-size:18px;line-height:32px;text-align:center;cursor:pointer;z-index:99999;">×</button>
-  <button onclick="toggleStreetViewMode()" id="svModeBtn" style="position:absolute;top:8px;left:8px;background:rgba(0,0,0,.7);border:none;color:white;border-radius:20px;padding:4px 10px;font-size:12px;font-weight:700;cursor:pointer;z-index:99999;">🛰 Спутник</button>
+  <button onclick="toggleStreetViewMode()" id="svModeBtn" style="position:absolute;top:8px;left:8px;background:rgba(0,0,0,.7);border:none;color:white;border-radius:20px;padding:4px 10px;font-size:12px;font-weight:700;cursor:pointer;z-index:99999;">🛰 Satellite</button>
   <button onclick="toggleMapFullscreen()" id="mapExpandBtn" style="position:absolute;bottom:10px;right:10px;background:white;border:none;border-radius:8px;width:32px;height:32px;display:none;align-items:center;justify-content:center;cursor:pointer;z-index:99999;box-shadow:0 1px 5px rgba(0,0,0,.3);padding:0;"></button>
 </div>
 
 <div style="display:flex;gap:8px;margin-bottom:12px;">
 
 <div id="ferryWidget" onclick="showTab('ferryTab', document.querySelectorAll('.tab-btn')[1])" style="cursor:pointer;flex:1;background:#17181c;border:1px solid #2a2a2a;border-radius:16px;padding:12px 13px;">
-  <div style="font-size:11px;color:#30d158;font-weight:700;letter-spacing:.5px;margin-bottom:5px;">🚢 ПАРОМ</div>
-  <div style="font-size:14px;font-weight:800;line-height:1.2;" id="fwTitle">Загрузка...</div>
+  <div style="font-size:11px;color:#30d158;font-weight:700;letter-spacing:.5px;margin-bottom:5px;">🚢 FERRY</div>
+  <div style="font-size:14px;font-weight:800;line-height:1.2;" id="fwTitle">Loading...</div>
   <div style="font-size:21px;font-weight:900;margin-top:4px;" id="fwCountdown">—</div>
   <div id="fwEmoji" style="display:none;"></div>
 </div>
 
 <div id="flightWidget" onclick="showTab('flightTab', document.querySelectorAll('.tab-btn')[2])" style="cursor:pointer;flex:1;background:#17181c;border:1px solid #2a2a2a;border-radius:16px;padding:12px 13px;">
-  <div style="font-size:11px;color:#0A84FF;font-weight:700;letter-spacing:.5px;margin-bottom:5px;">✈️ РЕЙС</div>
-  <div style="font-size:14px;font-weight:800;line-height:1.2;" id="fltTitle">Загрузка...</div>
+  <div style="font-size:11px;color:#0A84FF;font-weight:700;letter-spacing:.5px;margin-bottom:5px;">✈️ FLIGHT</div>
+  <div style="font-size:14px;font-weight:800;line-height:1.2;" id="fltTitle">Loading...</div>
   <div style="font-size:21px;font-weight:900;margin-top:4px;" id="fltCountdown">—</div>
   <div id="fltEmoji" style="display:none;"></div>
 </div>
@@ -959,14 +959,14 @@ input[type="time"].form-input{ -webkit-appearance:auto; appearance:auto; }
 <div id="ferryTab" style="display:none;padding:14px 14px 130px;">
 
   <div id="rushIndicatorCard" style="background:#17181d;border:1px solid #2a2a2a;border-radius:18px;padding:16px;margin-bottom:10px;">
-    <div style="opacity:.55;font-size:13px;margin-bottom:4px;">Статус</div>
-    <div style="font-size:20px;font-weight:800;">⏳ Загрузка...</div>
+    <div style="opacity:.55;font-size:13px;margin-bottom:4px;">Status</div>
+    <div style="font-size:20px;font-weight:800;">⏳ Loading...</div>
   </div>
 
   <div style="display:flex;gap:10px;margin-bottom:10px;align-items:stretch;">
     <button id="refreshFerryBtn" onclick="refreshFerryLive()" style="flex:1;background:linear-gradient(135deg,#0A84FF,#005ecb);color:white;border:none;border-radius:16px;padding:14px;font-size:16px;font-weight:800;display:flex;align-items:center;justify-content:center;gap:8px;">
       <span id="refreshIcon">🔄</span>
-      <span id="refreshLabel">Live-обновление</span>
+      <span id="refreshLabel">Live update</span>
     </button>
     <div style="display:flex;gap:6px;">
       <button class="counter-btn" onclick="shiftFerryDay(-1)" style="font-size:20px;width:48px;border-radius:14px;">‹</button>
@@ -975,14 +975,14 @@ input[type="time"].form-input{ -webkit-appearance:auto; appearance:auto; }
   </div>
 
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
-    <div style="font-size:18px;font-weight:800;" id="ferryDateLabel">Сегодня</div>
+    <div style="font-size:18px;font-weight:800;" id="ferryDateLabel">Today</div>
     <div id="ferrySourceBadge" style="font-size:11px;padding:4px 10px;border-radius:20px;background:#1e1e28;color:#aaa;"></div>
   </div>
 
   <div id="aisLiveSection" style="display:none;"></div>
 
   <div id="ferryArrivalsContainer">
-    <div style="text-align:center;padding:40px;opacity:.4;">Загрузка...</div>
+    <div style="text-align:center;padding:40px;opacity:.4;">Loading...</div>
   </div>
 
   <button id="notifyBtn" onclick="toggleFerryNotifications()" style="margin-top:10px;width:100%;background:#1b1c22;border:1px solid #2a2a2a;color:#fff;border-radius:16px;padding:14px;font-size:16px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:8px;">
@@ -995,26 +995,26 @@ input[type="time"].form-input{ -webkit-appearance:auto; appearance:auto; }
 <div id="flightTab" style="display:none;padding:14px 14px 130px;">
 
   <div id="flightRushCard" style="background:#17181d;border:1px solid #2a2a2a;border-radius:18px;padding:16px;margin-bottom:10px;">
-    <div style="opacity:.55;font-size:13px;margin-bottom:4px;">Статус</div>
-    <div style="font-size:20px;font-weight:800;" id="flightStatusLine">⏳ Загрузка...</div>
+    <div style="opacity:.55;font-size:13px;margin-bottom:4px;">Status</div>
+    <div style="font-size:20px;font-weight:800;" id="flightStatusLine">⏳ Loading...</div>
     <div style="font-size:13px;opacity:.6;margin-top:4px;" id="flightStatusSub"></div>
   </div>
 
   <div style="display:flex;gap:10px;margin-bottom:10px;align-items:stretch;">
     <button id="refreshFlightBtn" onclick="refreshFlightsLive()" style="flex:1;background:linear-gradient(135deg,#0A84FF,#005ecb);color:white;border:none;border-radius:16px;padding:14px;font-size:16px;font-weight:800;display:flex;align-items:center;justify-content:center;gap:8px;">
       <span id="refreshFlightIcon">📡</span>
-      <span id="refreshFlightLabel">Live обновление</span>
+      <span id="refreshFlightLabel">Live update</span>
     </button>
     <a href="https://www.skyscanner.com/flights/arrivals-departures/ack/nantucket-arrivals-departures" target="_blank" style="background:#1e1e28;border:1px solid #2a2a2a;color:white;border-radius:16px;padding:14px;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;text-decoration:none;">🛬</a>
     <button onclick="toggleApiKeyPanel()" style="background:#1e1e28;border:1px solid #2a2a2a;color:white;border:none;border-radius:16px;padding:14px;font-size:18px;cursor:pointer;">⚙️</button>
   </div>
 
   <div id="apiKeyPanel" style="display:none;background:#1a1a22;border:1px solid #2a2a2a;border-radius:16px;padding:14px;margin-bottom:12px;">
-    <div style="font-size:13px;font-weight:700;margin-bottom:10px;">🔑 API для реального расписания</div>
+    <div style="font-size:13px;font-weight:700;margin-bottom:10px;">🔑 API for live schedule</div>
 
     <div style="background:#111;border:1px solid #222;border-radius:12px;padding:12px;margin-bottom:10px;">
-      <div style="font-size:12px;font-weight:800;color:#30d158;margin-bottom:4px;">⭐ AirLabs — РЕКОМЕНДУЮ</div>
-      <div style="font-size:11px;opacity:.6;margin-bottom:8px;">1000 запросов/месяц бесплатно · <a href="https://airlabs.co" target="_blank" style="color:#0A84FF;">airlabs.co ↗</a></div>
+      <div style="font-size:12px;font-weight:800;color:#30d158;margin-bottom:4px;">⭐ AirLabs — RECOMMENDED</div>
+      <div style="font-size:11px;opacity:.6;margin-bottom:8px;">1000 requests/month free · <a href="https://airlabs.co" target="_blank" style="color:#0A84FF;">airlabs.co ↗</a></div>
       <div style="display:flex;gap:8px;">
         <input id="airlabsKeyInput" type="text" placeholder="AirLabs API key..." style="flex:1;background:#1a1a1a;border:1px solid #333;border-radius:10px;padding:9px 11px;color:white;font-size:13px;"/>
         <button onclick="saveAirlabsKey()" style="background:#30d158;border:none;border-radius:10px;padding:9px 13px;color:black;font-weight:800;font-size:13px;cursor:pointer;">✓</button>
@@ -1023,7 +1023,7 @@ input[type="time"].form-input{ -webkit-appearance:auto; appearance:auto; }
 
     <div style="background:#111;border:1px solid #222;border-radius:12px;padding:12px;">
       <div style="font-size:12px;font-weight:700;color:#aaa;margin-bottom:4px;">AeroDataBox (RapidAPI)</div>
-      <div style="font-size:11px;opacity:.5;margin-bottom:8px;">500 запросов/месяц · <a href="https://rapidapi.com/aedbx-aedbx/api/aerodatabox" target="_blank" style="color:#0A84FF;">rapidapi.com ↗</a></div>
+      <div style="font-size:11px;opacity:.5;margin-bottom:8px;">500 requests/month · <a href="https://rapidapi.com/aedbx-aedbx/api/aerodatabox" target="_blank" style="color:#0A84FF;">rapidapi.com ↗</a></div>
       <div style="display:flex;gap:8px;">
         <input id="apiKeyInput" type="text" placeholder="RapidAPI key..." style="flex:1;background:#1a1a1a;border:1px solid #333;border-radius:10px;padding:9px 11px;color:white;font-size:13px;"/>
         <button onclick="saveApiKey()" style="background:#636366;border:none;border-radius:10px;padding:9px 13px;color:white;font-weight:800;font-size:13px;cursor:pointer;">✓</button>
@@ -1035,14 +1035,14 @@ input[type="time"].form-input{ -webkit-appearance:auto; appearance:auto; }
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
     <div style="display:flex;align-items:center;gap:6px;">
       <button id="flightDayPrev" onclick="changeFlightDay(-1)" style="background:#1e1e28;border:none;color:white;border-radius:10px;width:34px;height:34px;font-size:18px;cursor:pointer;opacity:.3;">‹</button>
-      <div id="flightDayLabel" style="font-size:18px;font-weight:800;">Сегодня</div>
+      <div id="flightDayLabel" style="font-size:18px;font-weight:800;">Today</div>
       <button id="flightDayNext" onclick="changeFlightDay(1)" style="background:#1e1e28;border:none;color:white;border-radius:10px;width:34px;height:34px;font-size:18px;cursor:pointer;">›</button>
     </div>
-    <div id="flightSourceBadge" style="font-size:11px;padding:4px 10px;border-radius:20px;background:#1e1e28;color:#aaa;">📋 Встроенные</div>
+    <div id="flightSourceBadge" style="font-size:11px;padding:4px 10px;border-radius:20px;background:#1e1e28;color:#aaa;">📋 Built-in</div>
   </div>
 
   <div id="flightArrivalsContainer">
-    <div style="text-align:center;padding:40px;opacity:.4;">Загрузка...</div>
+    <div style="text-align:center;padding:40px;opacity:.4;">Loading...</div>
   </div>
 
 </div>
@@ -1050,32 +1050,32 @@ input[type="time"].form-input{ -webkit-appearance:auto; appearance:auto; }
 <div id="loginOverlay" style="display:flex;position:fixed;inset:0;z-index:99999;background:#0f0f10;flex-direction:column;align-items:center;justify-content:center;padding:32px;">
   <div style="font-size:64px;margin-bottom:16px;">🚕</div>
   <div style="font-size:26px;font-weight:900;margin-bottom:6px;">Nantucket Taxi</div>
-  <div style="font-size:14px;opacity:.45;margin-bottom:48px;">Калькулятор тарифов</div>
+  <div style="font-size:14px;opacity:.45;margin-bottom:48px;">Fare Calculator</div>
   <button onclick="handleAuthClick()" style="display:flex;align-items:center;gap:12px;background:white;color:#111;border:none;border-radius:16px;padding:16px 28px;font-size:16px;font-weight:700;cursor:pointer;width:100%;max-width:300px;justify-content:center;box-shadow:0 4px 20px rgba(0,0,0,.4);">
     <svg width="20" height="20" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20.1H42V20H24v8h11.3C33.7 32.7 29.3 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.1 7.9 3l5.7-5.7C34.1 6.5 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.6-.4-3.9z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.6 16 19 13 24 13c3.1 0 5.8 1.1 7.9 3l5.7-5.7C34.1 6.5 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.4 35.5 26.8 36 24 36c-5.3 0-9.7-3.3-11.3-8H6.4C9.7 35.5 16.4 44 24 44z"/><path fill="#1976D2" d="M43.6 20.1H42V20H24v8h11.3c-.8 2.3-2.3 4.3-4.3 5.7l6.2 5.2C41.3 35.4 44 30 44 24c0-1.3-.1-2.6-.4-3.9z"/></svg>
-    Войти через Google
+    Sign in with Google
   </button>
-  <div style="font-size:12px;opacity:.3;margin-top:24px;text-align:center;">Вход сохраняется автоматически.<br>Повторно входить не нужно.</div>
+  <div style="font-size:12px;opacity:.3;margin-top:24px;text-align:center;">Sign-in is saved automatically.<br>No need to sign in again.</div>
 </div>
 
 <div class="bookings-panel" id="historyPanel">
   <div class="bookings-header">
-    <div style="font-size:18px;font-weight:800;">📋 История поездок</div>
+    <div style="font-size:18px;font-weight:800;">📋 Trip History</div>
     <div style="display:flex;align-items:center;gap:10px;">
-      <button id="clearAllBtn" onclick="confirmClearAll()" style="display:none;background:#2a1a1a;border:none;color:#ff453a;border-radius:10px;padding:7px 12px;font-size:13px;font-weight:700;cursor:pointer;">Очистить всё</button>
+      <button id="clearAllBtn" onclick="confirmClearAll()" style="display:none;background:#2a1a1a;border:none;color:#ff453a;border-radius:10px;padding:7px 12px;font-size:13px;font-weight:700;cursor:pointer;">Clear All</button>
     </div>
   </div>
   <div class="bookings-body">
     <div id="historyAuthHint" style="font-size:12px;opacity:.5;text-align:center;margin-bottom:8px;"></div>
     <div id="historyStats" style="display:flex;gap:8px;margin-bottom:14px;"></div>
-    <div id="historyList"><div style="text-align:center;padding:40px;opacity:.4;">Войдите чтобы видеть историю</div></div>
+    <div id="historyList"><div style="text-align:center;padding:40px;opacity:.4;">Sign in to view history</div></div>
   </div>
 </div>
 
 <div class="sticky-bar">
 <button class="primary" onclick="openWaze()">Waze</button>
 <button class="secondary" onclick="openGoogleMaps()">Maps</button>
-<button id="saveTripBtn" onclick="saveTripManual()" style="display:none;background:#1a2a1a;border:none;color:#30d158;border-radius:16px;padding:16px;font-size:15px;font-weight:700;cursor:pointer;flex:1;">💾 Сохранить</button>
+<button id="saveTripBtn" onclick="saveTripManual()" style="display:none;background:#1a2a1a;border:none;color:#30d158;border-radius:16px;padding:16px;font-size:15px;font-weight:700;cursor:pointer;flex:1;">💾 Save</button>
 <button class="secondary" onclick="showResetConfirm()" style="background:#2a1a1a;color:#ff453a;">↺</button>
 </div>
 
@@ -1084,11 +1084,11 @@ input[type="time"].form-input{ -webkit-appearance:auto; appearance:auto; }
 <div id="resetConfirmOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;display:none;align-items:flex-end;justify-content:center;padding-bottom:40px;">
   <div style="background:#1e1e28;border:1px solid #333;border-radius:20px;padding:24px 20px;width:90%;max-width:340px;text-align:center;">
     <div style="font-size:22px;margin-bottom:8px;">↺</div>
-    <div style="font-size:17px;font-weight:800;margin-bottom:6px;">Сбросить всё?</div>
-    <div style="font-size:13px;opacity:.5;margin-bottom:20px;">Сумма, таймер и все поля очистятся</div>
+    <div style="font-size:17px;font-weight:800;margin-bottom:6px;">Reset everything?</div>
+    <div style="font-size:13px;opacity:.5;margin-bottom:20px;">Amount, timer and all fields will be cleared</div>
     <div style="display:flex;gap:10px;">
-      <button onclick="hideResetConfirm()" style="flex:1;background:#2a2a2a;border:none;color:white;border-radius:14px;padding:13px;font-size:15px;font-weight:700;cursor:pointer;">Отмена</button>
-      <button onclick="hideResetConfirm();resetAll()" style="flex:1;background:#ff453a;border:none;color:white;border-radius:14px;padding:13px;font-size:15px;font-weight:700;cursor:pointer;">Сбросить</button>
+      <button onclick="hideResetConfirm()" style="flex:1;background:#2a2a2a;border:none;color:white;border-radius:14px;padding:13px;font-size:15px;font-weight:700;cursor:pointer;">Cancel</button>
+      <button onclick="hideResetConfirm();resetAll()" style="flex:1;background:#ff453a;border:none;color:white;border-radius:14px;padding:13px;font-size:15px;font-weight:700;cursor:pointer;">Reset</button>
     </div>
   </div>
 </div>
@@ -1436,7 +1436,7 @@ function ferryTargetDate(off){ const d=new Date(); d.setDate(d.getDate()+(off||0
 function dateKey(d){ return d.toISOString().slice(0,10); }
 function ferryLabel(d){
   const diff=Math.round((new Date(dateKey(d))-new Date(dateKey(new Date())))/86400000);
-  if(diff===0) return 'Сегодня'; if(diff===1) return 'Завтра'; if(diff===-1) return 'Вчера';
+  if(diff===0) return 'Today'; if(diff===1) return 'Tomorrow'; if(diff===-1) return 'Yesterday';
   return d.toLocaleDateString('ru-RU',{weekday:'short',day:'numeric',month:'short'});
 }
 function parseFT(t,base){
@@ -1445,9 +1445,9 @@ function parseFT(t,base){
   const d=new Date(base); d.setHours(h,m,0,0); return d;
 }
 function fmtCD(ms){
-  if(ms<0){ const m=Math.floor(-ms/60000); return m===0?'Прибыл':`${m} мин назад`; }
+  if(ms<0){ const m=Math.floor(-ms/60000); return m===0?'Arrived':`${m} min ago`; }
   const m=Math.floor(ms/60000),h=Math.floor(m/60);
-  return h>0?`${h}ч ${m%60}м`:`${m} мин`;
+  return h>0?`${h}h ${m%60}min`:`${m} min`;
 }
 function lineEmoji(l){return l.includes('Steam')?'🚢':l.includes('Hy')?'🚤':l.includes('Sea')?'⛴':l.includes('Free')?'🛥':'⛵';}
 function lineColor(l){return l.includes('Steam')?'#0A84FF':l.includes('Hy')?'#30d158':l.includes('Sea')?'#ff9f0a':l.includes('Free')?'#bf5af2':'#aaa';}
@@ -1532,7 +1532,7 @@ async function refreshFerryLive(){
   const btn=document.getElementById('refreshFerryBtn');
   const icon=document.getElementById('refreshIcon');
   const lbl=document.getElementById('refreshLabel');
-  icon.innerText='⏳'; lbl.innerText='Подключаюсь...'; btn.disabled=true;
+  icon.innerText='⏳'; lbl.innerText='Connecting...'; btn.disabled=true;
   try{
     const td=ferryTargetDate(ferryDayOffset);
     // Fetch both sources in parallel
@@ -1571,12 +1571,12 @@ async function refreshFerryLive(){
         ferryLiveCache[dateKey(td)]=hybrid;
         renderFerryTab('live');
         icon.innerText='📋';
-        lbl.innerText=`Live прошедшие · расписание встроенное`;
+        lbl.innerText=`Live past · built-in schedule`;
       }
-    } else { icon.innerText='📋'; lbl.innerText='Нет live данных'; }
-  }catch(e){ icon.innerText='⚠️'; lbl.innerText='Нет связи'; }
+    } else { icon.innerText='📋'; lbl.innerText='No live data'; }
+  }catch(e){ icon.innerText='⚠️'; lbl.innerText='No connection'; }
   btn.disabled=false;
-  setTimeout(()=>{ icon.innerText='🔄'; lbl.innerText='Live-обновление'; },4000);
+  setTimeout(()=>{ icon.innerText='🔄'; lbl.innerText='Live update'; },4000);
 }
 
 function renderFerryTab(forceSource){
@@ -1589,10 +1589,10 @@ function renderFerryTab(forceSource){
   else { arrivals=builtinArrivals(td); source='builtin'; }
   const badge=document.getElementById('ferrySourceBadge');
   if(source==='live'){ badge.style.background='#0a2a0a'; badge.style.color='#30d158'; badge.innerText='🟢 Live'; }
-  else { badge.style.background='#1e1e28'; badge.style.color='#aaa'; badge.innerText='📋 Встроенные'; }
+  else { badge.style.background='#1e1e28'; badge.style.color='#aaa'; badge.innerText='📋 Built-in'; }
   if(!arrivals||!arrivals.length){
-    document.getElementById('ferryArrivalsContainer').innerHTML=`<div style="text-align:center;padding:32px;opacity:.5;">Нет данных. <a href="https://www.nantucketferries.com" target="_blank" style="color:#0A84FF;">nantucketferries.com</a></div>`;
-    document.getElementById('rushIndicatorCard').innerHTML=`<div style="opacity:.5;font-size:13px;">Статус</div><div style="font-size:18px;font-weight:800;margin-top:4px;">📅 Нет расписания</div>`;
+    document.getElementById('ferryArrivalsContainer').innerHTML=`<div style="text-align:center;padding:32px;opacity:.5;">No data. <a href="https://www.nantucketferries.com" target="_blank" style="color:#0A84FF;">nantucketferries.com</a></div>`;
+    document.getElementById('rushIndicatorCard').innerHTML=`<div style="opacity:.5;font-size:13px;">Status</div><div style="font-size:18px;font-weight:800;margin-top:4px;">📅 No schedule</div>`;
     return;
   }
   const GRACE_MS=20*60*1000;
@@ -1604,7 +1604,7 @@ function renderFerryTab(forceSource){
   const season=FERRY_BUILTIN.find(s=>{const k=dateKey(td);return k>=s.from&&k<=s.to;});
   if(season&&source==='builtin') html+=`<div style="font-size:11px;color:#0A84FF;font-weight:700;margin-bottom:8px;opacity:.8;">📋 ${season.label}</div>`;
   if(upcoming.length){
-    html+=`<div style="font-size:11px;font-weight:700;opacity:.4;letter-spacing:1px;margin-bottom:8px;">СЛЕДУЮЩИЕ ПРИБЫТИЯ</div>`;
+    html+=`<div style="font-size:11px;font-weight:700;opacity:.4;letter-spacing:1px;margin-bottom:8px;">UPCOMING ARRIVALS</div>`;
     upcoming.forEach((a,i)=>{
       const isNext=i===0, mins=Math.floor((a.dateObj-now)/60000);
       const isLate=mins<0, hot=!isLate&&mins<=20;
@@ -1612,15 +1612,15 @@ function renderFerryTab(forceSource){
       const br=isLate?'#ff9f0a':(isNext?(hot?'#ff9f0a':'#30d158'):'#252528');
       const cdColor=isLate?'#ff9f0a':(hot&&isNext?'#ff9f0a':'white');
       let badge='';
-      if(isLate) badge=`<div style="font-size:10px;font-weight:800;color:#ff9f0a;margin-top:3px;">⏱ ЗАДЕРЖКА</div>`;
-      else if(isNext) badge=`<div style="font-size:10px;font-weight:800;color:${hot?'#ff9f0a':'#30d158'};margin-top:3px;">${hot?'⚡СКОРО':'▶ NEXT'}</div>`;
+      if(isLate) badge=`<div style="font-size:10px;font-weight:800;color:#ff9f0a;margin-top:3px;">⏱ DELAYED</div>`;
+      else if(isNext) badge=`<div style="font-size:10px;font-weight:800;color:${hot?'#ff9f0a':'#30d158'};margin-top:3px;">${hot?'⚡SOON':'▶ NEXT'}</div>`;
       html+=`<div class="fa-row" data-iso="${a.dateObj.toISOString()}" style="background:${bg};border:1px solid ${br};border-radius:15px;padding:13px 15px;margin-bottom:9px;display:flex;align-items:center;justify-content:space-between;">
         <div style="display:flex;align-items:center;gap:11px;">
           <div style="font-size:24px;">${lineEmoji(a.line)}</div>
           <div>
             <div style="font-size:18px;font-weight:800;">${a.time}</div>
             <div style="font-size:13px;color:${lineColor(a.line)};font-weight:600;">${a.line}</div>
-            <div style="font-size:11px;opacity:.5;">из ${a.from} · ${a.type}${a.note?` · ${a.note}`:''}</div>
+            <div style="font-size:11px;opacity:.5;">from ${a.from} · ${a.type}${a.note?` · ${a.note}`:''}</div>
           </div>
         </div>
         <div style="text-align:right;min-width:60px;">
@@ -1631,10 +1631,10 @@ function renderFerryTab(forceSource){
     });
   }
   if(past.length){
-    html+=`<div style="font-size:11px;font-weight:700;opacity:.3;letter-spacing:1px;margin:14px 0 8px;">УЖЕ ПРИБЫЛИ</div>`;
+    html+=`<div style="font-size:11px;font-weight:700;opacity:.3;letter-spacing:1px;margin:14px 0 8px;">ARRIVED</div>`;
     past.slice().reverse().forEach(a=>{
       html+=`<div style="background:#111;border:1px solid #1e1e1e;border-radius:13px;padding:10px 14px;margin-bottom:7px;opacity:.35;display:flex;align-items:center;justify-content:space-between;">
-        <div style="display:flex;align-items:center;gap:9px;"><div style="font-size:18px;">${lineEmoji(a.line)}</div><div><div style="font-size:15px;font-weight:700;text-decoration:line-through;">${a.time}</div><div style="font-size:11px;color:${lineColor(a.line)};">${a.line} · из ${a.from}</div></div></div>
+        <div style="display:flex;align-items:center;gap:9px;"><div style="font-size:18px;">${lineEmoji(a.line)}</div><div><div style="font-size:15px;font-weight:700;text-decoration:line-through;">${a.time}</div><div style="font-size:11px;color:${lineColor(a.line)};">${a.line} · from ${a.from}</div></div></div>
         <div style="font-size:12px;opacity:.6;">✓</div></div>`;
     });
   }
@@ -1643,12 +1643,12 @@ function renderFerryTab(forceSource){
   const depsData = ferryLiveDepsCache[dateKey(td)] || [];
   const upcomingDeps = depsData.filter(d=>d.dateObj>now-20*60*1000);
   if(upcomingDeps.length){
-    html+=`<div style="font-size:11px;font-weight:700;opacity:.4;letter-spacing:1px;margin:16px 0 8px;">🚢 ОТПРАВЛЕНИЯ С НАНТАКЕТА</div>`;
+    html+=`<div style="font-size:11px;font-weight:700;opacity:.4;letter-spacing:1px;margin:16px 0 8px;">🚢 DEPARTURES FROM NANTUCKET</div>`;
     upcomingDeps.forEach(a=>{
       const mins=Math.floor((a.dateObj-now)/60000);
       const gone=mins<-5, soon=!gone&&mins<=20;
       const cdColor=gone?'#555':(soon?'#ff9f0a':'white');
-      const cdText=gone?'ушёл':fmtCD(a.dateObj-now);
+      const cdText=gone?'departed':fmtCD(a.dateObj-now);
       html+=`<div style="background:${soon?lineColor(a.line)+'18':'#111'};border:1px solid ${soon?lineColor(a.line):'#252528'};border-radius:13px;padding:11px 14px;margin-bottom:7px;display:flex;align-items:center;justify-content:space-between;${gone?'opacity:.35;':''}">
         <div style="display:flex;align-items:center;gap:9px;">
           <div style="font-size:20px;">${lineEmoji(a.line)}</div>
@@ -1668,14 +1668,14 @@ function renderFerryTab(forceSource){
 
 function renderRushCard(upcoming,now){
   const card=document.getElementById('rushIndicatorCard');
-  if(!upcoming||!upcoming.length){ card.innerHTML=`<div style="opacity:.5;font-size:13px;">Статус</div><div style="font-size:20px;font-weight:800;margin-top:4px;">🌙 Больше паромов нет</div>`; return; }
+  if(!upcoming||!upcoming.length){ card.innerHTML=`<div style="opacity:.5;font-size:13px;">Status</div><div style="font-size:20px;font-weight:800;margin-top:4px;">🌙 No more ferries</div>`; return; }
   const next=upcoming[0],mins=Math.floor((next.dateObj-now)/60000);
   let icon,color,msg,sub;
-  if(mins<0){icon='⏱';color='#ff9f0a';msg=`Задержка · ${Math.abs(mins)} мин назад`;sub=`${lineEmoji(next.line)} ${next.line} · ${next.time} из ${next.from}`;}
-  else if(mins<=20){icon='🚨';color='#ff453a';msg=`Паром через ${mins} мин!`;sub=`${lineEmoji(next.line)} ${next.line} · ${next.time} из ${next.from}`;}
-  else if(mins<=45){icon='⚠️';color='#ffd60a';msg=`Паром через ${Math.floor(mins/60)?Math.floor(mins/60)+'ч ':''}${mins%60}мин`;sub=`${lineEmoji(next.line)} ${next.line} · ${next.time}`;}
-  else{icon='🟢';color='#30d158';const h=Math.floor(mins/60),m=mins%60;msg=`Спокойно · ${h?h+'ч ':''}${m}м`;sub=`${lineEmoji(next.line)} ${next.line} прибудет в ${next.time}`;}
-  card.innerHTML=`<div style="opacity:.5;font-size:13px;">Статус</div><div style="font-size:22px;font-weight:900;color:${color};margin-top:4px;">${icon} ${msg}</div><div style="font-size:13px;opacity:.7;margin-top:5px;">${sub}</div>`;
+  if(mins<0){icon='⏱';color='#ff9f0a';msg=`Delayed · ${Math.abs(mins)} min ago`;sub=`${lineEmoji(next.line)} ${next.line} · ${next.time} from ${next.from}`;}
+  else if(mins<=20){icon='🚨';color='#ff453a';msg=`Ferry in ${mins} min!`;sub=`${lineEmoji(next.line)} ${next.line} · ${next.time} from ${next.from}`;}
+  else if(mins<=45){icon='⚠️';color='#ffd60a';msg=`Ferry in ${Math.floor(mins/60)?Math.floor(mins/60)+'h ':''}${mins%60}min`;sub=`${lineEmoji(next.line)} ${next.line} · ${next.time}`;}
+  else{icon='🟢';color='#30d158';const h=Math.floor(mins/60),m=mins%60;msg=`Clear · ${h?h+'h ':''}${m}m`;sub=`${lineEmoji(next.line)} ${next.line} arriving at ${next.time}`;}
+  card.innerHTML=`<div style="opacity:.5;font-size:13px;">Status</div><div style="font-size:22px;font-weight:900;color:${color};margin-top:4px;">${icon} ${msg}</div><div style="font-size:13px;opacity:.7;margin-top:5px;">${sub}</div>`;
 }
 
 // ── AIS Live Ferry Tracking (aisstream.io + VesselFinder fallback) ────────
@@ -1739,7 +1739,7 @@ function identifyFerryAIS(name, shipType, mmsi){
   if(n&&/FREEDOM/.test(n)) return {line:'Freedom',color:'#bf5af2',emoji:'🛥'};
   // Passenger vessels (60-69) and High Speed Craft (40-49)
   if(shipType&&(shipType>=60&&shipType<=69||shipType>=40&&shipType<=49))
-    return {line:n||'Паром',color:'#aaa',emoji:'⛴'};
+    return {line:n||'Ferry',color:'#aaa',emoji:'⛴'};
   return null;
 }
 
@@ -1884,21 +1884,21 @@ function getScheduledVesselsAtSea(){
 function renderAISVessels(){
   const el=document.getElementById('aisVesselsList');
   if(!el)return;
-  if(!getAisKey()){el.innerHTML='<div style="font-size:13px;opacity:.5;text-align:center;padding:10px;">AIS ключ не задан</div>';return;}
+  if(!getAisKey()){el.innerHTML='<div style="font-size:13px;opacity:.5;text-align:center;padding:10px;">AIS key not set</div>';return;}
   const now=Date.now();
   Object.keys(aisVessels).forEach(m=>{
     const v=aisVessels[m];
     const ttl=aisDistNm(v.lat,v.lon,NANT_PORT.lat,NANT_PORT.lon)<0.5?15*60*1000:8*60*1000;
     if(now-v.ts>ttl)delete aisVessels[m];
   });
-  if(!aisConnected&&!Object.keys(aisVessels).length){el.innerHTML='<div style="font-size:13px;opacity:.5;text-align:center;padding:10px;">🔄 Подключение к AIS...</div>';return;}
+  if(!aisConnected&&!Object.keys(aisVessels).length){el.innerHTML='<div style="font-size:13px;opacity:.5;text-align:center;padding:10px;">🔄 Connecting to AIS...</div>';return;}
   const vessels=Object.values(aisVessels);
   if(!vessels.length){
     const mtLink=`<a href="https://www.marinetraffic.com/en/ais/home/centerx:-70.1/centery:41.27/zoom:12" target="_blank" style="color:#0A84FF;font-size:11px;text-decoration:none;">🗺 MarineTraffic</a>`;
     // Show schedule-inferred vessels when AIS has no signal
     const inferred=getScheduledVesselsAtSea();
     if(inferred.length){
-      const pktHint=`<div style="font-size:10px;opacity:.35;text-align:center;margin-top:4px;">${aisRawCount} пкт · AIS не видит · ${mtLink}</div>`;
+      const pktHint=`<div style="font-size:10px;opacity:.35;text-align:center;margin-top:4px;">${aisRawCount} pkts · AIS not seeing · ${mtLink}</div>`;
       el.innerHTML=inferred.map(v=>{
         const filled=Math.round(v.progress*12);
         const bar='─'.repeat(filled)+'⬤'+'─'.repeat(12-filled);
@@ -1912,11 +1912,11 @@ function renderAISVessels(){
               <div style="font-size:20px;">${lineEmoji(v.line)}</div>
               <div>
                 <div style="font-size:13px;font-weight:800;">${v.line} · ${v.type.includes('High')?'⚡ High-Speed':'🚢 Traditional'}</div>
-                <div style="font-size:11px;color:${lineColor(v.line)};opacity:.8;">из ${v.from} · ${v.elapsedMins} мин в пути</div>
+                <div style="font-size:11px;color:${lineColor(v.line)};opacity:.8;">from ${v.from} · ${v.elapsedMins} min en route</div>
               </div>
             </div>
             <div style="text-align:right;">
-              <div style="font-size:${urgent?'15':'14'}px;font-weight:800;color:${urgent?lineColor(v.line):'white'};">${urgent?'⚡ ':''}~${v.etaMins} мин</div>
+              <div style="font-size:${urgent?'15':'14'}px;font-weight:800;color:${urgent?lineColor(v.line):'white'};">${urgent?'⚡ ':''}~${v.etaMins} min</div>
               <div style="font-size:10px;opacity:.4;">${v.time}</div>
             </div>
           </div>
@@ -1926,25 +1926,25 @@ function renderAISVessels(){
             <span>~${v.distNm} nm до Nantucket</span>
             <span>Nantucket</span>
           </div>
-          <div style="font-size:9px;opacity:.3;margin-top:3px;">📋 расчётная позиция · AIS не доступен</div>
+          <div style="font-size:9px;opacity:.3;margin-top:3px;">📋 estimated position · AIS unavailable</div>
         </div>`;
       }).join('')+pktHint;
       return;
     }
     let hint='';
     if(aisRawCount===0){
-      hint=`<div style="font-size:11px;opacity:.4;margin-top:4px;">0 пакетов — нет ответа от сервера · ${mtLink}</div>`;
+      hint=`<div style="font-size:11px;opacity:.4;margin-top:4px;">0 packets — no server response · ${mtLink}</div>`;
     } else if(aisLastNames.length&&aisLastNames[0].startsWith('⚠️')){
       hint=`<div style="font-size:10px;color:#ff9f0a;margin-top:4px;word-break:break-all;">${aisLastNames[0]}</div>`;
     } else if(aisLastNames.length){
-      hint=`<div style="font-size:10px;opacity:.35;margin-top:4px;word-break:break-all;">Суда: ${aisLastNames.join(', ')}</div>`;
+      hint=`<div style="font-size:10px;opacity:.35;margin-top:4px;word-break:break-all;">Vessels: ${aisLastNames.join(', ')}</div>`;
     } else {
       const typeEntries=Object.entries(aisMsgTypes);
       const typeInfo=typeEntries.map(([k,v])=>`${k==='PositionReport'?'PosRpt':k==='ShipStaticData'?'Static':k}:${v}`).join(' ');
-      const pktLine=aisRawCount>0?`${aisRawCount} пкт${typeInfo?' ('+typeInfo+')':''}`:' ';
-      hint=`<div style="font-size:10px;opacity:.35;margin-top:4px;">${pktLine} · паромов нет · ${mtLink}</div>`;
+      const pktLine=aisRawCount>0?`${aisRawCount} pkts${typeInfo?' ('+typeInfo+')':''}`:' ';
+      hint=`<div style="font-size:10px;opacity:.35;margin-top:4px;">${pktLine} · no ferries · ${mtLink}</div>`;
     }
-    el.innerHTML=`<div style="font-size:13px;opacity:.5;text-align:center;padding:10px;">📡 Паромы не в пути${hint}</div>`;
+    el.innerHTML=`<div style="font-size:13px;opacity:.5;text-align:center;padding:10px;">📡 No ferries underway${hint}</div>`;
     return;
   }
   const annotated=vessels.map(v=>{
@@ -1961,7 +1961,7 @@ function renderAISVessels(){
   }).sort((a,b)=>a.approaching!==b.approaching?(a.approaching?-1:1):a.dn-b.dn);
   let html='';
   annotated.forEach(v=>{
-    const speed=v.sog>0.5?`${v.sog.toFixed(1)} уз`:'стоит';
+    const speed=v.sog>0.5?`${v.sog.toFixed(1)} kts`:'idle';
     const dist=`${v.dn.toFixed(1)} nm`;
     let etaHtml='', delayMins=null;
     if(v.inPort){
@@ -1972,13 +1972,13 @@ function renderAISVessels(){
         delayMins=Math.round((now-sched.dateObj.getTime()-turnaround*60000)/60000);
       }
       if(delayMins!==null&&delayMins>5){
-        etaHtml=`<div style="font-size:12px;font-weight:800;color:#ff9f0a;text-align:right;">⚠️ Задержка<br>~${delayMins} мин</div>`;
+        etaHtml=`<div style="font-size:12px;font-weight:800;color:#ff9f0a;text-align:right;">⚠️ Delayed<br>~${delayMins} min</div>`;
       } else {
-        const portStr=minsInPort>0?`<br><span style="opacity:.6;font-size:11px;">${minsInPort} мин</span>`:'';
-        etaHtml=`<div style="font-size:12px;color:#30d158;font-weight:700;">В ПОРТУ${portStr}</div>`;
+        const portStr=minsInPort>0?`<br><span style="opacity:.6;font-size:11px;">${minsInPort} min</span>`:'';
+        etaHtml=`<div style="font-size:12px;color:#30d158;font-weight:700;">IN PORT${portStr}</div>`;
       }
     } else if(v.etaMins!==null){
-      etaHtml=`<div style="font-size:13px;font-weight:800;color:${v.color};">${v.etaMins<=2?'⚡ Прибывает!':'~'+v.etaMins+' мин'}</div>`;
+      etaHtml=`<div style="font-size:13px;font-weight:800;color:${v.color};">${v.etaMins<=2?'⚡ Arriving!':'~'+v.etaMins+' min'}</div>`;
     } else if(v.sog>0.5){
       etaHtml=`<div style="font-size:12px;opacity:.4;">↩</div>`;
     }
@@ -2104,7 +2104,7 @@ function updateFerryWidget(){
   if(!widget) return;
   if(!next){
     document.getElementById('fwEmoji').innerText = '🌙';
-    document.getElementById('fwTitle').innerText = 'Паромов больше нет';
+    document.getElementById('fwTitle').innerText = 'No more ferries';
     document.getElementById('fwCountdown').innerText = '—';
     widget.style.borderColor = '#2a2a2a';
     return;
@@ -2112,9 +2112,9 @@ function updateFerryWidget(){
   const mins = Math.floor((next.dateObj - now) / 60000);
   const isLate = mins < 0;
   const hot = !isLate && mins <= 20;
-  const cd = isLate ? `${Math.abs(mins)} мин назад` : (Math.floor(mins/60)>0 ? `${Math.floor(mins/60)}ч ${mins%60}м` : `${mins} мин`);
+  const cd = isLate ? `${Math.abs(mins)} min ago` : (Math.floor(mins/60)>0 ? `${Math.floor(mins/60)}h ${mins%60}m` : `${mins} min`);
   document.getElementById('fwTitle').innerText = `${next.line} · ${next.time}`;
-  document.getElementById('fwCountdown').innerText = isLate ? '✓ ушёл' : cd;
+  document.getElementById('fwCountdown').innerText = isLate ? '✓ departed' : cd;
   document.getElementById('fwCountdown').style.color = hot ? '#ff9f0a' : isLate ? '#555' : 'white';
   widget.style.borderColor = hot ? '#ff9f0a' : '#2a2a2a';
 }
@@ -2134,8 +2134,8 @@ let flightTickId = null;
 let selectedFlightDay = 0;
 
 function getFlightDayLabel(){
-  if(selectedFlightDay===0) return 'Сегодня';
-  if(selectedFlightDay===1) return 'Завтра';
+  if(selectedFlightDay===0) return 'Today';
+  if(selectedFlightDay===1) return 'Tomorrow';
   const d=new Date(); d.setDate(d.getDate()+selectedFlightDay);
   return d.toLocaleDateString('ru-RU',{weekday:'long',day:'numeric',month:'short'});
 }
@@ -2149,7 +2149,7 @@ function changeFlightDay(delta){
   document.getElementById('flightDayLabel').innerText=getFlightDayLabel();
   document.getElementById('flightDayPrev').style.opacity=selectedFlightDay===0?'0.3':'1';
   document.getElementById('flightDayNext').style.opacity=selectedFlightDay>=2?'0.3':'1';
-  document.getElementById('flightArrivalsContainer').innerHTML='<div style="text-align:center;padding:40px;opacity:.4;">Загрузка...</div>';
+  document.getElementById('flightArrivalsContainer').innerHTML='<div style="text-align:center;padding:40px;opacity:.4;">Loading...</div>';
   if(selectedFlightDay===0){
     document.getElementById('flightRushCard').style.display='';
     refreshFlightsLive();
@@ -2159,7 +2159,7 @@ function changeFlightDay(delta){
       flightScheduleData=data||builtinFlightArrivals(new Date(Date.now()+selectedFlightDay*86400000));
       const badge=document.getElementById('flightSourceBadge');
       if(data?.length){badge.innerText='🟢 AirLabs';badge.style.color='#30d158';badge.style.background='#0f2a1a';}
-      else{badge.innerText='📋 Примерно';badge.style.color='#aaa';badge.style.background='#1e1e28';}
+      else{badge.innerText='📋 Approx';badge.style.color='#aaa';badge.style.background='#1e1e28';}
       renderFlightTab();
     });
   }
@@ -2190,7 +2190,7 @@ async function fetchAirLabsTimetable(dayOffset){
       const h12=hh===0?12:(hh>12?hh-12:hh), ampm=hh<12?'AM':'PM';
       const time=`${h12}:${String(mm).padStart(2,'0')} ${ampm}`;
       const airline=f.airline_name||(AIRLINE_NAMES[f.airline_iata]||f.airline_iata||'');
-      return {time,dateObj,source:'airlabs',airline,flight:f.flight_iata||'',from:f.dep_iata||'',status:'По расписанию',delayed:0};
+      return {time,dateObj,source:'airlabs',airline,flight:f.flight_iata||'',from:f.dep_iata||'',status:'On schedule',delayed:0};
     }).filter(Boolean)
     .sort((a,b)=>a.dateObj-b.dateObj)
     .filter((f,i,arr)=>{
@@ -2204,7 +2204,7 @@ async function fetchAirLabsTimetable(dayOffset){
 // Times are approximate — use ADS-B Live or FlightAware for exact times
 const FLIGHT_BUILTIN = [
   {
-    from:'2026-05-01', to:'2026-10-31', label:'Летний сезон (примерно)',
+    from:'2026-05-01', to:'2026-10-31', label:'Summer season (approx)',
     arrivals:[
       // Cape Air (BOS) - multiple daily
       {time:'6:55 AM', airline:'Cape Air', from:'BOS', seats:9},
@@ -2263,7 +2263,7 @@ function airlineInfo(name){
 }
 
 function airlineFromCallsign(cs){
-  if(!cs) return {name:'Неизвестно', emoji:'✈️', color:'#aaa'};
+  if(!cs) return {name:'Unknown', emoji:'✈️', color:'#aaa'};
   const c=cs.trim().toUpperCase();
   if(c.startsWith('CPZ')||c.startsWith('KAP')) return {name:'Cape Air',   emoji:'🐦', color:'#0A84FF'};
   if(c.startsWith('JBU'))                       return {name:'JetBlue',    emoji:'💙', color:'#00B2EF'};
@@ -2348,18 +2348,18 @@ function getRapidApiKey(){ return localStorage.getItem('rapidapi_key')||''; }
 
 function saveAirlabsKey(){
   const val=document.getElementById('airlabsKeyInput').value.trim();
-  if(!val){ document.getElementById('apiKeyStatus').innerText='Введи ключ'; return; }
+  if(!val){ document.getElementById('apiKeyStatus').innerText='Enter key'; return; }
   localStorage.setItem('airlabs_key',val);
   try{ saveSettingsToCloud(); }catch(e){}
-  document.getElementById('apiKeyStatus').innerText='✅ AirLabs сохранён';
+  document.getElementById('apiKeyStatus').innerText='✅ AirLabs saved';
   document.getElementById('apiKeyStatus').style.color='#30d158';
   setTimeout(()=>{ toggleApiKeyPanel(); refreshFlightsLive(); },800);
 }
 function saveApiKey(){
   const val=document.getElementById('apiKeyInput').value.trim();
-  if(!val){ document.getElementById('apiKeyStatus').innerText='Введи ключ'; return; }
+  if(!val){ document.getElementById('apiKeyStatus').innerText='Enter key'; return; }
   localStorage.setItem('rapidapi_key',val);
-  document.getElementById('apiKeyStatus').innerText='✅ AeroDataBox сохранён';
+  document.getElementById('apiKeyStatus').innerText='✅ AeroDataBox saved';
   document.getElementById('apiKeyStatus').style.color='#30d158';
   setTimeout(()=>{ toggleApiKeyPanel(); refreshFlightsLive(); },800);
 }
@@ -2371,7 +2371,7 @@ function toggleApiKeyPanel(){
     document.getElementById('airlabsKeyInput').value=getAirlabsKey();
     document.getElementById('apiKeyInput').value=getRapidApiKey();
     const hasKey=getAirlabsKey()||getRapidApiKey();
-    document.getElementById('apiKeyStatus').innerText=hasKey?'Ключ(и) сохранены':'';
+    document.getElementById('apiKeyStatus').innerText=hasKey?'Key(s) saved':'';
   }
 }
 
@@ -2392,7 +2392,7 @@ async function fetchAirLabs(){
       {signal:AbortSignal.timeout(10000)}
     );
     if(resp.status===401||resp.status===403){
-      document.getElementById('apiKeyStatus').innerText='❌ Неверный AirLabs ключ';
+      document.getElementById('apiKeyStatus').innerText='❌ Invalid AirLabs key';
       document.getElementById('apiKeyStatus').style.color='#ff453a';
       return null;
     }
@@ -2412,11 +2412,11 @@ async function fetchAirLabs(){
       const airline=f.airline_name||(AIRLINE_NAMES[f.airline_iata]||f.airline_iata||'');
       const delayed=f.delayed||f.arr_delayed;
       let status=f.status||'';
-      if(delayed>0&&status==='scheduled')status=`Задержка ${delayed} мин`;
-      if(status==='landed')status='Прилетел';
-      if(status==='active')status='В пути';
-      if(status==='cancelled')status='Отменён';
-      if(status==='scheduled')status='По расписанию';
+      if(delayed>0&&status==='scheduled')status=`Delay ${delayed} min`;
+      if(status==='landed')status='Landed';
+      if(status==='active')status='En route';
+      if(status==='cancelled')status='Cancelled';
+      if(status==='scheduled')status='On schedule';
       return {
         time, dateObj, source:'airlabs',
         airline, flight:f.flight_iata||'',
@@ -2448,7 +2448,7 @@ async function fetchAeroDataBox(){
       headers:{'X-RapidAPI-Key':key,'X-RapidAPI-Host':'aerodatabox.p.rapidapi.com'}
     });
     if(resp.status===401||resp.status===403){
-      document.getElementById('apiKeyStatus').innerText='❌ Неверный ключ';
+      document.getElementById('apiKeyStatus').innerText='❌ Invalid key';
       document.getElementById('apiKeyStatus').style.color='#ff453a';
       return null;
     }
@@ -2486,7 +2486,7 @@ async function refreshFlightsLive(){
   const icon=document.getElementById('refreshFlightIcon');
   const lbl=document.getElementById('refreshFlightLabel');
   const badge=document.getElementById('flightSourceBadge');
-  icon.innerText='⏳'; lbl.innerText='Загружаю...'; btn.disabled=true;
+  icon.innerText='⏳'; lbl.innerText='Loading...'; btn.disabled=true;
 
   const [airlabsRes, aeroRes, infaxRes, adsbRes]=await Promise.allSettled([
     fetchAirLabs(),
@@ -2527,22 +2527,22 @@ async function refreshFlightsLive(){
   if(isAirlabs){
     badge.style.background='#0a2a0a';badge.style.color='#30d158';
     badge.innerText='🟢 AirLabs Live';
-    icon.innerText='✅';lbl.innerText=`${flightScheduleData.length} рейсов · Live`;
+    icon.innerText='✅';lbl.innerText=`${flightScheduleData.length} flights · Live`;
   }else if(isAero){
     badge.style.background='#0a2a0a';badge.style.color='#30d158';
     badge.innerText='🟢 AeroDataBox Live';
-    icon.innerText='✅';lbl.innerText=`${flightScheduleData.length} рейсов · Live`;
+    icon.innerText='✅';lbl.innerText=`${flightScheduleData.length} flights · Live`;
   }else if(hasSchedule){
     badge.style.background='#0a2a0a';badge.style.color='#30d158';
     badge.innerText='🟢 Infax Live';
-    icon.innerText='✅';lbl.innerText=`Infax · ${flightScheduleData.length} рейсов`;
+    icon.innerText='✅';lbl.innerText=`Infax · ${flightScheduleData.length} flights`;
   }else if(hasAdsb){
     badge.style.background='#1e3a1e';badge.style.color='#30d158';
-    badge.innerText='🟡 ADS-B только';
-    icon.innerText='📡';lbl.innerText=`ADS-B · ${flightLiveData.length} самолётов`;
+    badge.innerText='🟡 ADS-B only';
+    icon.innerText='📡';lbl.innerText=`ADS-B · ${flightLiveData.length} aircraft`;
   }else{
-    badge.style.background='#1e1e28';badge.style.color='#aaa';badge.innerText='📋 Встроенные';
-    icon.innerText='⚠️';lbl.innerText='Нет live данных';
+    badge.style.background='#1e1e28';badge.style.color='#aaa';badge.innerText='📋 Built-in';
+    icon.innerText='⚠️';lbl.innerText='No live data';
   }
   lastFlightRefresh=Date.now();
   renderFlightTab('live');
@@ -2553,8 +2553,8 @@ async function refreshFlightsLive(){
 function statusColor(s){
   if(!s)return '#aaa';
   s=s.toLowerCase();
-  if(/on.?time|sched|расписан|пути/.test(s))return '#30d158';
-  if(/delay|задержк/.test(s))return '#ff9f0a';
+  if(/on.?time|sched|schedule|route/.test(s))return '#30d158';
+  if(/delay|delay/.test(s))return '#ff9f0a';
   if(/arr|land|board/.test(s))return '#636366';
   if(/cancel/.test(s))return '#ff453a';
   return '#aaa';
@@ -2574,13 +2574,13 @@ function renderFlightTab(source){
 
   // ADS-B approaching (today only)
   if(isToday&&flightLiveData&&flightLiveData.length>0){
-    html+=`<div style="font-size:11px;font-weight:700;opacity:.4;letter-spacing:1px;margin-bottom:8px;">📡 СЕЙЧАС ЛЕТЯТ К ACK</div>`;
+    html+=`<div style="font-size:11px;font-weight:700;opacity:.4;letter-spacing:1px;margin-bottom:8px;">📡 APPROACHING ACK</div>`;
     flightLiveData.forEach((ac,i)=>{
       const isNext=i===0,hot=ac.etaMin<=15;
       const bg=isNext?(hot?'#2a1200':'#0f1f14'):'#17181c';
       const br=isNext?(hot?'#ff9f0a':'#30d158'):'#252528';
-      const etaStr=ac.etaMin!=null?(ac.etaMin<=1?'~1 мин':`~${ac.etaMin} мин`):'—';
-      const badge=isNext?`<div style="font-size:10px;font-weight:800;color:${hot?'#ff9f0a':'#30d158'};margin-top:3px;">${hot?'⚡СКОРО':'▶ NEXT'}</div>`:'';
+      const etaStr=ac.etaMin!=null?(ac.etaMin<=1?'~1 min':`~${ac.etaMin} min`):'—';
+      const badge=isNext?`<div style="font-size:10px;font-weight:800;color:${hot?'#ff9f0a':'#30d158'};margin-top:3px;">${hot?'⚡SOON':'▶ NEXT'}</div>`:'';
       html+=`<div style="background:${bg};border:1px solid ${br};border-radius:15px;padding:13px 15px;margin-bottom:9px;display:flex;align-items:center;justify-content:space-between;">
         <div style="display:flex;align-items:center;gap:11px;"><div style="font-size:24px;">${ac.emoji}</div>
         <div><div style="font-size:18px;font-weight:800;">${ac.callsign||'???'}</div>
@@ -2594,7 +2594,7 @@ function renderFlightTab(source){
   const makeRow=(a,isPast)=>{
     const {emoji,color}=airlineInfo(a.airline);
     const sc=statusColor(a.status);
-    const sub=`${a.flight?a.flight+' · ':''}${a.from?'из '+a.from:''}`;
+    const sub=`${a.flight?a.flight+' · ':''}${a.from?'from '+a.from:''}`;
     const statusBadge=a.status?`<div style="font-size:10px;font-weight:700;color:${sc};margin-top:2px;">${a.status}</div>`:'';
     const right=isPast
       ?`<div style="font-size:12px;opacity:.5;">${a.status||'✓'}</div>`
@@ -2617,16 +2617,16 @@ function renderFlightTab(source){
   if(isToday){
     if(upcoming.length) upcoming.forEach(a=>{ html+=makeRow(a,false); });
     if(past.length){
-      html+=`<div style="font-size:11px;font-weight:700;opacity:.3;letter-spacing:1px;margin:12px 0 8px;">УЖЕ ПРИЛЕТЕЛИ</div>`;
+      html+=`<div style="font-size:11px;font-weight:700;opacity:.3;letter-spacing:1px;margin:12px 0 8px;">ARRIVED</div>`;
       past.slice().reverse().forEach(a=>{ html+=makeRow(a,true); });
     }
   } else {
     // Future day — show all, no countdown
     if(schedule.length) schedule.forEach(a=>{ html+=makeRow(a,false); });
-    else html=`<div style="text-align:center;padding:40px;opacity:.5;">Нет данных о рейсах</div>`;
+    else html=`<div style="text-align:center;padding:40px;opacity:.5;">No flight data</div>`;
   }
 
-  if(!html) html=`<div style="text-align:center;padding:40px;opacity:.5;">Нет данных · нажми Live обновление</div>`;
+  if(!html) html=`<div style="text-align:center;padding:40px;opacity:.5;">No data · press Live update</div>`;
 
   document.getElementById('flightArrivalsContainer').innerHTML=html;
   if(isToday){ renderFlightStatusCard(upcoming,now); try{updateFlightWidget();}catch(e){} }
@@ -2641,32 +2641,32 @@ function renderFlightStatusCard(upcoming,now){
     const next=flightLiveData[0];
     const hot=next.etaMin<=15;
     sl.style.color=hot?'#ff9f0a':'white';
-    sl.innerText=hot?`🚨 Посадка через ~${next.etaMin} мин!`:`✈️ Подлетает через ~${next.etaMin} мин`;
-    ss.innerText=`${next.emoji} ${next.callsign} · ${next.airline} · ${Math.round(next.distNm*1.852)} км`;
+    sl.innerText=hot?`🚨 Landing in ~${next.etaMin} min!`:`✈️ Approaching in ~${next.etaMin} min`;
+    ss.innerText=`${next.emoji} ${next.callsign} · ${next.airline} · ${Math.round(next.distNm*1.852)} km`;
     return;
   }
   if(!upcoming||!upcoming.length){
     sl.style.color='white';
-    sl.innerText='🌙 Рейсов больше нет';
+    sl.innerText='🌙 No more flights';
     ss.innerText='';
     return;
   }
   const next=upcoming[0], mins=Math.floor((next.dateObj-now)/60000);
   const {emoji}=airlineInfo(next.airline);
   if(mins<0){
-    sl.style.color='#ff9f0a'; sl.innerText=`⏱ ${next.airline} мог прилететь`;
-    ss.innerText=`${next.time} · ±30мин (примерно)`;
+    sl.style.color='#ff9f0a'; sl.innerText=`⏱ ${next.airline} may have arrived`;
+    ss.innerText=`${next.time} · ±30min (approx)`;
   } else if(mins<=20){
-    sl.style.color='#ff453a'; sl.innerText=`🚨 Рейс через ${mins} мин!`;
-    ss.innerText=`${emoji} ${next.airline} из ${next.from} · ${next.time}`;
+    sl.style.color='#ff453a'; sl.innerText=`🚨 Flight in ${mins} min!`;
+    ss.innerText=`${emoji} ${next.airline} from ${next.from} · ${next.time}`;
   } else if(mins<=45){
-    sl.style.color='#ffd60a'; sl.innerText=`⚠️ Рейс через ${mins} мин`;
-    ss.innerText=`${emoji} ${next.airline} из ${next.from} · ${next.time}`;
+    sl.style.color='#ffd60a'; sl.innerText=`⚠️ Flight in ${mins} min`;
+    ss.innerText=`${emoji} ${next.airline} from ${next.from} · ${next.time}`;
   } else {
     sl.style.color='#30d158';
     const h=Math.floor(mins/60),m=mins%60;
-    sl.innerText=`🟢 Спокойно · ${h?h+'ч ':''}${m}м`;
-    ss.innerText=`${emoji} ${next.airline} из ${next.from} прилетит в ${next.time}`;
+    sl.innerText=`🟢 Clear · ${h?h+'h ':''}${m}m`;
+    ss.innerText=`${emoji} ${next.airline} from ${next.from} arriving at ${next.time}`;
   }
 }
 
@@ -2678,8 +2678,8 @@ function updateFlightWidget(){
   if(flightLiveData&&flightLiveData.length>0){
     const next=flightLiveData[0];
     const hot=next.etaMin<=15;
-    document.getElementById('fltTitle').innerText=`${next.callsign} · ~${next.etaMin} мин`;
-    document.getElementById('fltCountdown').innerText=`~${next.etaMin} мин`;
+    document.getElementById('fltTitle').innerText=`${next.callsign} · ~${next.etaMin} min`;
+    document.getElementById('fltCountdown').innerText=`~${next.etaMin} min`;
     document.getElementById('fltCountdown').style.color=hot?'#ff9f0a':'white';
     widget.style.borderColor=hot?'#ff9f0a':'#2a2a2a';
     return;
@@ -2689,7 +2689,7 @@ function updateFlightWidget(){
   // Find next upcoming flight (not past)
   const next=sched.find(a=>a.dateObj>now);
   if(!next){
-    document.getElementById('fltTitle').innerText='Рейсов больше нет';
+    document.getElementById('fltTitle').innerText='No more flights';
     document.getElementById('fltCountdown').innerText='🌙';
     document.getElementById('fltCountdown').style.color='#555';
     widget.style.borderColor='#2a2a2a';
@@ -2697,7 +2697,7 @@ function updateFlightWidget(){
   }
   const mins=Math.floor((next.dateObj-now)/60000);
   const hot=mins<=20;
-  const cd=mins>=60?`${Math.floor(mins/60)}ч ${mins%60}м`:`${mins} мин`;
+  const cd=mins>=60?`${Math.floor(mins/60)}h ${mins%60}m`:`${mins} min`;
   document.getElementById('fltTitle').innerText=`${next.airline||next.flight} · ${next.time}`;
   document.getElementById('fltCountdown').innerText=cd;
   document.getElementById('fltCountdown').style.color=hot?'#ff9f0a':'white';
@@ -2934,7 +2934,7 @@ function updateWaitDisplay(){
     const fareEl=document.getElementById('fare');
     if(fareEl) fareEl.innerText=`$${Number.isInteger(total)?total:total.toFixed(2)}`;
     const waitRow=document.getElementById('waitBreakdownRow');
-    if(waitRow) waitRow.innerHTML=wc>0?`<span>⏱ Ожидание ${fmtWait()}</span><span>+$${wc.toFixed(2)}</span>`:'';
+    if(waitRow) waitRow.innerHTML=wc>0?`<span>⏱ Wait ${fmtWait()}</span><span>+$${wc.toFixed(2)}</span>`:'';
     const totRow=document.querySelector('.total-row span:last-child');
     if(totRow) totRow.innerText=`$${Number.isInteger(total)?total:total.toFixed(2)}`;
   }
@@ -3135,7 +3135,7 @@ async function calculateFare() {
     ).join('');
 
     const waitRow = waitCharge > 0
-        ? `<div class="fare-row" id="waitBreakdownRow"><span>⏱ Ожидание ${fmtWait()}</span><span>+$${waitCharge.toFixed(2)}</span></div>`
+        ? `<div class="fare-row" id="waitBreakdownRow"><span>⏱ Wait ${fmtWait()}</span><span>+$${waitCharge.toFixed(2)}</span></div>`
         : `<div class="fare-row" id="waitBreakdownRow"></div>`;
 
     document.getElementById('fareBreakdown').innerHTML =
@@ -3163,7 +3163,7 @@ ${extraRows}${waitRow}
     };
 
     const saveBtn = document.getElementById('saveTripBtn');
-    if(saveBtn){ saveBtn.style.display='flex'; saveBtn.textContent='💾 Сохранить поездку'; saveBtn.disabled=false; }
+    if(saveBtn){ saveBtn.style.display='flex'; saveBtn.textContent='💾 Save Trip'; saveBtn.disabled=false; }
 }
 
 </script>
@@ -3456,7 +3456,7 @@ function renderAddressPreview(label){
     mapDiv.style.display    = 'block';
     expandBtn.innerHTML     = _EXPAND_SVG;
     expandBtn.style.display = 'flex';
-    btn.textContent         = svMode === 'map' ? '🛰 Спутник' : '📷 Street View';
+    btn.textContent         = svMode === 'map' ? '🛰 Satellite' : '📷 Street View';
     const typeId            = svMode === 'map' ? 'roadmap' : 'satellite';
     setTimeout(()=>{
       if(!previewMap){
@@ -3490,7 +3490,7 @@ function renderAddressPreview(label){
   mapDiv.style.display    = 'none';
   expandBtn.style.display = 'none';
   img.src         = `https://maps.googleapis.com/maps/api/streetview?size=600x360&location=${svLat},${svLng}&fov=80&pitch=5&key=${GMAPS_KEY}`;
-  btn.textContent = '🗺 Карта';
+  btn.textContent = '🗺 Map';
 }
 
 function toggleMapFullscreen(){
@@ -3682,7 +3682,7 @@ function initFirebase(){
 }
 
 function handleAuthClick(){
-  if(!fbReady()){ alert('Firebase config не настроен'); return; }
+  if(!fbReady()){ alert('Firebase config not set up'); return; }
   if(fbUser){
     if(fbAuth) fbAuth.signOut();
   } else {
@@ -3713,7 +3713,7 @@ function saveAisKey(){
   localStorage.setItem('aisstream_key', val);
   closeDrawer();
   if(typeof disconnectAIS==='function'){ disconnectAIS(); setTimeout(connectAIS, 500); }
-  alert('AIS ключ сохранён. Переподключаюсь...');
+  alert('AIS key saved. Reconnecting...');
 }
 
 async function forceSwUpdate(){
@@ -3743,21 +3743,21 @@ function updateAuthUI(){
     if(avatar) avatar.innerHTML = fbUser.photoURL
       ? `<img src="${fbUser.photoURL}">`
       : `<span style="font-size:22px;">👤</span>`;
-    if(name) name.innerText = fbUser.displayName || 'Пользователь';
+    if(name) name.innerText = fbUser.displayName || 'User';
     if(email) email.innerText = fbUser.email || '';
     if(section) section.innerHTML = `
       <button class="drawer-item danger" onclick="fbAuth.signOut();closeDrawer();">
-        <span style="font-size:20px;">🚪</span> Выйти
+        <span style="font-size:20px;">🚪</span> Sign out
       </button>`;
     if(hint) hint.innerText = fbUser.displayName || fbUser.email || '';
   } else {
     if(avatar) avatar.innerHTML = '👤';
-    if(name) name.innerText = 'Не вошли';
+    if(name) name.innerText = 'Not signed in';
     if(email) email.innerText = '';
     if(section) section.innerHTML = `
       <button class="drawer-item" onclick="handleAuthClick();closeDrawer();">
         <svg width="20" height="20" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20.1H42V20H24v8h11.3C33.7 32.7 29.3 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.1 7.9 3l5.7-5.7C34.1 6.5 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.6-.4-3.9z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.6 16 19 13 24 13c3.1 0 5.8 1.1 7.9 3l5.7-5.7C34.1 6.5 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.4 35.5 26.8 36 24 36c-5.3 0-9.7-3.3-11.3-8H6.4C9.7 35.5 16.4 44 24 44z"/><path fill="#1976D2" d="M43.6 20.1H42V20H24v8h11.3c-.8 2.3-2.3 4.3-4.3 5.7l6.2 5.2C41.3 35.4 44 30 44 24c0-1.3-.1-2.6-.4-3.9z"/></svg>
-        Войти через Google
+        Sign in with Google
       </button>`;
     if(hint) hint.innerText = '';
   }
@@ -3794,7 +3794,7 @@ function saveTripManual(){
   if(!_lastTripData) return;
   const btn = document.getElementById('saveTripBtn');
   saveTrip(_lastTripData);
-  if(btn){ btn.textContent='✅ Сохранено'; btn.disabled=true; }
+  if(btn){ btn.textContent='✅ Saved'; btn.disabled=true; }
   _lastTripData = null;
 }
 
@@ -3811,10 +3811,10 @@ function saveTrip(data){
 function loadHistory(){
   const list = document.getElementById('historyList');
   if(!fbDb||!fbUser){
-    if(list) list.innerHTML='<div style="text-align:center;padding:40px;opacity:.4;">Войдите чтобы видеть историю</div>';
+    if(list) list.innerHTML='<div style="text-align:center;padding:40px;opacity:.4;">Sign in to view history</div>';
     return;
   }
-  if(list) list.innerHTML='<div style="text-align:center;padding:40px;opacity:.4;">Загрузка...</div>';
+  if(list) list.innerHTML='<div style="text-align:center;padding:40px;opacity:.4;">Loading...</div>';
   if(_unsubTrips) _unsubTrips();
   _unsubTrips = fbDb.collection('users').doc(fbUser.uid).collection('trips')
     .orderBy('ts','desc').limit(100)
@@ -3835,11 +3835,11 @@ function confirmClearAll(){
   el.innerHTML=`
     <div style="background:#1e1e28;border:1px solid #333;border-radius:20px;padding:24px 20px;width:90%;max-width:340px;text-align:center;">
       <div style="font-size:22px;margin-bottom:8px;">🗑️</div>
-      <div style="font-size:17px;font-weight:800;margin-bottom:6px;">Очистить всю историю?</div>
-      <div style="font-size:13px;opacity:.5;margin-bottom:20px;">Все поездки будут удалены навсегда</div>
+      <div style="font-size:17px;font-weight:800;margin-bottom:6px;">Clear all history?</div>
+      <div style="font-size:13px;opacity:.5;margin-bottom:20px;">All trips will be permanently deleted</div>
       <div style="display:flex;gap:10px;">
-        <button onclick="document.getElementById('clearAllOverlay').remove()" style="flex:1;background:#2a2a2a;border:none;color:white;border-radius:14px;padding:13px;font-size:15px;font-weight:700;cursor:pointer;">Отмена</button>
-        <button onclick="clearAllTrips();document.getElementById('clearAllOverlay').remove()" style="flex:1;background:#ff453a;border:none;color:white;border-radius:14px;padding:13px;font-size:15px;font-weight:700;cursor:pointer;">Удалить всё</button>
+        <button onclick="document.getElementById('clearAllOverlay').remove()" style="flex:1;background:#2a2a2a;border:none;color:white;border-radius:14px;padding:13px;font-size:15px;font-weight:700;cursor:pointer;">Cancel</button>
+        <button onclick="clearAllTrips();document.getElementById('clearAllOverlay').remove()" style="flex:1;background:#ff453a;border:none;color:white;border-radius:14px;padding:13px;font-size:15px;font-weight:700;cursor:pointer;">Delete all</button>
       </div>
     </div>`;
   document.body.appendChild(el);
@@ -3863,7 +3863,7 @@ function renderHistory(trips){
   if(clearBtn) clearBtn.style.display = trips.length ? 'block' : 'none';
 
   if(!trips.length){
-    list.innerHTML='<div style="text-align:center;padding:40px;opacity:.4;">Поездок пока нет</div>';
+    list.innerHTML='<div style="text-align:center;padding:40px;opacity:.4;">No trips yet</div>';
     if(stats) stats.innerHTML='';
     return;
   }
@@ -3873,14 +3873,14 @@ function renderHistory(trips){
   const todayTotal = today.reduce((s,t)=>s+(t.fare||0),0);
   if(stats) stats.innerHTML=`
     <div style="flex:1;background:#17181c;border:1px solid #252528;border-radius:14px;padding:12px;text-align:center;">
-      <div style="font-size:11px;opacity:.5;margin-bottom:4px;">СЕГОДНЯ</div>
+      <div style="font-size:11px;opacity:.5;margin-bottom:4px;">TODAY</div>
       <div style="font-size:20px;font-weight:900;color:#30d158;">$${todayTotal}</div>
-      <div style="font-size:11px;opacity:.4;">${today.length} поезд.</div>
+      <div style="font-size:11px;opacity:.4;">${today.length} trips</div>
     </div>
     <div style="flex:1;background:#17181c;border:1px solid #252528;border-radius:14px;padding:12px;text-align:center;">
-      <div style="font-size:11px;opacity:.5;margin-bottom:4px;">ВСЕГО</div>
+      <div style="font-size:11px;opacity:.5;margin-bottom:4px;">TOTAL</div>
       <div style="font-size:20px;font-weight:900;">$${total}</div>
-      <div style="font-size:11px;opacity:.4;">${trips.length} поезд.</div>
+      <div style="font-size:11px;opacity:.4;">${trips.length} trips</div>
     </div>`;
 
   const byDate = {};
@@ -3904,9 +3904,9 @@ function renderHistory(trips){
       const showDest = dest && dest.toLowerCase()!==toZone.toLowerCase();
       const pax = t.passengers||1;
       const extras = [
-        `${pax} пас.`,
-        t.dirtRoad?'🌿 грунт':'',
-        t.nightFee?'🌙 ночь':'',
+        `${pax} pax`,
+        t.dirtRoad?'🌿 dirt':'',
+        t.nightFee?'🌙 night':'',
         (t.dogs||0)>0?`🐕 ${t.dogs}`:'',
         (t.bikes||0)>0?`🚲 ${t.bikes}`:'',
         (t.bags||0)>0?`💼 ${t.bags}`:'',
@@ -3952,17 +3952,17 @@ function _showEditModal(t){
   overlay.innerHTML=`
     <div style="background:#1e1e28;border:1px solid #333;border-radius:20px 20px 0 0;padding:20px 18px 34px;width:100%;max-width:420px;max-height:92vh;overflow-y:auto;">
       <div style="width:40px;height:4px;background:#333;border-radius:2px;margin:0 auto 18px;"></div>
-      <div style="font-size:18px;font-weight:800;margin-bottom:16px;text-align:center;">Редактировать поездку</div>
+      <div style="font-size:18px;font-weight:800;margin-bottom:16px;text-align:center;">Edit Trip</div>
 
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
         <div>
-          <div style="font-size:11px;opacity:.5;margin-bottom:5px;">ИЗ ЗОНЫ</div>
+          <div style="font-size:11px;opacity:.5;margin-bottom:5px;">FROM ZONE</div>
           <select id="et_fromZone" style="width:100%;background:#12121a;border:1px solid #333;color:white;border-radius:10px;padding:10px;font-size:14px;">
             ${zoneOpts}
           </select>
         </div>
         <div>
-          <div style="font-size:11px;opacity:.5;margin-bottom:5px;">В ЗОНУ</div>
+          <div style="font-size:11px;opacity:.5;margin-bottom:5px;">TO ZONE</div>
           <select id="et_toZone" style="width:100%;background:#12121a;border:1px solid #333;color:white;border-radius:10px;padding:10px;font-size:14px;">
             ${zoneOpts}
           </select>
@@ -3970,22 +3970,22 @@ function _showEditModal(t){
       </div>
 
       <div style="margin-bottom:12px;">
-        <div style="font-size:11px;opacity:.5;margin-bottom:5px;">АДРЕС НАЗНАЧЕНИЯ</div>
-        <input id="et_dest" type="text" placeholder="Адрес или название" value="${(t.destination||'').replace(/"/g,'&quot;')}"
+        <div style="font-size:11px;opacity:.5;margin-bottom:5px;">DESTINATION</div>
+        <input id="et_dest" type="text" placeholder="Address or name" value="${(t.destination||'').replace(/"/g,'&quot;')}"
           style="width:100%;box-sizing:border-box;background:#12121a;border:1px solid #333;color:white;border-radius:10px;padding:10px;font-size:14px;">
       </div>
 
       <input id="et_baseFare" type="hidden" value="${t.baseFare||0}">
 
       <div style="margin-bottom:16px;">
-        <div style="font-size:11px;opacity:.5;margin-bottom:5px;">ИТОГО ($)</div>
+        <div style="font-size:11px;opacity:.5;margin-bottom:5px;">TOTAL ($)</div>
         <input id="et_fare" type="number" min="0" step="0.01" value="${t.fare||0}" readonly
           style="width:100%;box-sizing:border-box;background:#12121a;border:1px solid #252530;color:#30d158;border-radius:10px;padding:10px;font-size:22px;font-weight:900;cursor:default;">
       </div>
 
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
         <div>
-          <div style="font-size:11px;opacity:.5;margin-bottom:5px;">ПАССАЖИРЫ</div>
+          <div style="font-size:11px;opacity:.5;margin-bottom:5px;">PASSENGERS</div>
           <div style="display:flex;align-items:center;gap:8px;background:#12121a;border:1px solid #333;border-radius:10px;padding:8px 10px;">
             <button onclick="etStep('et_pax',-1,1,8)" style="background:#252530;border:none;color:white;border-radius:6px;width:28px;height:28px;font-size:18px;cursor:pointer;line-height:1;">−</button>
             <span id="et_pax_disp" style="flex:1;text-align:center;font-size:16px;font-weight:700;">${t.passengers||1}</span>
@@ -3994,7 +3994,7 @@ function _showEditModal(t){
           </div>
         </div>
         <div>
-          <div style="font-size:11px;opacity:.5;margin-bottom:5px;">ОЖИДАНИЕ ($)</div>
+          <div style="font-size:11px;opacity:.5;margin-bottom:5px;">WAIT ($)</div>
           <input id="et_wait" type="number" min="0" step="0.01" value="${(t.waitCharge||0).toFixed(2)}" oninput="etRecalc()"
             style="width:100%;box-sizing:border-box;background:#12121a;border:1px solid #333;color:white;border-radius:10px;padding:10px;font-size:14px;">
         </div>
@@ -4002,7 +4002,7 @@ function _showEditModal(t){
 
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px;">
         <div>
-          <div style="font-size:11px;opacity:.5;margin-bottom:5px;">🐕 СОБАКИ</div>
+          <div style="font-size:11px;opacity:.5;margin-bottom:5px;">🐕 DOGS</div>
           <div style="display:flex;align-items:center;gap:6px;background:#12121a;border:1px solid #333;border-radius:10px;padding:8px;">
             <button onclick="etStep('et_dogs',-1,0,5)" style="background:#252530;border:none;color:white;border-radius:6px;width:26px;height:26px;font-size:16px;cursor:pointer;line-height:1;">−</button>
             <span id="et_dogs_disp" style="flex:1;text-align:center;font-weight:700;">${t.dogs||0}</span>
@@ -4011,7 +4011,7 @@ function _showEditModal(t){
           </div>
         </div>
         <div>
-          <div style="font-size:11px;opacity:.5;margin-bottom:5px;">🚲 ВЕЛИКИ</div>
+          <div style="font-size:11px;opacity:.5;margin-bottom:5px;">🚲 BIKES</div>
           <div style="display:flex;align-items:center;gap:6px;background:#12121a;border:1px solid #333;border-radius:10px;padding:8px;">
             <button onclick="etStep('et_bikes',-1,0,5)" style="background:#252530;border:none;color:white;border-radius:6px;width:26px;height:26px;font-size:16px;cursor:pointer;line-height:1;">−</button>
             <span id="et_bikes_disp" style="flex:1;text-align:center;font-weight:700;">${t.bikes||0}</span>
@@ -4020,7 +4020,7 @@ function _showEditModal(t){
           </div>
         </div>
         <div>
-          <div style="font-size:11px;opacity:.5;margin-bottom:5px;">💼 СУМКИ</div>
+          <div style="font-size:11px;opacity:.5;margin-bottom:5px;">💼 BAGS</div>
           <div style="display:flex;align-items:center;gap:6px;background:#12121a;border:1px solid #333;border-radius:10px;padding:8px;">
             <button onclick="etStep('et_bags',-1,0,5)" style="background:#252530;border:none;color:white;border-radius:6px;width:26px;height:26px;font-size:16px;cursor:pointer;line-height:1;">−</button>
             <span id="et_bags_disp" style="flex:1;text-align:center;font-weight:700;">${t.bags||0}</span>
@@ -4031,13 +4031,13 @@ function _showEditModal(t){
       </div>
 
       <div style="display:flex;gap:10px;margin-bottom:20px;">
-        <button id="et_dirt" data-on="${t.dirtRoad?'1':'0'}" onclick="etToggle('et_dirt','🌿 Грунт')" style="flex:1;border-radius:10px;padding:10px;font-size:13px;font-weight:700;cursor:pointer;border:none;${t.dirtRoad?'background:#1a3a1a;color:#30d158;':'background:#252530;color:white;'}">🌿 Грунт</button>
-        <button id="et_night" data-on="${t.nightFee?'1':'0'}" onclick="etToggle('et_night','🌙 Ночь')" style="flex:1;border-radius:10px;padding:10px;font-size:13px;font-weight:700;cursor:pointer;border:none;${t.nightFee?'background:#1a1a3a;color:#0a84ff;':'background:#252530;color:white;'}">🌙 Ночь</button>
+        <button id="et_dirt" data-on="${t.dirtRoad?'1':'0'}" onclick="etToggle('et_dirt','🌿 Dirt')" style="flex:1;border-radius:10px;padding:10px;font-size:13px;font-weight:700;cursor:pointer;border:none;${t.dirtRoad?'background:#1a3a1a;color:#30d158;':'background:#252530;color:white;'}">🌿 Dirt</button>
+        <button id="et_night" data-on="${t.nightFee?'1':'0'}" onclick="etToggle('et_night','🌙 Night')" style="flex:1;border-radius:10px;padding:10px;font-size:13px;font-weight:700;cursor:pointer;border:none;${t.nightFee?'background:#1a1a3a;color:#0a84ff;':'background:#252530;color:white;'}">🌙 Night</button>
       </div>
 
       <div style="display:flex;gap:10px;">
-        <button onclick="document.getElementById('editTripOverlay').remove()" style="flex:1;background:#252530;border:none;color:white;border-radius:14px;padding:14px;font-size:15px;font-weight:700;cursor:pointer;">Отмена</button>
-        <button onclick="saveEditTrip()" style="flex:1;background:#0a84ff;border:none;color:white;border-radius:14px;padding:14px;font-size:15px;font-weight:700;cursor:pointer;">Сохранить</button>
+        <button onclick="document.getElementById('editTripOverlay').remove()" style="flex:1;background:#252530;border:none;color:white;border-radius:14px;padding:14px;font-size:15px;font-weight:700;cursor:pointer;">Cancel</button>
+        <button onclick="saveEditTrip()" style="flex:1;background:#0a84ff;border:none;color:white;border-radius:14px;padding:14px;font-size:15px;font-weight:700;cursor:pointer;">Save</button>
       </div>
     </div>`;
 
@@ -4177,9 +4177,9 @@ function hideAddBooking(){
 }
 
 function saveBooking(){
-  if(!fbDb||!fbUser){ alert('Войдите в аккаунт'); return; }
+  if(!fbDb||!fbUser){ alert('Sign in to your account'); return; }
   const date = document.getElementById('bDate').value;
-  if(!date){ alert('Укажи дату'); return; }
+  if(!date){ alert('Please enter a date'); return; }
 
   const timeVal = document.getElementById('bTime').value;
   const time = timeVal === 'custom'
@@ -4213,11 +4213,11 @@ function deleteBooking(id){
   el.innerHTML=`
     <div style="background:#1e1e28;border:1px solid #333;border-radius:20px;padding:24px 20px;width:90%;max-width:340px;text-align:center;">
       <div style="font-size:22px;margin-bottom:8px;">🗑️</div>
-      <div style="font-size:17px;font-weight:800;margin-bottom:6px;">Удалить бронирование?</div>
-      <div style="font-size:13px;opacity:.5;margin-bottom:20px;">Это действие нельзя отменить</div>
+      <div style="font-size:17px;font-weight:800;margin-bottom:6px;">Delete booking?</div>
+      <div style="font-size:13px;opacity:.5;margin-bottom:20px;">This action cannot be undone</div>
       <div style="display:flex;gap:10px;">
-        <button onclick="document.getElementById('deleteBookingOverlay').remove()" style="flex:1;background:#2a2a2a;border:none;color:white;border-radius:14px;padding:13px;font-size:15px;font-weight:700;cursor:pointer;">Отмена</button>
-        <button onclick="fbDb.collection('users').doc(fbUser.uid).collection('bookings').doc('${id}').delete();document.getElementById('deleteBookingOverlay').remove()" style="flex:1;background:#ff453a;border:none;color:white;border-radius:14px;padding:13px;font-size:15px;font-weight:700;cursor:pointer;">Удалить</button>
+        <button onclick="document.getElementById('deleteBookingOverlay').remove()" style="flex:1;background:#2a2a2a;border:none;color:white;border-radius:14px;padding:13px;font-size:15px;font-weight:700;cursor:pointer;">Cancel</button>
+        <button onclick="fbDb.collection('users').doc(fbUser.uid).collection('bookings').doc('${id}').delete();document.getElementById('deleteBookingOverlay').remove()" style="flex:1;background:#ff453a;border:none;color:white;border-radius:14px;padding:13px;font-size:15px;font-weight:700;cursor:pointer;">Delete</button>
       </div>
     </div>`;
   document.body.appendChild(el);
@@ -4226,7 +4226,7 @@ function deleteBooking(id){
 function loadBookings(){
   const list = document.getElementById('bookingsList');
   if(!fbDb||!fbUser){
-    if(list) list.innerHTML='<div style="text-align:center;padding:40px;opacity:.4;">Войдите чтобы видеть бронирования</div>';
+    if(list) list.innerHTML='<div style="text-align:center;padding:40px;opacity:.4;">Sign in to view bookings</div>';
     return;
   }
   if(_unsubBookings) _unsubBookings();
@@ -4241,7 +4241,7 @@ function renderBookings(bookings){
   const list = document.getElementById('bookingsList');
   if(!list) return;
   if(!bookings.length){
-    list.innerHTML='<div style="text-align:center;padding:40px;opacity:.4;">Нет бронирований</div>';
+    list.innerHTML='<div style="text-align:center;padding:40px;opacity:.4;">No bookings</div>';
     return;
   }
 
@@ -4271,11 +4271,11 @@ function renderBookings(bookings){
   if(upcoming.length){
     html += upcoming.map(b=>bookingCard(b,false)).join('');
   } else {
-    html += '<div style="text-align:center;padding:20px;opacity:.4;font-size:14px;">Нет предстоящих бронирований</div>';
+    html += '<div style="text-align:center;padding:20px;opacity:.4;font-size:14px;">No upcoming bookings</div>';
   }
 
   if(past.length){
-    html += `<div style="font-size:11px;font-weight:700;opacity:.35;letter-spacing:1px;margin:20px 0 10px;text-align:center;">— ПРОШЕДШИЕ —</div>`;
+    html += `<div style="font-size:11px;font-weight:700;opacity:.35;letter-spacing:1px;margin:20px 0 10px;text-align:center;">— PAST —</div>`;
     html += past.map(b=>bookingCard(b,true)).join('');
   }
 
