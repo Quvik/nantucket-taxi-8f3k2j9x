@@ -4494,9 +4494,13 @@ initFirebase();
 
 <script>
 if('serviceWorker' in navigator){
+  // Auto-reload when a new SW takes control so users always get fresh content
+  navigator.serviceWorker.addEventListener('controllerchange', () => location.reload());
   window.addEventListener('load', ()=>{
     navigator.serviceWorker.register('/nantucket-taxi-8f3k2j9x/sw.js')
-      .then(()=>console.log('SW registered'))
+      .then(reg => {
+        reg.update(); // immediately check for an updated sw.js
+      })
       .catch(e=>console.warn('SW error',e));
   });
 }
