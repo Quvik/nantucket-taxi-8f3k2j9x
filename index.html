@@ -3540,10 +3540,14 @@ function fetchSuggestions(query){
     types: ['geocode','establishment']
   }, (predictions, status)=>{
     const localNames = [...local.map(p => p.name.toLowerCase())];
+    const NANTUCKET_PLACES = ['nantucket','siasconset','sconset','madaket','wauwinet','polpis','quidnet','pocomo','shimmo','quaise'];
     const gPreds = (status === google.maps.places.PlacesServiceStatus.OK && predictions)
       ? predictions.filter(p => {
+          const sec  = (p.structured_formatting?.secondary_text||'').toLowerCase();
           const main = (p.structured_formatting?.main_text||'').toLowerCase();
-          // Remove if this prediction is a near-duplicate of any local result
+          // Only show results from Nantucket island
+          if (!NANTUCKET_PLACES.some(loc => sec.includes(loc) || main.includes(loc))) return false;
+          // Remove near-duplicates of local results
           const isDup = localNames.some(ln => {
             if(main.includes(ln) || ln.includes(main)) return true;
             return ln.split(' ').filter(w=>w.length>5).some(w=>main.includes(w));
