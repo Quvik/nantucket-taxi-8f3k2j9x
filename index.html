@@ -3472,6 +3472,18 @@ function selectLocalPlace(place){
   }
 }
 
+function detectZoneFromText(text) {
+  const core = text.toLowerCase().split(',')[0].trim();
+  const hasNum = /^\d+\s+/.test(core);
+  let m = localPlaces.find(p => p.name.toLowerCase() === core);
+  if (!m) m = localPlaces.find(p => { const pn = p.name.toLowerCase(); return core.includes(pn) || pn.includes(core); });
+  if (!m && hasNum) {
+    const street = core.replace(/^\d+\s+/, '');
+    m = localPlaces.find(p => { const pn = p.name.toLowerCase(); return street === pn || street.includes(pn) || pn.includes(street); });
+  }
+  return m ? m.zone : null;
+}
+
 function renderLocalItem(place, isLast){
   const item = document.createElement('div');
   item.style.cssText = `padding:13px 16px;cursor:pointer;font-size:15px;color:white;
@@ -3544,10 +3556,11 @@ function fetchSuggestions(query){
       const sec  = (pred.structured_formatting?.secondary_text||'')
         .replace(/,?\s*Nantucket,?\s*MA\s*\d*,?\s*USA/gi,'')
         .replace(/,?\s*Nantucket,?\s*MA/gi,'').trim();
+      const zone = detectZoneFromText(main);
       item.innerHTML = `<span style="font-size:18px;">🌐</span>
         <div>
           <div style="font-weight:700;">${main}</div>
-          ${sec ? `<div style="font-size:12px;opacity:.5;margin-top:2px;">${sec}</div>` : ''}
+          <div style="font-size:12px;opacity:.5;margin-top:2px;">${zone || sec || ''}</div>
         </div>`;
       item.addEventListener('click', () => selectPrediction(pred));
       acDropdown.appendChild(item);
