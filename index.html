@@ -3414,6 +3414,11 @@ function initAutocompleteUI(){
   `;
   document.body.appendChild(acDropdown);
 
+  // Reposition when keyboard appears/disappears on mobile
+  if(window.visualViewport){
+    window.visualViewport.addEventListener('resize', ()=>{ if(acDropdown.style.display==='block') positionDropdown(); });
+  }
+
   // Input → debounced search
   input.addEventListener('input', ()=>{
     window.selectedPlace = null;
@@ -3641,21 +3646,18 @@ function positionDropdown(){
   const input = document.getElementById('destination');
   if(!input||!acDropdown) return;
   const r = input.getBoundingClientRect();
-  const vh = window.visualViewport ? window.visualViewport.height : window.innerHeight;
-  const spaceBelow = vh - r.bottom;
-  const spaceAbove = r.top;
-  const dropH = Math.min(220, acDropdown.scrollHeight || 220);
-  if(spaceBelow >= dropH + 8 || spaceBelow >= spaceAbove) {
-    // enough room below — show under input
-    acDropdown.style.top    = (r.bottom + 4) + 'px';
-    acDropdown.style.bottom = 'auto';
-  } else {
-    // show above input
-    acDropdown.style.bottom = (vh - r.top + 4) + 'px';
-    acDropdown.style.top    = 'auto';
-  }
-  acDropdown.style.left  = r.left + 'px';
-  acDropdown.style.width = r.width + 'px';
+
+  // Use visualViewport to get height above keyboard on mobile
+  const vv = window.visualViewport;
+  const visibleBottom = vv ? vv.height : window.innerHeight;
+
+  // Always show BELOW the input — never above (that would cover the field)
+  const availableBelow = visibleBottom - r.bottom - 8;
+  acDropdown.style.top       = (r.bottom + 4) + 'px';
+  acDropdown.style.bottom    = 'auto';
+  acDropdown.style.left      = r.left + 'px';
+  acDropdown.style.width     = r.width + 'px';
+  acDropdown.style.maxHeight = Math.min(220, Math.max(120, availableBelow)) + 'px';
 }
 
 function hideDropdown(){ if(acDropdown) acDropdown.style.display='none'; }
