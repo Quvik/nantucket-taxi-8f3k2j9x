@@ -3039,6 +3039,36 @@ function toggleMap(){
     if(!visible) map.invalidateSize();
 }
 
+// ── Destination marker on zone map ────────────────────────────────────
+let _destMarker = null;
+
+function updateDestMarker(lat, lng, zoneName) {
+    if (typeof map === 'undefined') return;
+    if (_destMarker) { _destMarker.remove(); _destMarker = null; }
+    _destMarker = L.marker([lat, lng], {
+        icon: L.divIcon({
+            html: '<div style="background:#ef4444;width:14px;height:14px;border-radius:50%;border:2.5px solid white;box-shadow:0 0 6px rgba(0,0,0,.6)"></div>',
+            iconSize: [14,14], iconAnchor: [7,7], className: ''
+        })
+    }).addTo(map);
+    _destMarker.bindTooltip(zoneName, { permanent: false, direction: 'top' });
+    try { map.panTo([lat, lng]); } catch(e){}
+}
+
+function clearDestMarker() {
+    if (_destMarker) { _destMarker.remove(); _destMarker = null; }
+}
+
+function openZoneMap() {
+    const mapEl = document.getElementById('map');
+    const btn   = document.getElementById('mapToggleBtn');
+    if (mapEl && mapEl.style.display !== 'block') {
+        mapEl.style.display = 'block';
+        if (btn) btn.textContent = '🗺 Hide Map';
+        if (typeof map !== 'undefined') map.invalidateSize();
+    }
+}
+
 function changeValue(id, delta){
   haptic(10);
 
@@ -3207,101 +3237,105 @@ async function calculateFare() {
 
     let destinationZone = null;
     let destIsCrossTown = false;
-    let lat = null;
-    let lng = null;
+    let lat = null, lng = null;
+    let _zoneFromGPS = false;
 
-    // LOCAL DATABASE FIRST
-    // Strip city/state suffix Google Places adds (e.g. "Cisco Brewery Shuttle, Nantucket, MA")
     const addrCore = address.toLowerCase().split(',')[0].trim();
-    const localMatch = localPlaces.find(p => {
-        const pn = p.name.toLowerCase();
-        if(addrCore === pn || addrCore.includes(pn) || pn.includes(addrCore)) return true;
-        // Word-level fuzzy: only distinctive words (6+ chars) to avoid false matches
-        // on common words like "pond", "road", "lane", "drive", "beach" etc.
-        return pn.split(' ').filter(w=>w.length>5).some(w=>addrCore.includes(w));
-    });
+    const hasHouseNumber = /^\d+\s+/.test(addrCore);
 
-    let _zoneFromGPS = false; // true when zone came from geocoded coords, not local DB
-    if (localMatch) {
-        destinationZone = localMatch.zone;
-        _geoCache = { addr: address, zone: destinationZone, isCrossTown: false, lat: null, lng: null };
-    } else if (_geoCache.addr === address && _geoCache.zone) {
-        // Use cached geocoding result — avoid re-calling API on counter changes
-        _zoneFromGPS = !_geoCache.fromLocalDB;
-        destinationZone = _geoCache.zone;
-        destIsCrossTown = _geoCache.isCrossTown;
-        lat = _geoCache.lat;
-        lng = _geoCache.lng;
-    } else if (
-        window.selectedPlace &&
-        window.selectedPlace.geometry
-    ) {
+    // ── STEP 0: Точное совпадение в places.json (высший приоритет — данные водителя) ──
+    await localPlacesReady;
+    {
+        const exactMatch = localPlaces.find(p => p.name.toLowerCase() === addrCore);
+        if (exactMatch) {
+            destinationZone = exactMatch.zone;
+            destIsCrossTown = false;
+            _geoCache = { addr: address, zone: exactMatch.zone, isCrossTown: false, lat: null, lng: null, fromLocalDB: true };
+        }
+    }
+
+    // ── STEP 1: Google Places координаты → KML полигон (всегда первый, самый точный) ──
+    if (!destinationZone && window.selectedPlace?.geometry) {
         lat = window.selectedPlace.geometry.location.lat();
         lng = window.selectedPlace.geometry.location.lng();
-        const point = turf.point([lng, lat]);
-        const { zone: destZ1, isCrossTown: destCT1 } = findZoneInfo(point);
-        destinationZone = destZ1;
-        destIsCrossTown = destCT1;
-        // If KML returned nothing (shuttle stop / coordinates outside all polygons),
-        // fall back to keyword match against localPlaces
-        if(!destinationZone){
-            const words=address.toLowerCase().split(/[\s,]+/).filter(w=>w.length>5);
-            const fuzzy=localPlaces.find(p=>words.some(w=>p.name.toLowerCase().includes(w)));
-            if(fuzzy){ destinationZone=fuzzy.zone; destIsCrossTown=false; lat=null; lng=null; }
-        } else {
+        const { zone: z, isCrossTown: ct } = findZoneInfo(turf.point([lng, lat]));
+        if (z) {
+            destinationZone = z;
+            destIsCrossTown = ct;
             _zoneFromGPS = true;
+            _geoCache = { addr: address, zone: z, isCrossTown: ct, lat, lng };
         }
-        _geoCache = { addr: address, zone: destinationZone, isCrossTown: destIsCrossTown, lat, lng, fromLocalDB: false };
-    } else {
+    }
+
+    // ── STEP 2: Кэш предыдущего геокодирования ──
+    if (!destinationZone && _geoCache.addr === address && _geoCache.zone) {
+        destinationZone = _geoCache.zone;
+        destIsCrossTown = _geoCache.isCrossTown || false;
+        lat = _geoCache.lat;
+        lng = _geoCache.lng;
+        _zoneFromGPS = !_geoCache.fromLocalDB;
+    }
+
+    // ── STEP 3: Photon геокодер → KML полигон (если Google Places нет) ──
+    if (!destinationZone) {
         try {
-            const url =
-                `https://photon.komoot.io/api/?q=${encodeURIComponent(address + " Nantucket")}&limit=5`;
-            const response = await fetch(url);
-            const data = await response.json();
-            if (!data.features || !data.features.length) {
+            const res = await fetch(`https://photon.komoot.io/api/?q=${encodeURIComponent(address + " Nantucket")}&limit=5`);
+            const data = await res.json();
+            if (data.features?.length) {
+                [lng, lat] = data.features[0].geometry.coordinates;
+                const { zone: z, isCrossTown: ct } = findZoneInfo(turf.point([lng, lat]));
+                if (z) { destinationZone = z; destIsCrossTown = ct; _zoneFromGPS = true; }
+                _geoCache = { addr: address, zone: destinationZone||null, isCrossTown: destIsCrossTown, lat, lng };
+            } else {
                 document.getElementById('fare').innerText = '$ ?';
                 return;
             }
-            const best = data.features[0];
-            lat = best.geometry.coordinates[1];
-            lng = best.geometry.coordinates[0];
-            const point = turf.point([lng, lat]);
-            const { zone: destZ2, isCrossTown: destCT2 } = findZoneInfo(point);
-            destinationZone = destZ2;
-            destIsCrossTown = destCT2;
-            if(!destinationZone){
-                const words=address.toLowerCase().split(/[\s,]+/).filter(w=>w.length>5);
-                const fuzzy=fuzzyPool.find(p=>words.some(w=>p.name.toLowerCase().includes(w)));
-                if(fuzzy){ destinationZone=fuzzy.zone; destIsCrossTown=false; lat=null; lng=null; }
-            } else {
-                _zoneFromGPS = true;
-            }
-            _geoCache = { addr: address, zone: destinationZone, isCrossTown: destIsCrossTown, lat, lng, fromLocalDB: false };
-        } catch(e) {
-            // Offline: strip house number, match street name → approximate zone
-            if(hasHouseNumber){
-                const streetOnly = addrCore.replace(/^\d+\s+/,'');
-                const offlineMatch = localPlaces.find(p=>{
-                    const pn = p.name.toLowerCase();
-                    if(streetOnly===pn || streetOnly.includes(pn) || pn.includes(streetOnly)) return true;
-                    return pn.split(' ').filter(w=>w.length>5).some(w=>streetOnly.includes(w));
-                });
-                if(offlineMatch){
-                    destinationZone = offlineMatch.zone;
-                    _geoCache = { addr: address, zone: destinationZone, isCrossTown: false, lat:null, lng:null };
-                }
-            }
+        } catch(e) { /* офлайн — переходим к строковому поиску */ }
+    }
+
+    // ── STEP 4: Локальная база названий (запасной вариант, офлайн) ──
+    if (!destinationZone) {
+        const nm = localPlaces.find(p => {
+            const pn = p.name.toLowerCase();
+            if (addrCore === pn || addrCore.includes(pn) || pn.includes(addrCore)) return true;
+            return pn.split(' ').filter(w=>w.length>5).some(w=>addrCore.includes(w));
+        });
+        if (nm) {
+            destinationZone = nm.zone;
+            _geoCache = { addr: address, zone: nm.zone, isCrossTown: false, lat: null, lng: null, fromLocalDB: true };
         }
+    }
+
+    // ── STEP 5: Офлайн — поиск по названию улицы (без номера дома) ──
+    if (!destinationZone && hasHouseNumber) {
+        const streetOnly = addrCore.replace(/^\d+\s+/, '');
+        const sm = localPlaces.find(p => {
+            const pn = p.name.toLowerCase();
+            if (streetOnly === pn || streetOnly.includes(pn) || pn.includes(streetOnly)) return true;
+            return pn.split(' ').filter(w=>w.length>5).some(w=>streetOnly.includes(w));
+        });
+        if (sm) {
+            destinationZone = sm.zone;
+            _geoCache = { addr: address, zone: sm.zone, isCrossTown: false, lat: null, lng: null, fromLocalDB: true };
+        }
+    }
+
+    // ── Маркер на зональной карте + автооткрытие карты ──
+    if (lat && lng && destinationZone) {
+        updateDestMarker(lat, lng, destinationZone);
+        openZoneMap();
+    } else {
+        clearDestMarker();
     }
 
     document.getElementById('destinationZone').innerText =
         destinationZone || 'Unknown';
 
-    // Show warning banner when zone came from GPS coordinates, not named-place lookup
+    // Предупреждение если зона определена без геокодирования (только по названию улицы)
     const gpsWarnEl = document.getElementById('gpsZoneWarning');
     if (gpsWarnEl) {
-        if (_zoneFromGPS && destinationZone) {
-            gpsWarnEl.textContent = `⚠️ Zone detected by GPS: ${destinationZone} — verify on map`;
+        if (!_zoneFromGPS && destinationZone && !lat) {
+            gpsWarnEl.textContent = `⚠️ Зона определена по названию улицы — проверьте на карте`;
             gpsWarnEl.style.display = 'block';
         } else {
             gpsWarnEl.style.display = 'none';
@@ -3317,7 +3351,7 @@ async function calculateFare() {
     // Cross Town rate only when:
     // 1. GPS is in Cross Town overlay, AND destination is explicitly the Airport (from places.json)
     // OR: GPS is explicitly the Airport, AND destination geocodes into Cross Town overlay
-    const isExplicitAirport = localMatch?.zone === 'Airport';
+    const isExplicitAirport = destinationZone === 'Airport';
     const fromZone = (!zoneIsManual && gpsIsCrossTown && isExplicitAirport)
         ? 'Cross Town' : currentZoneName;
     const toZone = (!zoneIsManual && gpsIsAtActualAirport() && destIsCrossTown)
@@ -3366,11 +3400,6 @@ async function calculateFare() {
 `<div class="fare-row" style="margin-top:8px;"><span>Base (${currentZoneName} → ${destinationZone})</span><span>$${baseFare}</span></div>
 ${extraRows}${waitRow}
 <div class="total-row"><span>Total</span><span>$${Number.isInteger(totalFare)?totalFare:totalFare.toFixed(2)}</span></div>`;
-
-    if (lat && lng) {
-        L.marker([lat, lng]).addTo(map);
-        map.setView([lat, lng], 14);
-    }
 
     _lastTripData = {
       fromZone: currentZoneName,
