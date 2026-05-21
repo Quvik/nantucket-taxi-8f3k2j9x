@@ -370,5 +370,13 @@
   {
     "name": "Shimmo",
     "zone": "Shimmo"
+  },
+  {
+    "name": "49 Sankaty Road",
+    "zone": "Siasconset"
+  },
+  {
+    "name": "49 Sankaty Rd",
+    "zone": "Siasconset"
   }
 ]
