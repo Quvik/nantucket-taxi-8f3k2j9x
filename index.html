@@ -3542,11 +3542,8 @@ function fetchSuggestions(query){
     const localNames = [...local.map(p => p.name.toLowerCase())];
     const gPreds = (status === google.maps.places.PlacesServiceStatus.OK && predictions)
       ? predictions.filter(p => {
-          const sec  = (p.structured_formatting?.secondary_text||'').toLowerCase();
           const main = (p.structured_formatting?.main_text||'').toLowerCase();
-          if(!sec.includes('nantucket')) return false;
           // Remove if this prediction is a near-duplicate of any local result
-          // Word-level check: any word >3 chars from our local name found in Google's main text
           const isDup = localNames.some(ln => {
             if(main.includes(ln) || ln.includes(main)) return true;
             return ln.split(' ').filter(w=>w.length>5).some(w=>main.includes(w));
