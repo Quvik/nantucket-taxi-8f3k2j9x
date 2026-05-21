@@ -3540,7 +3540,7 @@ function fetchSuggestions(query){
     types: ['geocode','establishment']
   }, (predictions, status)=>{
     const localNames = [...local.map(p => p.name.toLowerCase())];
-    const NANTUCKET_PLACES = ['nantucket','siasconset','sconset','madaket','wauwinet','polpis','quidnet','pocomo','shimmo','quaise'];
+    const NANTUCKET_PLACES = ['nantucket','siasconset','sconset','madaket','wauwinet','polpis','quidnet','pocomo','shimmo','quaise','dionis','cisco','miacomet','sankaty','surfside','squam','tom nevers','madequecham'];
     const gPreds = (status === google.maps.places.PlacesServiceStatus.OK && predictions)
       ? predictions.filter(p => {
           const sec  = (p.structured_formatting?.secondary_text||'').toLowerCase();
