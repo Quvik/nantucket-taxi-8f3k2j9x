@@ -3244,36 +3244,48 @@ async function calculateFare() {
 
     await localPlacesReady;
 
-    // ── STEP 1: Точное совпадение по имени в places.json / streets.json ──
-    {
-        const m = localPlaces.find(p => p.name.toLowerCase() === addrCore);
-        if (m) { destinationZone = m.zone; destIsCrossTown = false; }
-    }
-
-    // ── STEP 2: Частичное совпадение (адрес содержит название или наоборот) ──
-    if (!destinationZone) {
-        const m = localPlaces.find(p => {
-            const pn = p.name.toLowerCase();
-            return addrCore.includes(pn) || pn.includes(addrCore);
-        });
-        if (m) { destinationZone = m.zone; destIsCrossTown = false; }
-    }
-
-    // ── STEP 3: Совпадение по названию улицы (без номера дома) ──
-    if (!destinationZone && hasHouseNumber) {
-        const streetOnly = addrCore.replace(/^\d+\s+/, '');
-        const m = localPlaces.find(p => {
-            const pn = p.name.toLowerCase();
-            return streetOnly === pn || streetOnly.includes(pn) || pn.includes(streetOnly);
-        });
-        if (m) { destinationZone = m.zone; destIsCrossTown = false; }
-    }
-
-    // ── Показать GPS-маркер на карте для визуальной проверки (зона уже определена выше) ──
+    // ── ШАГИ 1-2: Получить координаты → проверить KML полигон ──
+    // Шаг 1: Google Places (если пользователь выбрал из автодополнения)
     if (window.selectedPlace?.geometry) {
         lat = window.selectedPlace.geometry.location.lat();
         lng = window.selectedPlace.geometry.location.lng();
+        const { zone: z, isCrossTown: ct } = findZoneInfo(turf.point([lng, lat]));
+        if (z) { destinationZone = z; destIsCrossTown = ct; }
     }
+
+    // Шаг 2: Photon геокодер → KML (если Google Places не дал координаты)
+    if (!destinationZone) {
+        try {
+            const res = await fetch(
+                `https://photon.komoot.io/api/?q=${encodeURIComponent(address + ' Nantucket MA')}&limit=1&bbox=-70.38,41.19,-69.84,41.34`
+            );
+            const data = await res.json();
+            if (data.features?.length) {
+                [lng, lat] = data.features[0].geometry.coordinates;
+                const { zone: z, isCrossTown: ct } = findZoneInfo(turf.point([lng, lat]));
+                if (z) { destinationZone = z; destIsCrossTown = ct; }
+            }
+        } catch(e) { /* офлайн */ }
+    }
+
+    // ── ШАГ 3: Офлайн — только локальная база (запасной вариант) ──
+    if (!destinationZone) {
+        let m = localPlaces.find(p => p.name.toLowerCase() === addrCore);
+        if (!m) m = localPlaces.find(p => {
+            const pn = p.name.toLowerCase();
+            return addrCore.includes(pn) || pn.includes(addrCore);
+        });
+        if (!m && hasHouseNumber) {
+            const streetOnly = addrCore.replace(/^\d+\s+/, '');
+            m = localPlaces.find(p => {
+                const pn = p.name.toLowerCase();
+                return streetOnly === pn || streetOnly.includes(pn) || pn.includes(streetOnly);
+            });
+        }
+        if (m) { destinationZone = m.zone; destIsCrossTown = false; lat = null; lng = null; }
+    }
+
+    // ── Маркер на карте + автооткрытие для визуальной проверки ──
     if (lat && lng && destinationZone) {
         updateDestMarker(lat, lng, destinationZone);
         openZoneMap();
@@ -3284,11 +3296,13 @@ async function calculateFare() {
     document.getElementById('destinationZone').innerText =
         destinationZone || 'Unknown';
 
-    // Предупреждение если адрес не найден в базе
     const gpsWarnEl = document.getElementById('gpsZoneWarning');
     if (gpsWarnEl) {
         if (!destinationZone) {
-            gpsWarnEl.textContent = `⚠️ Адрес не найден в базе — добавьте его в places.json`;
+            gpsWarnEl.textContent = '⚠️ Зона не найдена — проверьте адрес или выберите зону вручную';
+            gpsWarnEl.style.display = 'block';
+        } else if (!lat) {
+            gpsWarnEl.textContent = '⚠️ Нет интернета — зона из локальной базы, проверьте на карте';
             gpsWarnEl.style.display = 'block';
         } else {
             gpsWarnEl.style.display = 'none';
