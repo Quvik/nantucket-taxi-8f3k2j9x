@@ -824,8 +824,10 @@ input[type="time"].form-input{ -webkit-appearance:auto; appearance:auto; }
 <div class="zone-value" id="currentZone">Detecting...</div>
 </div>
 
-<div class="card">
+<div class="card" style="overflow:visible;padding:0;">
+<div id="destInputWrap" style="position:relative;padding:14px;">
 <input class="search-input" id="destination" placeholder="Search Nantucket address or hotel..."/>
+</div>
 </div>
 
 <div id="reopenMapRow" style="display:none;margin-bottom:10px;">
@@ -3429,21 +3431,17 @@ function initAutocompleteUI(){
   const input = document.getElementById('destination');
   if(!input || acDropdown) return; // already initialized
 
-  // Build custom dark dropdown — attached to body so it overlays everything
+  // Dropdown anchored directly below the input — no fixed-position viewport math needed
   acDropdown = document.createElement('div');
   acDropdown.id = 'ac-dropdown';
   acDropdown.style.cssText = `
-    position:fixed;z-index:99999;
+    position:absolute;left:0;right:0;top:100%;z-index:99999;
     background:#1c1c1e;border:1px solid #333;border-radius:14px;
     overflow-y:auto;-webkit-overflow-scrolling:touch;max-height:220px;display:none;
-    box-shadow:0 8px 32px rgba(0,0,0,.85);
+    box-shadow:0 8px 32px rgba(0,0,0,.85);margin-top:4px;
   `;
-  document.body.appendChild(acDropdown);
-
-  // Reposition when keyboard appears/disappears on mobile
-  if(window.visualViewport){
-    window.visualViewport.addEventListener('resize', ()=>{ if(acDropdown.style.display==='block') positionDropdown(); });
-  }
+  const wrap = document.getElementById('destInputWrap');
+  (wrap || document.body).appendChild(acDropdown);
 
   // Input → debounced search
   input.addEventListener('input', ()=>{
@@ -3669,20 +3667,15 @@ function selectPrediction(pred){
 }
 
 function positionDropdown(){
+  // Dropdown is position:absolute inside destInputWrap — no coordinates needed.
+  // Just cap height to available space above keyboard.
+  if(!acDropdown) return;
   const input = document.getElementById('destination');
-  if(!input||!acDropdown) return;
+  if(!input) return;
   const r = input.getBoundingClientRect();
-
-  // Use visualViewport to get height above keyboard on mobile
   const vv = window.visualViewport;
   const visibleBottom = vv ? vv.height : window.innerHeight;
-
-  // Always show BELOW the input — never above (that would cover the field)
   const availableBelow = visibleBottom - r.bottom - 8;
-  acDropdown.style.top       = (r.bottom + 4) + 'px';
-  acDropdown.style.bottom    = 'auto';
-  acDropdown.style.left      = r.left + 'px';
-  acDropdown.style.width     = r.width + 'px';
   acDropdown.style.maxHeight = Math.min(220, Math.max(120, availableBelow)) + 'px';
 }
 
