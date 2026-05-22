@@ -3010,6 +3010,7 @@ function resetAll(){
     applyNightAuto();
     waitStartTime=null; waitAccruedMs=0; _staticTotalNoWait=0;
     clearInterval(waitTickId); waitTickId=null;
+    _clearWaitState();
     updateWaitDisplay();
     // Clear fare display
     document.getElementById('destinationZone').innerText = '-';
@@ -3133,6 +3134,29 @@ let waitAccruedMs = 0;
 let waitTickId = null;
 let _staticTotalNoWait = 0;
 
+function _saveWaitState(){
+  localStorage.setItem('ntw_start',   waitStartTime || '');
+  localStorage.setItem('ntw_accrued', waitAccruedMs);
+  localStorage.setItem('ntw_total',   _staticTotalNoWait);
+}
+function _clearWaitState(){
+  localStorage.removeItem('ntw_start');
+  localStorage.removeItem('ntw_accrued');
+  localStorage.removeItem('ntw_total');
+}
+function _restoreWaitState(){
+  const s = localStorage.getItem('ntw_start');
+  const a = localStorage.getItem('ntw_accrued');
+  const t = localStorage.getItem('ntw_total');
+  if(a) waitAccruedMs = parseInt(a) || 0;
+  if(t) _staticTotalNoWait = parseFloat(t) || 0;
+  if(s && s !== ''){
+    waitStartTime = parseInt(s);
+    waitTickId = setInterval(updateWaitDisplay, 1000);
+  }
+  if(waitAccruedMs > 0 || waitStartTime) updateWaitDisplay();
+}
+
 function getWaitMs(){ return waitAccruedMs + (waitStartTime ? Date.now()-waitStartTime : 0); }
 function getWaitCharge(){ return Math.floor(getWaitMs()/60000*1.5*100)/100; }
 function fmtWait(){
@@ -3150,6 +3174,7 @@ function toggleWait(){
     waitStartTime=Date.now();
     waitTickId=setInterval(updateWaitDisplay,1000);
   }
+  _saveWaitState();
   updateWaitDisplay();
   try{calculateFare();}catch(e){}
 }
@@ -3341,6 +3366,7 @@ async function calculateFare() {
 
     const waitCharge = getWaitCharge();
     _staticTotalNoWait = baseFare + passengerCharge + dogCharge + bikeCharge + bagCharge + nightCharge + dirtCharge;
+    _saveWaitState();
     const totalFare = _staticTotalNoWait + waitCharge;
 
     document.getElementById('fare').innerText =
@@ -4524,16 +4550,19 @@ initFirebase();
 
 <script>
 if('serviceWorker' in navigator){
-  // Auto-reload when a new SW takes control so users always get fresh content
-  navigator.serviceWorker.addEventListener('controllerchange', () => location.reload());
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    // Don't reload while wait timer is running — state would be lost
+    if(localStorage.getItem('ntw_start')) return;
+    location.reload();
+  });
   window.addEventListener('load', ()=>{
     navigator.serviceWorker.register('/nantucket-taxi-8f3k2j9x/sw.js')
-      .then(reg => {
-        reg.update(); // immediately check for an updated sw.js
-      })
+      .then(reg => { reg.update(); })
       .catch(e=>console.warn('SW error',e));
   });
 }
+// Restore timer state after any reload
+window.addEventListener('DOMContentLoaded', ()=>{ if(typeof _restoreWaitState==='function') _restoreWaitState(); });
 </script>
 
 </body>
