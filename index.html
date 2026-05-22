@@ -3340,10 +3340,10 @@ async function calculateFare() {
         return;
     }
 
-    // Cross Town rate only when:
-    // 1. GPS is in Cross Town overlay, AND destination is explicitly the Airport (from places.json)
-    // OR: GPS is explicitly the Airport, AND destination geocodes into Cross Town overlay
-    const isExplicitAirport = destinationZone === 'Airport';
+    // Cross Town rate only when destination is specifically the airport terminal,
+    // not just any address in the Airport zone (e.g. houses on Bunker Road)
+    const isExplicitAirport = ['airport', 'nantucket memorial airport', 'nantucket airport']
+        .includes(addrCore);
     const fromZone = (!zoneIsManual && gpsIsCrossTown && isExplicitAirport)
         ? 'Cross Town' : currentZoneName;
     const toZone = (!zoneIsManual && gpsIsAtActualAirport() && destIsCrossTown)
