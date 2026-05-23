@@ -4126,15 +4126,16 @@ function renderHistory(trips){
   const total = trips.reduce((s,tr)=>s+(tr.fare||0),0);
   const today = trips.filter(tr=>tr.ts&&new Date(tr.ts.toDate?tr.ts.toDate():tr.ts).toDateString()===new Date().toDateString());
   const todayTotal = today.reduce((s,tr)=>s+(tr.fare||0),0);
+  const fmt = n => Number.isInteger(n) ? n : parseFloat(n.toFixed(2));
   if(stats) stats.innerHTML=`
     <div style="flex:1;background:#17181c;border:1px solid #252528;border-radius:14px;padding:12px;text-align:center;">
       <div style="font-size:11px;opacity:.5;margin-bottom:4px;">${t('todayLabel')}</div>
-      <div style="font-size:20px;font-weight:900;color:#30d158;">$${todayTotal}</div>
+      <div style="font-size:20px;font-weight:900;color:#30d158;">$${fmt(todayTotal)}</div>
       <div style="font-size:11px;opacity:.4;">${today.length} ${t('tripsUnit')}</div>
     </div>
     <div style="flex:1;background:#17181c;border:1px solid #252528;border-radius:14px;padding:12px;text-align:center;">
       <div style="font-size:11px;opacity:.5;margin-bottom:4px;">${t('totalLabel')}</div>
-      <div style="font-size:20px;font-weight:900;">$${total}</div>
+      <div style="font-size:20px;font-weight:900;">$${fmt(total)}</div>
       <div style="font-size:11px;opacity:.4;">${trips.length} ${t('tripsUnit')}</div>
     </div>`;
 
@@ -4149,7 +4150,7 @@ function renderHistory(trips){
 
   list.innerHTML = Object.values(byDate).map(group=>`
     <div style="font-size:11px;font-weight:700;opacity:.4;letter-spacing:1px;margin:14px 0 8px;display:flex;justify-content:space-between;">
-      <span>${group.label.toUpperCase()}</span><span>$${group.sum}</span>
+      <span>${group.label.toUpperCase()}</span><span>$${fmt(group.sum)}</span>
     </div>
     ${group.trips.map(trip=>{
       const time = trip._date.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',hour12:true});
@@ -4172,7 +4173,7 @@ function renderHistory(trips){
           <div style="font-size:15px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${from} → ${dest}</div>
           <div style="font-size:12px;opacity:.5;margin-top:2px;">${toZone}${showDest?'':''} · ${time} · ${extras}</div>
         </div>
-        <div style="font-size:20px;font-weight:900;color:#30d158;flex-shrink:0;">$${trip.fare||'?'}</div>
+        <div style="font-size:20px;font-weight:900;color:#30d158;flex-shrink:0;">$${trip.fare!=null?fmt(trip.fare):'?'}</div>
         <button onclick="editTrip('${trip.id}')" style="background:#1a2233;border:none;color:#0a84ff;border-radius:10px;width:34px;height:34px;font-size:16px;cursor:pointer;flex-shrink:0;">✏️</button>
         <button onclick="deleteTrip('${trip.id}')" style="background:#2a1a1a;border:none;color:#ff453a;border-radius:10px;width:34px;height:34px;font-size:16px;cursor:pointer;flex-shrink:0;">🗑</button>
       </div>`;
