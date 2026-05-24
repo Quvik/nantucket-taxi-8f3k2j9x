@@ -1356,10 +1356,10 @@ fetch('zones.kml')
         'Dionis':              [41.2846, -70.1518],
         'Eel Point':           [41.2898, -70.1853],
         'Hoicks Hollow':       [41.2898, -69.9809],
-        'Low Beach ':          [41.2520, -69.9809],
+        'Low Beach':           [41.2520, -69.9809],
         'Madaket':             [41.2758, -70.1937],
         'Madequecham Valley':  [41.2520, -70.0329],
-        'Massasoit Bridge':    [41.2676, -70.1681],
+        'Massassoit Bridge':   [41.2676, -70.1681],
         'Mid - Island B':      [41.2572, -70.0888],
         'Mid Island A':        [41.2777, -70.0800],
         'Mid Island C':        [41.2739, -70.1313],
@@ -1449,13 +1449,19 @@ function gpsIsAtActualAirport() {
 
 // Returns { zone: underlying zone name, isCrossTown: bool }
 // Cross Town is an overlay — iterate all features to find both
+// Normalize zone names from KML to match fareTable keys
+function normalizeZoneName(name) {
+    return name.trim()
+        .replace(/^Massasoit Bridge$/, 'Massassoit Bridge');
+}
+
 function findZoneInfo(point) {
     let isCrossTown = false;
     let underlying  = null;
     for (const feature of zonesGeoJSON.features) {
         try {
             if (turf.booleanPointInPolygon(point, feature)) {
-                const name = feature.properties.name || 'Unknown';
+                const name = normalizeZoneName(feature.properties.name || 'Unknown');
                 if (name === 'Cross Town') { isCrossTown = true; }
                 else if (!underlying)       { underlying  = name; }
             }
@@ -3436,8 +3442,11 @@ async function calculateFare() {
     }
 
     if (!baseFare) {
+        const sameZone = fromZone === toZone;
         document.getElementById('fare').innerText = 'No fare found';
-        document.getElementById('fareBreakdown').innerHTML = '';
+        document.getElementById('fareBreakdown').innerHTML = sameZone
+            ? `<div style="color:#f90;font-size:13px;margin-top:6px;">⚠️ Начало и конец в одной зоне (${toZone}). Выберите зону отправления вручную.</div>`
+            : '';
         return;
     }
 
