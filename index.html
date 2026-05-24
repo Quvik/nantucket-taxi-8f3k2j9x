@@ -4647,6 +4647,12 @@ window.addEventListener('DOMContentLoaded', ()=>{
   if(typeof _restoreWaitState==='function') _restoreWaitState();
   if(typeof restoreAppState==='function') restoreAppState();
 });
+// iOS bfcache: when app is restored from background, force fresh load to get latest code
+window.addEventListener('pageshow', function(e){
+  if(e.persisted && !localStorage.getItem('ntw_start')){
+    location.reload();
+  }
+});
 </script>
 
 </body>
