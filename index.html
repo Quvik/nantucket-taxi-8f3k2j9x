@@ -1282,7 +1282,7 @@ const fareTable = {
     "Airport-Hoicks Hollow": 36,
     "Airport-Low Beach": 32,
     "Airport-Madaket": 47,
-    "Airport-Madequecham Valley": 32,
+    "Airport-Madequecham": 32,
     "Airport-Massassoit Bridge": 49,
     "Airport-Mid Island A": 21,
     "Airport-Mid - Island B": 21,
@@ -1307,7 +1307,7 @@ const fareTable = {
     "Town-Hoicks Hollow": 40,
     "Town-Low Beach": 36,
     "Town-Madaket": 31,
-    "Town-Madequecham Valley": 37,
+    "Town-Madequecham": 37,
     "Town-Massassoit Bridge": 39,
     "Town-Mid Island A": 17,
     "Town-Mid - Island B": 20,
@@ -1358,7 +1358,7 @@ fetch('zones.kml')
         'Hoicks Hollow':       [41.2898, -69.9809],
         'Low Beach':           [41.2520, -69.9809],
         'Madaket':             [41.2758, -70.1937],
-        'Madequecham Valley':  [41.2520, -70.0329],
+        'Madequecham':         [41.2520, -70.0329],
         'Massassoit Bridge':   [41.2676, -70.1681],
         'Mid - Island B':      [41.2572, -70.0888],
         'Mid Island A':        [41.2777, -70.0800],
@@ -1452,7 +1452,8 @@ function gpsIsAtActualAirport() {
 // Normalize zone names from KML to match fareTable keys
 function normalizeZoneName(name) {
     return name.trim()
-        .replace(/^Massasoit Bridge$/, 'Massassoit Bridge');
+        .replace(/^Massasoit Bridge$/, 'Massassoit Bridge')
+        .replace(/^Madequecham Valley$/, 'Madequecham');
 }
 
 function findZoneInfo(point) {
@@ -4630,9 +4631,8 @@ initFirebase();
 <script>
 if('serviceWorker' in navigator){
   navigator.serviceWorker.addEventListener('controllerchange', () => {
-    if(localStorage.getItem('ntw_start')) return;  // timer running
-    if(localStorage.getItem('nta_dest')) return;   // trip in progress
-    location.reload();
+    if(localStorage.getItem('ntw_start')) return;  // timer running — brief gap would matter
+    location.reload(); // state is persisted and will be restored after reload
   });
   window.addEventListener('load', ()=>{
     navigator.serviceWorker.register('/nantucket-taxi-8f3k2j9x/sw.js')
