@@ -3013,6 +3013,7 @@ function resetAll(){
     waitStartTime=null; waitAccruedMs=0; _staticTotalNoWait=0;
     clearInterval(waitTickId); waitTickId=null;
     _clearWaitState();
+    clearAppState();
     updateWaitDisplay();
     // Clear fare display
     document.getElementById('destinationZone').innerText = '-';
@@ -3157,6 +3158,80 @@ function _restoreWaitState(){
     waitTickId = setInterval(updateWaitDisplay, 1000);
   }
   if(waitAccruedMs > 0 || waitStartTime) updateWaitDisplay();
+}
+
+// ── App state persistence (survives iOS background kill) ──────
+const _APP_KEYS = ['nta_dest','nta_pax','nta_dogs','nta_bikes','nta_bags',
+                   'nta_night','nta_dirt','nta_zone_manual','nta_zone_name','nta_trip'];
+
+function saveAppState(){
+  const dest = document.getElementById('destination').value.trim();
+  if(!dest){ clearAppState(); return; }
+  localStorage.setItem('nta_dest',  dest);
+  localStorage.setItem('nta_pax',   document.getElementById('passengers').value);
+  localStorage.setItem('nta_dogs',  document.getElementById('dogs').value);
+  localStorage.setItem('nta_bikes', document.getElementById('bikes').value);
+  localStorage.setItem('nta_bags',  document.getElementById('bags').value);
+  localStorage.setItem('nta_night', chipState.nightFee ? '1' : '0');
+  localStorage.setItem('nta_dirt',  chipState.dirtRoad ? '1' : '0');
+  localStorage.setItem('nta_zone_manual', zoneIsManual ? '1' : '0');
+  if(zoneIsManual) localStorage.setItem('nta_zone_name', currentZoneName || '');
+  if(_lastTripData) localStorage.setItem('nta_trip', JSON.stringify(_lastTripData));
+}
+
+function clearAppState(){
+  _APP_KEYS.forEach(k => localStorage.removeItem(k));
+}
+
+function restoreAppState(){
+  const dest = localStorage.getItem('nta_dest');
+  if(!dest) return;
+
+  document.getElementById('destination').value = dest;
+  lastDestinationAddress = dest;
+
+  const counters = { passengers:'nta_pax', dogs:'nta_dogs', bikes:'nta_bikes', bags:'nta_bags' };
+  for(const [id, key] of Object.entries(counters)){
+    const v = localStorage.getItem(key);
+    if(v !== null){
+      document.getElementById(id).value = v;
+      document.getElementById(id+'Value').innerText = v;
+    }
+  }
+
+  const night = localStorage.getItem('nta_night') === '1';
+  chipState.nightFee = night;
+  _nightAutoMode = false;
+  const nightBtn = document.getElementById('nightFeeBtn');
+  if(nightBtn) nightBtn.classList.toggle('on', night);
+
+  const dirt = localStorage.getItem('nta_dirt') === '1';
+  chipState.dirtRoad = dirt;
+  const dirtBtn = document.getElementById('dirtRoadBtn');
+  if(dirtBtn) dirtBtn.classList.toggle('on', dirt);
+
+  if(localStorage.getItem('nta_zone_manual') === '1'){
+    const zoneName = localStorage.getItem('nta_zone_name');
+    if(zoneName){
+      zoneIsManual = true;
+      currentZoneName = zoneName;
+      document.getElementById('currentZone').innerText = zoneName;
+      const src = document.getElementById('zoneSourceIcon');
+      if(src){ src.innerText = '✋ Manual'; src.style.color = '#f90'; }
+    }
+  }
+
+  const tripJson = localStorage.getItem('nta_trip');
+  if(tripJson){
+    try{
+      _lastTripData = JSON.parse(tripJson);
+      const fmtN = n => Number.isInteger(n) ? n : parseFloat(n.toFixed(2));
+      document.getElementById('destinationZone').innerText = _lastTripData.toZone || '-';
+      document.getElementById('fare').innerText = `$ ${fmtN(_lastTripData.fare)}`;
+      const saveBtn = document.getElementById('saveTripBtn');
+      if(saveBtn){ saveBtn.style.display='flex'; saveBtn.textContent='💾 Save Trip'; saveBtn.disabled=false; }
+    }catch(e){}
+  }
 }
 
 function getWaitMs(){ return waitAccruedMs + (waitStartTime ? Date.now()-waitStartTime : 0); }
@@ -3412,6 +3487,7 @@ ${extraRows}${waitRow}
 
     const saveBtn = document.getElementById('saveTripBtn');
     if(saveBtn){ saveBtn.style.display='flex'; saveBtn.textContent=t('saveTripBtn'); saveBtn.disabled=false; }
+    saveAppState();
 }
 
 </script>
@@ -4545,8 +4621,8 @@ initFirebase();
 <script>
 if('serviceWorker' in navigator){
   navigator.serviceWorker.addEventListener('controllerchange', () => {
-    // Don't reload while wait timer is running — state would be lost
-    if(localStorage.getItem('ntw_start')) return;
+    if(localStorage.getItem('ntw_start')) return;  // timer running
+    if(localStorage.getItem('nta_dest')) return;   // trip in progress
     location.reload();
   });
   window.addEventListener('load', ()=>{
@@ -4555,8 +4631,11 @@ if('serviceWorker' in navigator){
       .catch(e=>console.warn('SW error',e));
   });
 }
-// Restore timer state after any reload
-window.addEventListener('DOMContentLoaded', ()=>{ if(typeof _restoreWaitState==='function') _restoreWaitState(); });
+// Restore all state after any reload
+window.addEventListener('DOMContentLoaded', ()=>{
+  if(typeof _restoreWaitState==='function') _restoreWaitState();
+  if(typeof restoreAppState==='function') restoreAppState();
+});
 </script>
 
 </body>
