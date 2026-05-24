@@ -3446,7 +3446,7 @@ async function calculateFare() {
         document.getElementById('fare').innerText = 'No fare found';
         document.getElementById('fareBreakdown').innerHTML = sameZone
             ? `<div style="color:#f90;font-size:13px;margin-top:6px;">⚠️ Начало и конец в одной зоне (${toZone}). Выберите зону отправления вручную.</div>`
-            : '';
+            : `<div style="color:#f90;font-size:12px;margin-top:6px;">⚠️ ${fromZone} → ${toZone}</div>`;
         return;
     }
 
