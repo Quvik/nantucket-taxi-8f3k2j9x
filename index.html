@@ -691,6 +691,21 @@ input[type="time"].form-input{ -webkit-appearance:auto; appearance:auto; }
 <div class="splash-logo">Nantucket Taxi</div>
 <div class="splash-sub">Driver Companion</div>
 </div>
+<script>
+// Guaranteed splash removal — runs before any complex init that could throw
+(function(){
+  function hideSplash(){
+    var s=document.getElementById('splashScreen');
+    if(!s||s._gone) return; s._gone=true;
+    s.style.opacity='0';
+    setTimeout(function(){if(s.parentNode)s.parentNode.removeChild(s);},500);
+  }
+  // Hard limit: remove after 4s no matter what
+  setTimeout(hideSplash, 4000);
+  // Normal path: remove 1.2s after page load
+  window.addEventListener('load', function(){ setTimeout(hideSplash, 1200); });
+})();
+</script>
 
 
 <div class="drawer-backdrop" id="drawerBackdrop" onclick="closeDrawer()"></div>
@@ -1335,11 +1350,16 @@ const fareTable = {
 let currentZoneName = null;
 let zonesGeoJSON = null;
 
-const map = L.map('map').setView([41.2835, -70.0995], 13);
-
-L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    maxZoom: 19
-}).addTo(map);
+let map;
+try {
+    map = L.map('map').setView([41.2835, -70.0995], 13);
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19
+    }).addTo(map);
+} catch(e) {
+    console.warn('Map init failed (Leaflet not loaded?):', e);
+    map = { addLayer(){}, invalidateSize(){}, setView(){}, fitBounds(){} };
+}
 
 fetch('zones.kml')
 .then(res => res.text())
