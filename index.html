@@ -607,6 +607,7 @@ to{opacity:1;transform:translateY(0);}
   flex-direction:column;
   transform:translateX(100%);
   transition:transform .28s cubic-bezier(.4,0,.2,1);
+  will-change:transform;
 }
 .bookings-panel.open{ transform:translateX(0); }
 
@@ -621,9 +622,10 @@ to{opacity:1;transform:translateY(0);}
 
 .bookings-body{
   flex:1;
-  overflow-y:auto;
+  overflow-y:scroll;
   -webkit-overflow-scrolling:touch;
   padding:14px 14px 120px;
+  touch-action:pan-y;
 }
 
 .booking-card{
@@ -4533,7 +4535,13 @@ document.addEventListener('DOMContentLoaded',()=>{});
 // ── History panel ─────────────────────────────────────────
 function openHistory(){
   closeOrCollapsePreview();
-  document.getElementById('historyPanel').classList.add('open');
+  const panel = document.getElementById('historyPanel');
+  panel.classList.add('open');
+  // Nudge scroll after slide-in animation to prevent iOS WebKit scroll freeze
+  setTimeout(() => {
+    const body = panel.querySelector('.bookings-body');
+    if(body){ body.scrollTop = 1; body.scrollTop = 0; }
+  }, 300);
   loadHistory();
 }
 
@@ -4554,7 +4562,12 @@ let _unsubBookings = null;
 
 function openBookings(){
   closeOrCollapsePreview();
-  document.getElementById('bookingsPanel').classList.add('open');
+  const panel = document.getElementById('bookingsPanel');
+  panel.classList.add('open');
+  setTimeout(() => {
+    const body = panel.querySelector('.bookings-body');
+    if(body){ body.scrollTop = 1; body.scrollTop = 0; }
+  }, 300);
   loadBookings();
 }
 
