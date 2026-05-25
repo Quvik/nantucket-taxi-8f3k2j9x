@@ -1453,7 +1453,7 @@ function gpsIsAtActualAirport() {
 // Cross Town is an overlay — iterate all features to find both
 // Normalize zone names from KML to match fareTable keys
 function normalizeZoneName(name) {
-    return name.trim()
+    return name.replace(/ /g, ' ').trim()
         .replace(/^Massasoit Bridge$/, 'Massassoit Bridge')
         .replace(/^Madequecham Valley$/, 'Madequecham');
 }

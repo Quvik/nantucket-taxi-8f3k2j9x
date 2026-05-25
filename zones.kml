@@ -680,7 +680,7 @@
         </Polygon>
       </Placemark>
       <Placemark>
-        <name>Madequecham Valley</name>
+        <name>Madequecham Valley</name>
         <styleUrl>#poly-FF5252-1200-77-nodesc</styleUrl>
         <Polygon>
           <outerBoundaryIs>
@@ -720,7 +720,7 @@
         </Polygon>
       </Placemark>
       <Placemark>
-        <name>Low Beach </name>
+        <name>Low Beach </name>
         <styleUrl>#poly-FFD600-1200-77-nodesc</styleUrl>
         <Polygon>
           <outerBoundaryIs>
