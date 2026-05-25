@@ -585,6 +585,14 @@ to{opacity:1;transform:translateY(0);}
   from{transform:translateY(100%);}
   to{transform:translateY(0);}
 }
+@keyframes langOut{
+  from{opacity:1;transform:translateY(0);}
+  to{opacity:0;transform:translateY(-7px);}
+}
+@keyframes langIn{
+  from{opacity:0;transform:translateY(7px);}
+  to{opacity:1;transform:translateY(0);}
+}
 .zone-picker-item{
   padding:15px 18px;font-size:17px;font-weight:600;
   border-bottom:1px solid #222;cursor:pointer;
@@ -1226,14 +1234,27 @@ const TRANSLATIONS = {
 function t(key){ const L=TRANSLATIONS[currentLang]||TRANSLATIONS.en; return L[key]!==undefined?L[key]:(TRANSLATIONS.en[key]||key); }
 
 function setLang(lang){
-  currentLang=lang;
-  localStorage.setItem('ntaxi_lang',lang);
-  applyLang();
-  if(typeof updateAuthUI==='function') updateAuthUI();
-  if(document.getElementById('ferryTab')&&document.getElementById('ferryTab').style.display!=='none' && typeof renderFerryTab==='function') renderFerryTab();
-  if(document.getElementById('flightTab')&&document.getElementById('flightTab').style.display!=='none' && typeof renderFlightTab==='function') renderFlightTab();
-  if(document.getElementById('historyPanel')&&document.getElementById('historyPanel').classList.contains('open') && typeof loadHistory==='function') loadHistory();
-  if(document.getElementById('bookingsPanel')&&document.getElementById('bookingsPanel').classList.contains('open') && typeof loadBookings==='function') loadBookings();
+  const lbl = document.getElementById('langCurrentLabel');
+  const drawer = document.getElementById('sideDrawer');
+
+  // Animate label out + fade drawer content
+  if(lbl) lbl.style.animation='langOut .15s forwards';
+  if(drawer){ drawer.style.transition='opacity .15s'; drawer.style.opacity='.5'; }
+
+  setTimeout(()=>{
+    currentLang=lang;
+    localStorage.setItem('ntaxi_lang',lang);
+    applyLang();
+    if(typeof updateAuthUI==='function') updateAuthUI();
+    if(document.getElementById('ferryTab')&&document.getElementById('ferryTab').style.display!=='none' && typeof renderFerryTab==='function') renderFerryTab();
+    if(document.getElementById('flightTab')&&document.getElementById('flightTab').style.display!=='none' && typeof renderFlightTab==='function') renderFlightTab();
+    if(document.getElementById('historyPanel')&&document.getElementById('historyPanel').classList.contains('open') && typeof loadHistory==='function') loadHistory();
+    if(document.getElementById('bookingsPanel')&&document.getElementById('bookingsPanel').classList.contains('open') && typeof loadBookings==='function') loadBookings();
+
+    // Animate label in + restore drawer
+    if(lbl){ lbl.style.animation=''; lbl.style.animation='langIn .2s forwards'; }
+    if(drawer){ drawer.style.opacity='1'; setTimeout(()=>{ drawer.style.transition=''; },200); }
+  }, 150);
 }
 
 function applyLang(){
