@@ -1165,9 +1165,6 @@ const TRANSLATIONS = {
     signInAccount:'Sign in to your account', enterDate:'Please enter a date',
     todayDay:'Today', tomorrowDay:'Tomorrow', yesterdayDay:'Yesterday',
     arrivedStatus:'Arrived', liveBuiltIn:'Live past · built-in schedule',
-    startShift:'▶ Start Shift', endShift:'⏹ End Shift',
-    activeShiftLabel:'🟢 ACTIVE SHIFT', shiftStatLabel:'🟢 SHIFT',
-    shiftPrefix:'Shift · ', hrUnit:'h', minUnitShort:'m',
   },
   ru: {
     home:'Главная', tripHistory:'История поездок', bookings:'Бронирования',
@@ -1215,9 +1212,6 @@ const TRANSLATIONS = {
     signInAccount:'Войдите в аккаунт', enterDate:'Укажи дату',
     todayDay:'Сегодня', tomorrowDay:'Завтра', yesterdayDay:'Вчера',
     arrivedStatus:'Прибыл', liveBuiltIn:'Live прошедшие · расписание встроенное',
-    startShift:'▶ Начать смену', endShift:'⏹ Завершить',
-    activeShiftLabel:'🟢 АКТИВНАЯ СМЕНА', shiftStatLabel:'🟢 СМЕНА',
-    shiftPrefix:'Смена · ', hrUnit:'ч', minUnitShort:'м',
   }
 };
 
@@ -4178,23 +4172,11 @@ function saveTripManual(){
 
 function saveTrip(data){
   if(!fbDb||!fbUser) return;
-  const shiftId = localStorage.getItem('nta_shift_id') || null;
   fbDb.collection('users').doc(fbUser.uid).collection('trips').add({
     ...data,
     uid: fbUser.uid,
-    ...(shiftId ? {shiftId} : {}),
     ts: firebase.firestore.FieldValue.serverTimestamp()
   }).catch(()=>{});
-}
-
-function startShift(){
-  localStorage.setItem('nta_shift_id', String(Date.now()));
-  if(document.getElementById('historyPanel').classList.contains('open')) loadHistory();
-}
-
-function endShift(){
-  localStorage.removeItem('nta_shift_id');
-  if(document.getElementById('historyPanel').classList.contains('open')) loadHistory();
 }
 
 // ── History tab ───────────────────────────────────────────
@@ -4244,6 +4226,13 @@ function clearAllTrips(){
   });
 }
 
+// Trips before 5 AM count as part of the previous day
+function shiftedDate(d){
+  const s = new Date(d);
+  if(s.getHours() < 5) s.setDate(s.getDate() - 1);
+  return s;
+}
+
 function renderHistory(trips){
   const list = document.getElementById('historyList');
   const stats = document.getElementById('historyStats');
@@ -4252,58 +4241,29 @@ function renderHistory(trips){
 
   if(clearBtn) clearBtn.style.display = trips.length ? 'block' : 'none';
 
-  const activeShiftId = localStorage.getItem('nta_shift_id');
   const fmt = n => Number.isInteger(n) ? n : parseFloat(n.toFixed(2));
-
-  // Shift control banner
-  let shiftBanner;
-  if(activeShiftId){
-    const sd = new Date(parseInt(activeShiftId));
-    const sdDate = sd.toLocaleDateString('ru-RU',{weekday:'short',day:'numeric',month:'short'});
-    const sdTime = sd.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',hour12:true});
-    const mins = Math.floor((Date.now()-parseInt(activeShiftId))/60000);
-    const dur = mins>=60 ? `${Math.floor(mins/60)}${t('hrUnit')} ${mins%60}${t('minUnitShort')}` : `${mins}${t('minUnitShort')}`;
-    shiftBanner = `<div style="display:flex;align-items:center;justify-content:space-between;background:#0d1f0d;border:1px solid #1e3a1e;border-radius:14px;padding:10px 14px;margin-bottom:10px;">
-      <div>
-        <div style="font-size:10px;opacity:.5;letter-spacing:.5px;margin-bottom:2px;">${t('activeShiftLabel')}</div>
-        <div style="font-size:13px;font-weight:700;">${sdDate}, ${sdTime} · ${dur}</div>
-      </div>
-      <button onclick="endShift()" style="background:#2a1a1a;border:none;color:#ff453a;border-radius:10px;padding:7px 12px;font-size:13px;font-weight:700;cursor:pointer;">${t('endShift')}</button>
-    </div>`;
-  } else {
-    shiftBanner = `<div style="margin-bottom:10px;">
-      <button onclick="startShift()" style="width:100%;background:#0d1f0d;border:1px solid #1e3a1e;color:#30d158;border-radius:14px;padding:11px;font-size:14px;font-weight:700;cursor:pointer;">${t('startShift')}</button>
-    </div>`;
-  }
 
   if(!trips.length){
     list.innerHTML=`<div style="text-align:center;padding:40px;opacity:.4;">${t('noTrips')}</div>`;
-    if(stats) stats.innerHTML=shiftBanner;
+    if(stats) stats.innerHTML='';
     return;
   }
 
   const total = trips.reduce((s,tr)=>s+(tr.fare||0),0);
+  const todayKey = shiftedDate(new Date()).toDateString();
+  const today = trips.filter(tr=>{
+    if(!tr.ts) return false;
+    const d = tr.ts.toDate ? tr.ts.toDate() : new Date(tr.ts);
+    return shiftedDate(d).toDateString() === todayKey;
+  });
+  const todayTotal = today.reduce((s,tr)=>s+(tr.fare||0),0);
 
-  // Left stat: active shift earnings OR today
-  let leftLabel, leftAmount, leftCount;
-  if(activeShiftId){
-    const shiftTrips = trips.filter(tr=>tr.shiftId===activeShiftId);
-    leftLabel = t('shiftStatLabel');
-    leftAmount = shiftTrips.reduce((s,tr)=>s+(tr.fare||0),0);
-    leftCount = shiftTrips.length;
-  } else {
-    const today = trips.filter(tr=>tr.ts&&new Date(tr.ts.toDate?tr.ts.toDate():tr.ts).toDateString()===new Date().toDateString());
-    leftLabel = t('todayLabel');
-    leftAmount = today.reduce((s,tr)=>s+(tr.fare||0),0);
-    leftCount = today.length;
-  }
-
-  if(stats) stats.innerHTML=`${shiftBanner}
+  if(stats) stats.innerHTML=`
     <div style="display:flex;gap:8px;">
       <div style="flex:1;background:#17181c;border:1px solid #252528;border-radius:14px;padding:12px;text-align:center;">
-        <div style="font-size:11px;opacity:.5;margin-bottom:4px;">${leftLabel}</div>
-        <div style="font-size:20px;font-weight:900;color:#30d158;">$${fmt(leftAmount)}</div>
-        <div style="font-size:11px;opacity:.4;">${leftCount} ${t('tripsUnit')}</div>
+        <div style="font-size:11px;opacity:.5;margin-bottom:4px;">${t('todayLabel')}</div>
+        <div style="font-size:20px;font-weight:900;color:#30d158;">$${fmt(todayTotal)}</div>
+        <div style="font-size:11px;opacity:.4;">${today.length} ${t('tripsUnit')}</div>
       </div>
       <div style="flex:1;background:#17181c;border:1px solid #252528;border-radius:14px;padding:12px;text-align:center;">
         <div style="font-size:11px;opacity:.5;margin-bottom:4px;">${t('totalLabel')}</div>
@@ -4312,21 +4272,12 @@ function renderHistory(trips){
       </div>
     </div>`;
 
-  // Group by shift or calendar date
   const byGroup = {};
   trips.forEach(trip=>{
     const d = trip.ts ? (trip.ts.toDate ? trip.ts.toDate() : new Date(trip.ts)) : new Date();
-    let key, label;
-    if(trip.shiftId){
-      key = 'shift_'+trip.shiftId;
-      const sd = new Date(parseInt(trip.shiftId));
-      const sdDate = sd.toLocaleDateString('ru-RU',{weekday:'short',day:'numeric',month:'short'});
-      const sdTime = sd.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',hour12:true});
-      label = (trip.shiftId===activeShiftId?'🟢 ':'')+`${t('shiftPrefix')}${sdDate}, ${sdTime}`;
-    } else {
-      key = d.toLocaleDateString('ru-RU',{day:'numeric',month:'short',weekday:'short'});
-      label = key;
-    }
+    const sd = shiftedDate(d);
+    const key = sd.toDateString();
+    const label = sd.toLocaleDateString(currentLang==='ru'?'ru-RU':'en-US',{day:'numeric',month:'short',weekday:'short'});
     if(!byGroup[key]) byGroup[key]={label,trips:[],sum:0};
     byGroup[key].trips.push({...trip,_date:d});
     byGroup[key].sum+=(trip.fare||0);
