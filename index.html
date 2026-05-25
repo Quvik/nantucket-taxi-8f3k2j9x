@@ -4662,8 +4662,11 @@ initFirebase();
 <script>
 if('serviceWorker' in navigator){
   navigator.serviceWorker.addEventListener('controllerchange', () => {
-    if(localStorage.getItem('ntw_start')) return;  // timer running — brief gap would matter
-    location.reload(); // state is persisted and will be restored after reload
+    if(localStorage.getItem('ntw_start')) return;
+    // Guard against reload loop: allow at most 1 reload per session
+    if(sessionStorage.getItem('_sw_reloaded')) return;
+    sessionStorage.setItem('_sw_reloaded', '1');
+    location.reload();
   });
   window.addEventListener('load', ()=>{
     navigator.serviceWorker.register('/nantucket-taxi-8f3k2j9x/sw.js')

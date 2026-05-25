@@ -1,4 +1,4 @@
-const CACHE      = 'ntaxi-v37';
+const CACHE      = 'ntaxi-v38';
 const TILE_CACHE = 'ntaxi-tiles-v2';
 const MAX_TILES  = 1000;
 
@@ -78,10 +78,6 @@ self.addEventListener('activate', e => {
         keys.filter(k => k !== CACHE && k !== TILE_CACHE).map(k => caches.delete(k))
       ))
       .then(() => self.clients.claim())
-      .then(() => self.clients.matchAll({ type: 'window' }))
-      .then(clients => Promise.all(
-        clients.map(c => c.navigate(c.url).catch(() => {}))
-      ))
   );
 });
 
