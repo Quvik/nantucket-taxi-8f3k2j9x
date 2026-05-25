@@ -731,13 +731,12 @@ input[type="time"].form-input{ -webkit-appearance:auto; appearance:auto; }
     <span style="font-size:20px;">📅</span> <span data-i18n="bookings">Bookings</span>
   </button>
   <div style="border-bottom:1px solid #252528;margin:8px 0;"></div>
-  <div style="padding:10px 16px;display:flex;align-items:center;justify-content:space-between;">
-    <span style="font-size:12px;opacity:.45;font-weight:700;letter-spacing:.8px;">🌐 LANGUAGE</span>
-    <div id="langToggleBtn" onclick="setLang(currentLang==='en'?'ru':'en')"
-         style="position:relative;display:flex;align-items:center;background:#17181c;border:1px solid #2a2a3a;border-radius:22px;padding:3px;cursor:pointer;-webkit-tap-highlight-color:transparent;height:36px;">
-      <div id="langIndicator" style="position:absolute;top:3px;left:3px;width:46px;height:30px;background:#0a84ff;border-radius:18px;transition:transform .25s cubic-bezier(.4,0,.2,1);"></div>
-      <span id="langOptEN" style="width:46px;text-align:center;font-size:13px;font-weight:800;z-index:1;position:relative;transition:color .25s;color:white;">EN</span>
-      <span id="langOptRU" style="width:46px;text-align:center;font-size:13px;font-weight:800;z-index:1;position:relative;transition:color .25s;color:rgba(255,255,255,.35);">RU</span>
+  <div class="drawer-item" style="cursor:default;">
+    <span style="font-size:20px;">🌐</span>
+    <span style="flex:1;" data-i18n="languageLabel">Language</span>
+    <div style="display:flex;gap:6px;">
+      <button id="langOptEN" onclick="setLang('en')" style="border:none;border-radius:8px;padding:5px 13px;font-size:13px;font-weight:800;cursor:pointer;transition:background .2s,color .2s;">EN</button>
+      <button id="langOptRU" onclick="setLang('ru')" style="border:none;border-radius:8px;padding:5px 13px;font-size:13px;font-weight:800;cursor:pointer;transition:background .2s,color .2s;">RU</button>
     </div>
   </div>
   <div style="border-bottom:1px solid #252528;margin:8px 0;"></div>
@@ -1175,6 +1174,7 @@ const TRANSLATIONS = {
     signInAccount:'Sign in to your account', enterDate:'Please enter a date',
     todayDay:'Today', tomorrowDay:'Tomorrow', yesterdayDay:'Yesterday',
     arrivedStatus:'Arrived', liveBuiltIn:'Live past · built-in schedule',
+    languageLabel:'Language',
   },
   ru: {
     home:'Главная', tripHistory:'История поездок', bookings:'Бронирования',
@@ -1222,6 +1222,7 @@ const TRANSLATIONS = {
     signInAccount:'Войдите в аккаунт', enterDate:'Укажи дату',
     todayDay:'Сегодня', tomorrowDay:'Завтра', yesterdayDay:'Вчера',
     arrivedStatus:'Прибыл', liveBuiltIn:'Live прошедшие · расписание встроенное',
+    languageLabel:'Язык',
   }
 };
 
@@ -1247,13 +1248,11 @@ function applyLang(){
     else if(val.includes('<')) el.innerHTML=val;
     else el.textContent=val;
   });
-  // Lang toggle
-  const indicator=document.getElementById('langIndicator');
+  // Lang chips
   const enOpt=document.getElementById('langOptEN');
   const ruOpt=document.getElementById('langOptRU');
-  if(indicator) indicator.style.transform=currentLang==='ru'?'translateX(46px)':'translateX(0)';
-  if(enOpt) enOpt.style.color=currentLang==='en'?'white':'rgba(255,255,255,.35)';
-  if(ruOpt) ruOpt.style.color=currentLang==='ru'?'white':'rgba(255,255,255,.35)';
+  if(enOpt){ enOpt.style.background=currentLang==='en'?'#0a84ff':'#1e1e28'; enOpt.style.color=currentLang==='en'?'#fff':'rgba(255,255,255,.4)'; }
+  if(ruOpt){ ruOpt.style.background=currentLang==='ru'?'#0a84ff':'#1e1e28'; ruOpt.style.color=currentLang==='ru'?'#fff':'rgba(255,255,255,.4)'; }
   // Show map button (reopenMapRow)
   const reopenBtn=document.querySelector('#reopenMapRow button');
   if(reopenBtn) reopenBtn.textContent=t('showMap');
