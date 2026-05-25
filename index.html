@@ -731,14 +731,11 @@ input[type="time"].form-input{ -webkit-appearance:auto; appearance:auto; }
     <span style="font-size:20px;">📅</span> <span data-i18n="bookings">Bookings</span>
   </button>
   <div style="border-bottom:1px solid #252528;margin:8px 0;"></div>
-  <div class="drawer-item" style="cursor:default;">
+  <button class="drawer-item" onclick="setLang(currentLang==='en'?'ru':'en')">
     <span style="font-size:20px;">🌐</span>
     <span style="flex:1;" data-i18n="languageLabel">Language</span>
-    <div style="display:flex;gap:6px;">
-      <button id="langOptEN" onclick="setLang('en')" style="border:none;border-radius:8px;padding:5px 13px;font-size:13px;font-weight:800;cursor:pointer;transition:background .2s,color .2s;">EN</button>
-      <button id="langOptRU" onclick="setLang('ru')" style="border:none;border-radius:8px;padding:5px 13px;font-size:13px;font-weight:800;cursor:pointer;transition:background .2s,color .2s;">RU</button>
-    </div>
-  </div>
+    <span id="langCurrentLabel" style="font-size:14px;opacity:.5;font-weight:600;"></span>
+  </button>
   <div style="border-bottom:1px solid #252528;margin:8px 0;"></div>
   <div style="padding:4px 16px 6px;font-size:11px;opacity:.4;letter-spacing:1px;font-weight:700;" data-i18n="ferryNav">FERRY NAVIGATION</div>
   <button class="drawer-item" onclick="closeDrawer();openNativeMap('Steamship Wharf, Nantucket, MA');">
@@ -1248,11 +1245,9 @@ function applyLang(){
     else if(val.includes('<')) el.innerHTML=val;
     else el.textContent=val;
   });
-  // Lang chips
-  const enOpt=document.getElementById('langOptEN');
-  const ruOpt=document.getElementById('langOptRU');
-  if(enOpt){ enOpt.style.background=currentLang==='en'?'#0a84ff':'#1e1e28'; enOpt.style.color=currentLang==='en'?'#fff':'rgba(255,255,255,.4)'; }
-  if(ruOpt){ ruOpt.style.background=currentLang==='ru'?'#0a84ff':'#1e1e28'; ruOpt.style.color=currentLang==='ru'?'#fff':'rgba(255,255,255,.4)'; }
+  // Lang label
+  const langLbl=document.getElementById('langCurrentLabel');
+  if(langLbl) langLbl.textContent=currentLang==='en'?'English':'Русский';
   // Show map button (reopenMapRow)
   const reopenBtn=document.querySelector('#reopenMapRow button');
   if(reopenBtn) reopenBtn.textContent=t('showMap');
