@@ -3190,11 +3190,10 @@ function setDestination(placeName) {
     try { calculateFare(); } catch(e) {}
 }
 
-// Opens destination in native Maps/Waze app without triggering iOS in-app browser
+// Opens destination via Universal Links — iOS opens native app directly, no SFSafariViewController
 function openNativeMap(dest) {
   const encoded = encodeURIComponent(dest);
-  // comgooglemaps:// opens Google Maps app directly on iOS — no SFSafariViewController
-  window.location.href = `comgooglemaps://?daddr=${encoded}&directionsmode=driving`;
+  window.location.href = `https://www.google.com/maps/dir/?api=1&destination=${encoded}&travelmode=driving`;
 }
 
 function openGoogleMaps() {
@@ -3206,8 +3205,7 @@ function openGoogleMaps() {
 function openWaze() {
   const dest = lastDestinationAddress || document.getElementById('destination').value.trim();
   if (!dest) return;
-  // waze:// opens Waze app directly on iOS
-  window.location.href = `waze://ul?q=${encodeURIComponent(dest)}&navigate=yes`;
+  window.location.href = `https://waze.com/ul?q=${encodeURIComponent(dest)}&navigate=yes`;
 }
 
 
