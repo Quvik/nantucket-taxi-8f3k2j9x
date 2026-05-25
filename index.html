@@ -1479,7 +1479,16 @@ function findZone(point) { return findZoneInfo(point).zone; }
 function getFare(fromZone, toZone) {
     const direct  = `${fromZone}-${toZone}`;
     const reverse = `${toZone}-${fromZone}`;
-    return fareTable[direct] || fareTable[reverse] || null;
+    const result  = fareTable[direct] || fareTable[reverse] || null;
+    // Fallback: strip " Valley" suffix and retry
+    if (!result) {
+        const df = fromZone.replace(/ Valley$/, '');
+        const dt = toZone.replace(/ Valley$/, '');
+        if (df !== fromZone || dt !== toZone) {
+            return fareTable[`${df}-${dt}`] || fareTable[`${dt}-${df}`] || null;
+        }
+    }
+    return result;
 }
 
 
