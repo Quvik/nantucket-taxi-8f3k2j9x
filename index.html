@@ -1165,6 +1165,9 @@ const TRANSLATIONS = {
     signInAccount:'Sign in to your account', enterDate:'Please enter a date',
     todayDay:'Today', tomorrowDay:'Tomorrow', yesterdayDay:'Yesterday',
     arrivedStatus:'Arrived', liveBuiltIn:'Live past · built-in schedule',
+    startShift:'▶ Start Shift', endShift:'⏹ End Shift',
+    activeShiftLabel:'🟢 ACTIVE SHIFT', shiftStatLabel:'🟢 SHIFT',
+    shiftPrefix:'Shift · ', hrUnit:'h', minUnitShort:'m',
   },
   ru: {
     home:'Главная', tripHistory:'История поездок', bookings:'Бронирования',
@@ -1212,6 +1215,9 @@ const TRANSLATIONS = {
     signInAccount:'Войдите в аккаунт', enterDate:'Укажи дату',
     todayDay:'Сегодня', tomorrowDay:'Завтра', yesterdayDay:'Вчера',
     arrivedStatus:'Прибыл', liveBuiltIn:'Live прошедшие · расписание встроенное',
+    startShift:'▶ Начать смену', endShift:'⏹ Завершить',
+    activeShiftLabel:'🟢 АКТИВНАЯ СМЕНА', shiftStatLabel:'🟢 СМЕНА',
+    shiftPrefix:'Смена · ', hrUnit:'ч', minUnitShort:'м',
   }
 };
 
@@ -4256,17 +4262,17 @@ function renderHistory(trips){
     const sdDate = sd.toLocaleDateString('ru-RU',{weekday:'short',day:'numeric',month:'short'});
     const sdTime = sd.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',hour12:true});
     const mins = Math.floor((Date.now()-parseInt(activeShiftId))/60000);
-    const dur = mins>=60 ? `${Math.floor(mins/60)}ч ${mins%60}м` : `${mins}м`;
+    const dur = mins>=60 ? `${Math.floor(mins/60)}${t('hrUnit')} ${mins%60}${t('minUnitShort')}` : `${mins}${t('minUnitShort')}`;
     shiftBanner = `<div style="display:flex;align-items:center;justify-content:space-between;background:#0d1f0d;border:1px solid #1e3a1e;border-radius:14px;padding:10px 14px;margin-bottom:10px;">
       <div>
-        <div style="font-size:10px;opacity:.5;letter-spacing:.5px;margin-bottom:2px;">🟢 АКТИВНАЯ СМЕНА</div>
-        <div style="font-size:13px;font-weight:700;">${sdDate}, с ${sdTime} · ${dur}</div>
+        <div style="font-size:10px;opacity:.5;letter-spacing:.5px;margin-bottom:2px;">${t('activeShiftLabel')}</div>
+        <div style="font-size:13px;font-weight:700;">${sdDate}, ${sdTime} · ${dur}</div>
       </div>
-      <button onclick="endShift()" style="background:#2a1a1a;border:none;color:#ff453a;border-radius:10px;padding:7px 12px;font-size:13px;font-weight:700;cursor:pointer;">⏹ Завершить</button>
+      <button onclick="endShift()" style="background:#2a1a1a;border:none;color:#ff453a;border-radius:10px;padding:7px 12px;font-size:13px;font-weight:700;cursor:pointer;">${t('endShift')}</button>
     </div>`;
   } else {
     shiftBanner = `<div style="margin-bottom:10px;">
-      <button onclick="startShift()" style="width:100%;background:#0d1f0d;border:1px solid #1e3a1e;color:#30d158;border-radius:14px;padding:11px;font-size:14px;font-weight:700;cursor:pointer;">▶ Начать смену</button>
+      <button onclick="startShift()" style="width:100%;background:#0d1f0d;border:1px solid #1e3a1e;color:#30d158;border-radius:14px;padding:11px;font-size:14px;font-weight:700;cursor:pointer;">${t('startShift')}</button>
     </div>`;
   }
 
@@ -4282,7 +4288,7 @@ function renderHistory(trips){
   let leftLabel, leftAmount, leftCount;
   if(activeShiftId){
     const shiftTrips = trips.filter(tr=>tr.shiftId===activeShiftId);
-    leftLabel = '🟢 СМЕНА';
+    leftLabel = t('shiftStatLabel');
     leftAmount = shiftTrips.reduce((s,tr)=>s+(tr.fare||0),0);
     leftCount = shiftTrips.length;
   } else {
@@ -4316,7 +4322,7 @@ function renderHistory(trips){
       const sd = new Date(parseInt(trip.shiftId));
       const sdDate = sd.toLocaleDateString('ru-RU',{weekday:'short',day:'numeric',month:'short'});
       const sdTime = sd.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',hour12:true});
-      label = (trip.shiftId===activeShiftId?'🟢 ':'')+`Смена · ${sdDate}, ${sdTime}`;
+      label = (trip.shiftId===activeShiftId?'🟢 ':'')+`${t('shiftPrefix')}${sdDate}, ${sdTime}`;
     } else {
       key = d.toLocaleDateString('ru-RU',{day:'numeric',month:'short',weekday:'short'});
       label = key;
