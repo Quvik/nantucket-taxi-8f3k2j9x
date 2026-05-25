@@ -731,7 +731,15 @@ input[type="time"].form-input{ -webkit-appearance:auto; appearance:auto; }
     <span style="font-size:20px;">📅</span> <span data-i18n="bookings">Bookings</span>
   </button>
   <div style="border-bottom:1px solid #252528;margin:8px 0;"></div>
-  <button id="langToggleBtn" onclick="setLang(currentLang==='en'?'ru':'en')" class="drawer-item" style="color:#0A84FF;font-weight:800;">🌐 RU</button>
+  <div style="padding:10px 16px;display:flex;align-items:center;justify-content:space-between;">
+    <span style="font-size:12px;opacity:.45;font-weight:700;letter-spacing:.8px;">🌐 LANGUAGE</span>
+    <div id="langToggleBtn" onclick="setLang(currentLang==='en'?'ru':'en')"
+         style="position:relative;display:flex;align-items:center;background:#17181c;border:1px solid #2a2a3a;border-radius:22px;padding:3px;cursor:pointer;-webkit-tap-highlight-color:transparent;height:36px;">
+      <div id="langIndicator" style="position:absolute;top:3px;left:3px;width:46px;height:30px;background:#0a84ff;border-radius:18px;transition:transform .25s cubic-bezier(.4,0,.2,1);"></div>
+      <span id="langOptEN" style="width:46px;text-align:center;font-size:13px;font-weight:800;z-index:1;position:relative;transition:color .25s;color:white;">EN</span>
+      <span id="langOptRU" style="width:46px;text-align:center;font-size:13px;font-weight:800;z-index:1;position:relative;transition:color .25s;color:rgba(255,255,255,.35);">RU</span>
+    </div>
+  </div>
   <div style="border-bottom:1px solid #252528;margin:8px 0;"></div>
   <div style="padding:4px 16px 6px;font-size:11px;opacity:.4;letter-spacing:1px;font-weight:700;" data-i18n="ferryNav">FERRY NAVIGATION</div>
   <button class="drawer-item" onclick="closeDrawer();openNativeMap('Steamship Wharf, Nantucket, MA');">
@@ -1239,9 +1247,13 @@ function applyLang(){
     else if(val.includes('<')) el.innerHTML=val;
     else el.textContent=val;
   });
-  // Lang button
-  const btn=document.getElementById('langToggleBtn');
-  if(btn) btn.textContent=currentLang==='en'?'🌐 RU':'🌐 EN';
+  // Lang toggle
+  const indicator=document.getElementById('langIndicator');
+  const enOpt=document.getElementById('langOptEN');
+  const ruOpt=document.getElementById('langOptRU');
+  if(indicator) indicator.style.transform=currentLang==='ru'?'translateX(46px)':'translateX(0)';
+  if(enOpt) enOpt.style.color=currentLang==='en'?'white':'rgba(255,255,255,.35)';
+  if(ruOpt) ruOpt.style.color=currentLang==='ru'?'white':'rgba(255,255,255,.35)';
   // Show map button (reopenMapRow)
   const reopenBtn=document.querySelector('#reopenMapRow button');
   if(reopenBtn) reopenBtn.textContent=t('showMap');
