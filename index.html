@@ -585,12 +585,20 @@ to{opacity:1;transform:translateY(0);}
   from{transform:translateY(100%);}
   to{transform:translateY(0);}
 }
-@keyframes langBounce{
-  0%{transform:scale(1);}
-  40%{transform:scale(.88);}
-  70%{transform:scale(1.08);}
-  100%{transform:scale(1);}
+@keyframes globeSpin{
+  from{transform:rotate(0deg);}
+  to{transform:rotate(360deg);}
 }
+@keyframes flipOut{
+  from{transform:scaleY(1);opacity:1;}
+  to{transform:scaleY(0);opacity:0;}
+}
+@keyframes flipIn{
+  from{transform:scaleY(0);opacity:0;}
+  to{transform:scaleY(1);opacity:1;}
+}
+#langGlobe{ display:inline-block; transform-origin:center; }
+#langCurrentLabel{ display:inline-block; transform-origin:center; }
 .zone-picker-item{
   padding:15px 18px;font-size:17px;font-weight:600;
   border-bottom:1px solid #222;cursor:pointer;
@@ -737,8 +745,8 @@ input[type="time"].form-input{ -webkit-appearance:auto; appearance:auto; }
     <span style="font-size:20px;">📅</span> <span data-i18n="bookings">Bookings</span>
   </button>
   <div style="border-bottom:1px solid #252528;margin:8px 0;"></div>
-  <button class="drawer-item" id="langBtn" onclick="this.style.animation='none';void this.offsetWidth;this.style.animation='langBounce .35s ease';setLang(currentLang==='en'?'ru':'en')">
-    <span style="font-size:20px;">🌐</span>
+  <button class="drawer-item" id="langBtn" onclick="switchLang()">
+    <span id="langGlobe" style="font-size:20px;">🌐</span>
     <span style="flex:1;" data-i18n="languageLabel">Language</span>
     <span id="langCurrentLabel" style="font-size:14px;opacity:.5;font-weight:600;"></span>
   </button>
@@ -1230,6 +1238,26 @@ const TRANSLATIONS = {
 };
 
 function t(key){ const L=TRANSLATIONS[currentLang]||TRANSLATIONS.en; return L[key]!==undefined?L[key]:(TRANSLATIONS.en[key]||key); }
+
+function switchLang(){
+  const lang = currentLang==='en'?'ru':'en';
+  const globe = document.getElementById('langGlobe');
+  const lbl   = document.getElementById('langCurrentLabel');
+
+  // Globe spins once
+  if(globe){ globe.style.animation='none'; void globe.offsetWidth; globe.style.animation='globeSpin .45s ease'; }
+
+  // Label flips out, text changes, flips back in
+  if(lbl){
+    lbl.style.animation='flipOut .14s ease forwards';
+    setTimeout(()=>{
+      setLang(lang);
+      lbl.style.animation='flipIn .18s ease forwards';
+    }, 140);
+  } else {
+    setLang(lang);
+  }
+}
 
 function setLang(lang){
   currentLang=lang;
