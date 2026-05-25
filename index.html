@@ -732,10 +732,10 @@ input[type="time"].form-input{ -webkit-appearance:auto; appearance:auto; }
   <button id="langToggleBtn" onclick="setLang(currentLang==='en'?'ru':'en')" class="drawer-item" style="color:#0A84FF;font-weight:800;">🌐 RU</button>
   <div style="border-bottom:1px solid #252528;margin:8px 0;"></div>
   <div style="padding:4px 16px 6px;font-size:11px;opacity:.4;letter-spacing:1px;font-weight:700;" data-i18n="ferryNav">FERRY NAVIGATION</div>
-  <button class="drawer-item" onclick="closeDrawer();window.open('https://maps.google.com/maps?daddr=Steamship+Wharf,+Nantucket,+MA','_blank');">
+  <button class="drawer-item" onclick="closeDrawer();openNativeMap('Steamship Wharf, Nantucket, MA');">
     <span style="font-size:20px;">🚢</span> Steamship Wharf
   </button>
-  <button class="drawer-item" onclick="closeDrawer();window.open('https://maps.google.com/maps?daddr=Straight+Wharf,+Nantucket,+MA','_blank');">
+  <button class="drawer-item" onclick="closeDrawer();openNativeMap('Straight Wharf, Nantucket, MA');">
     <span style="font-size:20px;">🚤</span> Hy-Line · Straight Wharf
   </button>
   <div style="border-bottom:1px solid #252528;margin:8px 0;"></div>
@@ -3148,16 +3148,24 @@ function setDestination(placeName) {
     try { calculateFare(); } catch(e) {}
 }
 
+// Opens destination in native Maps/Waze app without triggering iOS in-app browser
+function openNativeMap(dest) {
+  const encoded = encodeURIComponent(dest);
+  // comgooglemaps:// opens Google Maps app directly on iOS — no SFSafariViewController
+  window.location.href = `comgooglemaps://?daddr=${encoded}&directionsmode=driving`;
+}
+
 function openGoogleMaps() {
-    const dest = lastDestinationAddress || document.getElementById('destination').value.trim();
-    if (!dest) return;
-    window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(dest)}`, '_blank');
+  const dest = lastDestinationAddress || document.getElementById('destination').value.trim();
+  if (!dest) return;
+  openNativeMap(dest);
 }
 
 function openWaze() {
-    const dest = lastDestinationAddress || document.getElementById('destination').value.trim();
-    if (!dest) return;
-    window.open(`https://waze.com/ul?q=${encodeURIComponent(dest)}&navigate=yes`, '_blank');
+  const dest = lastDestinationAddress || document.getElementById('destination').value.trim();
+  if (!dest) return;
+  // waze:// opens Waze app directly on iOS
+  window.location.href = `waze://ul?q=${encodeURIComponent(dest)}&navigate=yes`;
 }
 
 
