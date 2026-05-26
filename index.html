@@ -4095,6 +4095,13 @@ function initFirebase(){
         if(overlay) overlay.style.display='none';
         syncSettingsFromCloud();
         if(document.getElementById('historyPanel').classList.contains('open')) loadHistory();
+        // Save profile so admin panel can list users
+        fbDb.collection('users').doc(user.uid).set({
+          displayName: user.displayName||'',
+          email: user.email||'',
+          photoURL: user.photoURL||'',
+          lastSeen: firebase.firestore.FieldValue.serverTimestamp()
+        },{merge:true}).catch(()=>{});
       } else {
         // Only show login / clear flag when online — offline Firebase returns null
         // even for previously-authenticated users
@@ -4883,32 +4890,41 @@ async function adminLoadData(db){
   summary.innerHTML  = '<div style="opacity:.35;font-size:13px;text-align:center;padding:20px 0;">Загружаем данные…</div>';
   userList.innerHTML = '';
 
-  const usersSnap = await db.collection('users').get();
+  // Read user profiles (created on login)
+  const profiles = {};
+  try{
+    const usersSnap = await db.collection('users').get();
+    usersSnap.docs.forEach(d=>{ profiles[d.id]=d.data(); });
+  }catch(e){}
 
-  let totUsers=0, totTrips=0, totEarn=0;
-  const rows = [];
+  // Read ALL trips across all users via collectionGroup
+  const allTripsSnap = await db.collectionGroup('trips').get();
 
-  for(const udoc of usersSnap.docs){
-    const uid   = udoc.id;
-    const udata = udoc.data();
-    totUsers++;
+  const byUid = {};
+  for(const tdoc of allTripsSnap.docs){
+    const trip = {id:tdoc.id,...tdoc.data()};
+    const uid  = trip.uid || tdoc.ref.parent.parent.id;
+    if(!byUid[uid]) byUid[uid]={uid, trips:[], earn:0};
+    byUid[uid].trips.push(trip);
+    byUid[uid].earn += (trip.fare||0);
+  }
 
-    const tsnap = await db.collection('users').doc(uid)
-      .collection('trips').orderBy('ts','desc').limit(500).get();
-
-    const trips = tsnap.docs.map(d=>({id:d.id,...d.data()}));
-    const earn  = trips.reduce((s,t)=>s+(t.fare||0),0);
-    totTrips += trips.length;
-    totEarn  += earn;
-
+  // Merge with profiles, compute last date
+  const rows = Object.values(byUid).map(r=>{
+    const trips = r.trips.sort((a,b)=>{
+      const da = a.localTs||0, db2 = b.localTs||0;
+      return db2-da;
+    });
     const lastTrip = trips[0];
     const lastD = lastTrip
       ? (lastTrip.localTs ? new Date(lastTrip.localTs)
           : (lastTrip.ts?.toDate ? lastTrip.ts.toDate() : null))
       : null;
+    return {uid:r.uid, udata:profiles[r.uid]||{}, trips, earn:r.earn, lastD};
+  });
 
-    rows.push({uid, udata, trips, earn, lastD});
-  }
+  let totUsers=rows.length, totTrips=0, totEarn=0;
+  rows.forEach(r=>{ totTrips+=r.trips.length; totEarn+=r.earn; });
 
   // Sort by earnings desc
   rows.sort((a,b)=>b.earn-a.earn);
@@ -4933,7 +4949,7 @@ async function adminLoadData(db){
     <div style="font-size:11px;opacity:.25;text-align:right;margin-top:4px;">Данные загружены · ${new Date().toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'})}</div>`;
 
   userList.innerHTML = rows.map((row,i)=>{
-    const name = row.udata.displayName || row.udata.email || (row.uid.slice(0,10)+'…');
+    const name = row.udata.displayName || row.udata.email || (row.trips[0]?.driverName) || (row.uid.slice(0,10)+'…');
     const mail = row.udata.email || row.uid;
     const lastStr = row.lastD
       ? row.lastD.toLocaleDateString('ru-RU',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'})
