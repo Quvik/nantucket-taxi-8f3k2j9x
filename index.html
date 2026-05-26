@@ -4229,6 +4229,7 @@ function saveTrip(data){
   fbDb.collection('users').doc(fbUser.uid).collection('trips').add({
     ...data,
     uid: fbUser.uid,
+    localTs: Date.now(),  // device time at moment of save — used for display
     ts: firebase.firestore.FieldValue.serverTimestamp()
   }).catch(()=>{});
 }
@@ -4306,8 +4307,8 @@ function renderHistory(trips){
   const total = trips.reduce((s,tr)=>s+(tr.fare||0),0);
   const todayKey = shiftedDate(new Date()).toDateString();
   const today = trips.filter(tr=>{
-    if(!tr.ts) return false;
-    const d = tr.ts.toDate ? tr.ts.toDate() : new Date(tr.ts);
+    if(!tr.localTs && !tr.ts) return false;
+    const d = tr.localTs ? new Date(tr.localTs) : (tr.ts.toDate ? tr.ts.toDate() : new Date(tr.ts));
     return shiftedDate(d).toDateString() === todayKey;
   });
   const todayTotal = today.reduce((s,tr)=>s+(tr.fare||0),0);
@@ -4328,7 +4329,7 @@ function renderHistory(trips){
 
   const byGroup = {};
   trips.forEach(trip=>{
-    const d = trip.ts ? (trip.ts.toDate ? trip.ts.toDate() : new Date(trip.ts)) : new Date();
+    const d = trip.localTs ? new Date(trip.localTs) : (trip.ts ? (trip.ts.toDate ? trip.ts.toDate() : new Date(trip.ts)) : new Date());
     const sd = shiftedDate(d);
     const key = sd.toDateString();
     const label = sd.toLocaleDateString(currentLang==='ru'?'ru-RU':'en-US',{day:'numeric',month:'short',weekday:'short'});
