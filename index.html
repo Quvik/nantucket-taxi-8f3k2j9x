@@ -3441,17 +3441,23 @@ async function calculateFare() {
         if (z) { destinationZone = z; destIsCrossTown = ct; }
     }
 
-    // Шаг 2: Photon геокодер → KML (если Google Places не дал координаты)
+    // Шаг 2: Google Geocoding → KML (если Google Places не дал координаты)
     if (!destinationZone) {
         try {
             const res = await fetch(
-                `https://photon.komoot.io/api/?q=${encodeURIComponent(address + ' Nantucket MA')}&limit=1&bbox=-70.38,41.19,-69.84,41.34`
+                `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address + ', Nantucket, MA')}&key=${GMAPS_KEY}&bounds=41.19,-70.38|41.34,-69.84`
             );
             const data = await res.json();
-            if (data.features?.length) {
-                [lng, lat] = data.features[0].geometry.coordinates;
+            const r = data.results?.[0];
+            if (r) {
+                lat = r.geometry.location.lat;
+                lng = r.geometry.location.lng;
                 const { zone: z, isCrossTown: ct } = findZoneInfo(turf.point([lng, lat]));
-                if (z) { destinationZone = z; destIsCrossTown = ct; }
+                if (z) {
+                    destinationZone = z; destIsCrossTown = ct;
+                    // Update mini-map preview with corrected coordinates
+                    showAddressPreview(lat, lng, address);
+                }
             }
         } catch(e) { /* офлайн */ }
     }
