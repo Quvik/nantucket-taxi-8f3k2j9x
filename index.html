@@ -4766,5 +4766,226 @@ window.addEventListener('DOMContentLoaded', ()=>{
 
 </script>
 
+<!-- ═══════════════════ ADMIN PANEL ═══════════════════ -->
+<div id="adminRoot" style="display:none;position:fixed;inset:0;background:#0a0a0b;z-index:999999;overflow-y:auto;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#fff;">
+
+  <!-- Login -->
+  <div id="adminLogin" style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:24px;">
+    <div style="font-size:40px;margin-bottom:12px;">🔐</div>
+    <div style="font-size:24px;font-weight:800;margin-bottom:4px;">Admin Panel</div>
+    <div style="font-size:13px;opacity:.4;margin-bottom:40px;">Nantucket Taxi</div>
+    <div style="width:100%;max-width:320px;">
+      <input id="adminEmail" type="email" placeholder="Email" autocomplete="email"
+        style="width:100%;box-sizing:border-box;padding:15px 16px;background:#17181c;border:1px solid #2c2c2e;border-radius:14px;color:#fff;font-size:16px;margin-bottom:12px;outline:none;">
+      <input id="adminPass" type="password" placeholder="Пароль" autocomplete="current-password"
+        style="width:100%;box-sizing:border-box;padding:15px 16px;background:#17181c;border:1px solid #2c2c2e;border-radius:14px;color:#fff;font-size:16px;margin-bottom:18px;outline:none;">
+      <button id="adminLoginBtn" onclick="adminDoLogin()"
+        style="width:100%;padding:15px;background:#30d158;border:none;border-radius:14px;color:#000;font-size:16px;font-weight:700;cursor:pointer;">
+        Войти
+      </button>
+      <div id="adminLoginErr" style="color:#ff453a;font-size:13px;text-align:center;margin-top:14px;min-height:18px;"></div>
+    </div>
+  </div>
+
+  <!-- Dashboard -->
+  <div id="adminDash" style="display:none;padding-bottom:50px;">
+    <!-- Header -->
+    <div style="position:sticky;top:0;background:#0a0a0b;border-bottom:1px solid #1c1c1e;padding:14px 18px;display:flex;align-items:center;justify-content:space-between;z-index:10;">
+      <div>
+        <div style="font-size:17px;font-weight:800;">Admin Panel</div>
+        <div id="adminWhoLabel" style="font-size:11px;opacity:.35;"></div>
+      </div>
+      <button onclick="adminDoLogout()"
+        style="background:#1c1c1e;border:1px solid #2c2c2e;border-radius:10px;color:#ff453a;font-size:13px;font-weight:600;padding:8px 14px;cursor:pointer;">
+        Выйти
+      </button>
+    </div>
+    <!-- Summary -->
+    <div id="adminSummary" style="padding:16px 18px;"></div>
+    <!-- Users -->
+    <div id="adminUserList" style="padding:0 18px;"></div>
+  </div>
+</div>
+
+<style>
+#adminEmail:focus,#adminPass:focus{border-color:#30d158 !important;}
+.admin-trip-row{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid #1c1c1e;}
+.admin-trip-row:last-child{border-bottom:none;}
+</style>
+
+<script>
+(function(){
+  if(!location.search.includes('admin')) return;
+
+  // Overlay hides the whole regular app
+  const mask = document.createElement('style');
+  mask.id = '_adminMask';
+  mask.textContent = 'body>*:not(#adminRoot){display:none!important;}';
+  document.head.appendChild(mask);
+  document.getElementById('adminRoot').style.display = 'block';
+
+  // Enter key on password field
+  document.getElementById('adminPass').addEventListener('keydown', e=>{
+    if(e.key==='Enter') adminDoLogin();
+  });
+
+  // Wait for Firebase app to be initialised by the main script
+  function onFirebaseReady(cb, n=0){
+    if(typeof firebase!=='undefined' && firebase.apps.length){
+      cb(firebase.auth(), firebase.firestore());
+    } else if(n<60){
+      setTimeout(()=>onFirebaseReady(cb, n+1), 150);
+    }
+  }
+
+  onFirebaseReady((auth)=>{
+    auth.onAuthStateChanged(user=>{
+      if(user && user.uid === 'Aq1HD74p54ZaoqjW82L6C0SauIG3'){
+        document.getElementById('adminLogin').style.display = 'none';
+        document.getElementById('adminDash').style.display  = 'block';
+        const lbl = document.getElementById('adminWhoLabel');
+        if(lbl) lbl.textContent = user.email || '';
+        adminLoadData(firebase.firestore());
+      } else if(user){
+        auth.signOut();
+        document.getElementById('adminLoginErr').textContent = 'Нет доступа для этого аккаунта';
+      } else {
+        document.getElementById('adminLogin').style.display = 'flex';
+        document.getElementById('adminDash').style.display  = 'none';
+      }
+    });
+  });
+})();
+
+function adminDoLogin(){
+  const email = document.getElementById('adminEmail').value.trim();
+  const pass  = document.getElementById('adminPass').value;
+  const err   = document.getElementById('adminLoginErr');
+  const btn   = document.getElementById('adminLoginBtn');
+  if(!email||!pass){ err.textContent='Введите email и пароль'; return; }
+  err.textContent='';
+  btn.textContent='Входим…';
+  btn.disabled=true;
+  firebase.auth().signInWithEmailAndPassword(email, pass).catch(()=>{
+    err.textContent='Неверный email или пароль';
+    btn.textContent='Войти';
+    btn.disabled=false;
+  });
+}
+
+function adminDoLogout(){
+  firebase.auth().signOut();
+}
+
+async function adminLoadData(db){
+  const summary  = document.getElementById('adminSummary');
+  const userList = document.getElementById('adminUserList');
+  summary.innerHTML  = '<div style="opacity:.35;font-size:13px;text-align:center;padding:20px 0;">Загружаем данные…</div>';
+  userList.innerHTML = '';
+
+  const usersSnap = await db.collection('users').get();
+
+  let totUsers=0, totTrips=0, totEarn=0;
+  const rows = [];
+
+  for(const udoc of usersSnap.docs){
+    const uid   = udoc.id;
+    const udata = udoc.data();
+    totUsers++;
+
+    const tsnap = await db.collection('users').doc(uid)
+      .collection('trips').orderBy('ts','desc').limit(500).get();
+
+    const trips = tsnap.docs.map(d=>({id:d.id,...d.data()}));
+    const earn  = trips.reduce((s,t)=>s+(t.fare||0),0);
+    totTrips += trips.length;
+    totEarn  += earn;
+
+    const lastTrip = trips[0];
+    const lastD = lastTrip
+      ? (lastTrip.localTs ? new Date(lastTrip.localTs)
+          : (lastTrip.ts?.toDate ? lastTrip.ts.toDate() : null))
+      : null;
+
+    rows.push({uid, udata, trips, earn, lastD});
+  }
+
+  // Sort by earnings desc
+  rows.sort((a,b)=>b.earn-a.earn);
+
+  const $fmt = n => (n%1===0 ? n : n.toFixed(2));
+
+  summary.innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:6px;">
+      <div style="background:#17181c;border:1px solid #252528;border-radius:14px;padding:13px;text-align:center;">
+        <div style="font-size:10px;opacity:.4;letter-spacing:.5px;margin-bottom:4px;">ВОДИТЕЛЕЙ</div>
+        <div style="font-size:24px;font-weight:900;">${totUsers}</div>
+      </div>
+      <div style="background:#17181c;border:1px solid #252528;border-radius:14px;padding:13px;text-align:center;">
+        <div style="font-size:10px;opacity:.4;letter-spacing:.5px;margin-bottom:4px;">ПОЕЗДОК</div>
+        <div style="font-size:24px;font-weight:900;">${totTrips}</div>
+      </div>
+      <div style="background:#17181c;border:1px solid #252528;border-radius:14px;padding:13px;text-align:center;">
+        <div style="font-size:10px;opacity:.4;letter-spacing:.5px;margin-bottom:4px;">ИТОГО</div>
+        <div style="font-size:24px;font-weight:900;color:#30d158;">$${$fmt(totEarn)}</div>
+      </div>
+    </div>
+    <div style="font-size:11px;opacity:.25;text-align:right;margin-top:4px;">Данные загружены · ${new Date().toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'})}</div>`;
+
+  userList.innerHTML = rows.map((row,i)=>{
+    const name = row.udata.displayName || row.udata.email || (row.uid.slice(0,10)+'…');
+    const mail = row.udata.email || row.uid;
+    const lastStr = row.lastD
+      ? row.lastD.toLocaleDateString('ru-RU',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'})
+      : '—';
+
+    const tripsHtml = row.trips.length===0
+      ? '<div style="opacity:.3;font-size:12px;text-align:center;padding:14px 0;">Нет поездок</div>'
+      : row.trips.map(trip=>{
+          const d = trip.localTs ? new Date(trip.localTs)
+                  : (trip.ts?.toDate ? trip.ts.toDate() : new Date());
+          const timeStr = d.toLocaleString('ru-RU',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
+          const dest = trip.destination || trip.toZone || '—';
+          const from = trip.fromZone || '—';
+          return `<div class="admin-trip-row">
+            <div>
+              <div style="font-size:13px;font-weight:600;">${from} → ${dest}</div>
+              <div style="font-size:11px;opacity:.4;">${timeStr} · ${trip.pax||1} пас.</div>
+            </div>
+            <div style="font-size:15px;font-weight:700;color:#30d158;">$${$fmt(trip.fare||0)}</div>
+          </div>`;
+        }).join('');
+
+    return `
+    <div style="background:#17181c;border:1px solid #252528;border-radius:16px;padding:16px;margin-bottom:12px;">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:8px;">
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:15px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${name}</div>
+          <div style="font-size:11px;opacity:.35;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${mail}</div>
+        </div>
+        <div style="text-align:right;margin-left:12px;flex-shrink:0;">
+          <div style="font-size:19px;font-weight:900;color:#30d158;">$${$fmt(row.earn)}</div>
+          <div style="font-size:11px;opacity:.4;">${row.trips.length} поезд.</div>
+        </div>
+      </div>
+      <div style="font-size:11px;opacity:.3;margin-bottom:12px;">Последняя: ${lastStr}</div>
+      <button onclick="adminToggleTrips('atrips${i}',this)"
+        style="width:100%;padding:9px;background:#0f0f10;border:1px solid #252528;border-radius:10px;color:#fff;font-size:12px;font-weight:600;cursor:pointer;">
+        История поездок ▾
+      </button>
+      <div id="atrips${i}" style="display:none;margin-top:10px;">${tripsHtml}</div>
+    </div>`;
+  }).join('');
+}
+
+function adminToggleTrips(id, btn){
+  const el = document.getElementById(id);
+  if(!el) return;
+  const open = el.style.display !== 'none';
+  el.style.display = open ? 'none' : 'block';
+  btn.textContent  = open ? 'История поездок ▾' : 'Скрыть ▴';
+}
+</script>
+
 </body>
 </html>
