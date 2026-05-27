@@ -4803,71 +4803,80 @@ const HIST_ZONE_COORDS = {
   'Town':[41.2793,-70.1015],'Wauwinet':[41.3188,-69.9986],
 };
 
-let _histMapMarkers = [];
+let _histMapInstance = null;
+let _histMapMarkers  = [];
 
 function openHistoryMap(){
-  // Close history panel and show main map
-  document.getElementById('historyPanel').classList.remove('open');
-  closeOrCollapsePreview();
+  const overlay = document.getElementById('historyMapOverlay');
+  overlay.style.display = 'flex';
 
-  // Remove previous trip markers
-  _histMapMarkers.forEach(m=>m.remove());
-  _histMapMarkers=[];
+  const title = document.getElementById('histMapTitle');
+  if(title) title.textContent = currentLang==='ru' ? 'Поездки сегодня' : "Today's Trips";
 
-  // Filter today's trips
-  const todayKey = shiftedDate(new Date()).toDateString();
-  const todayTrips = _lastLoadedTrips.filter(tr=>{
-    const d = tr.localTs ? new Date(tr.localTs) : (tr.ts?.toDate ? tr.ts.toDate() : null);
-    return d && shiftedDate(d).toDateString()===todayKey;
-  });
-
-  // Track zone usage for slight offset when same zone
-  const zoneCount={};
-  const bounds=[];
-
-  todayTrips.forEach(trip=>{
-    let lat = trip.destLat, lng = trip.destLng;
-    if((!lat||!lng) && trip.toZone && HIST_ZONE_COORDS[trip.toZone]){
-      const key = trip.toZone;
-      zoneCount[key] = (zoneCount[key]||0)+1;
-      const n = zoneCount[key];
-      // Spiral offset so stacked markers don't overlap (±~80m)
-      const angle = n * 137.5 * Math.PI/180;
-      const r = n===1 ? 0 : 0.0008 * Math.sqrt(n-1);
-      lat = HIST_ZONE_COORDS[key][0] + r*Math.sin(angle);
-      lng = HIST_ZONE_COORDS[key][1] + r*Math.cos(angle);
+  // Double RAF: first paints flex layout, second gives Leaflet real dimensions
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{
+    if(!_histMapInstance){
+      _histMapInstance = L.map('historyMapEl',{zoomControl:true})
+        .setView([41.2793,-70.1015],12);
+      L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{
+        attribution:'© OpenStreetMap', maxZoom:18
+      }).addTo(_histMapInstance);
     }
-    if(!lat||!lng) return;
+    _histMapInstance.invalidateSize(true);
 
-    const d = trip.localTs ? new Date(trip.localTs) : (trip.ts?.toDate ? trip.ts.toDate() : new Date());
-    const time = d.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',hour12:true});
-    const dest = trip.destination || trip.toZone || '—';
-    const fare = trip.fare%1===0 ? `$${trip.fare}` : `$${trip.fare.toFixed(2)}`;
+    // Clear old markers
+    _histMapMarkers.forEach(m=>m.remove());
+    _histMapMarkers=[];
 
-    const icon = L.divIcon({
-      className:'',
-      html:`<div style="background:#30d158;color:#000;font-size:11px;font-weight:800;padding:4px 8px;border-radius:20px;white-space:nowrap;box-shadow:0 2px 8px rgba(0,0,0,.5);border:2px solid #000;">${fare}</div>`,
-      iconAnchor:[22,12]
+    // Filter today's trips
+    const todayKey = shiftedDate(new Date()).toDateString();
+    const todayTrips = _lastLoadedTrips.filter(tr=>{
+      const d = tr.localTs ? new Date(tr.localTs) : (tr.ts?.toDate ? tr.ts.toDate() : null);
+      return d && shiftedDate(d).toDateString()===todayKey;
     });
-    const marker = L.marker([lat,lng],{icon}).addTo(map);
-    marker.bindPopup(`<div style="min-width:140px;"><b>${dest}</b><br><span style="opacity:.6;font-size:12px;">${time} · ${trip.pax||1} pax</span><br><b style="color:#30d158;font-size:16px;">${fare}</b></div>`);
-    _histMapMarkers.push(marker);
-    bounds.push([lat,lng]);
-  });
 
-  if(bounds.length>0){
-    map.fitBounds(bounds,{padding:[60,60],maxZoom:15});
-  }
+    const zoneCount={}, bounds=[];
+    todayTrips.forEach(trip=>{
+      let lat=trip.destLat, lng=trip.destLng;
+      if((!lat||!lng) && trip.toZone && HIST_ZONE_COORDS[trip.toZone]){
+        const key=trip.toZone;
+        zoneCount[key]=(zoneCount[key]||0)+1;
+        const n=zoneCount[key];
+        const angle=n*137.5*Math.PI/180;
+        const r=n===1?0:0.0008*Math.sqrt(n-1);
+        lat=HIST_ZONE_COORDS[key][0]+r*Math.sin(angle);
+        lng=HIST_ZONE_COORDS[key][1]+r*Math.cos(angle);
+      }
+      if(!lat||!lng) return;
 
-  // Show exit button
-  const exitBtn = document.getElementById('histMapExitBtn');
-  if(exitBtn) exitBtn.style.display='flex';
+      const d=trip.localTs?new Date(trip.localTs):(trip.ts?.toDate?trip.ts.toDate():new Date());
+      const time=d.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',hour12:true});
+      const dest=trip.destination||trip.toZone||'—';
+      const fare=trip.fare%1===0?`$${trip.fare}`:`$${trip.fare.toFixed(2)}`;
+
+      const icon=L.divIcon({
+        className:'',
+        html:`<div style="background:#30d158;color:#000;font-size:11px;font-weight:800;padding:4px 8px;border-radius:20px;white-space:nowrap;box-shadow:0 2px 8px rgba(0,0,0,.6);border:2px solid rgba(0,0,0,.3);">${fare}</div>`,
+        iconAnchor:[22,12]
+      });
+      const marker=L.marker([lat,lng],{icon}).addTo(_histMapInstance);
+      marker.bindPopup(`<div style="min-width:140px;"><b>${dest}</b><br><span style="opacity:.6;font-size:12px;">${time} · ${trip.pax||1} pax</span><br><b style="color:#30d158;font-size:16px;">${fare}</b></div>`);
+      _histMapMarkers.push(marker);
+      bounds.push([lat,lng]);
+    });
+
+    if(bounds.length>0){
+      _histMapInstance.fitBounds(bounds,{padding:[50,50],maxZoom:15});
+    }
+  }));
 }
 
 function closeHistoryMap(){
+  document.getElementById('historyMapOverlay').style.display='none';
   _histMapMarkers.forEach(m=>m.remove());
   _histMapMarkers=[];
-  const exitBtn = document.getElementById('histMapExitBtn');
+  // Also clean up main-map exit button if visible
+  const exitBtn=document.getElementById('histMapExitBtn');
   if(exitBtn) exitBtn.style.display='none';
 }
 </script>
@@ -4875,6 +4884,15 @@ function closeHistoryMap(){
 <!-- ═══════════════════ HISTORY MAP EXIT BUTTON ═══════════════════ -->
 <div id="histMapExitBtn" onclick="closeHistoryMap()" style="display:none;position:fixed;top:58px;left:50%;transform:translateX(-50%);z-index:29998;background:#1c1c1e;border:1px solid #2c2c2e;border-radius:20px;color:#fff;font-size:13px;font-weight:700;padding:10px 20px;cursor:pointer;align-items:center;gap:8px;box-shadow:0 4px 20px rgba(0,0,0,.6);white-space:nowrap;">
   ✕ <span id="histMapExitLabel">Exit Trip Map</span>
+</div>
+
+<!-- ═══════════════════ HISTORY MAP OVERLAY ═══════════════════ -->
+<div id="historyMapOverlay" style="display:none;position:fixed;inset:0;z-index:60000;background:#0f0f10;flex-direction:column;">
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid #1c1c1e;flex-shrink:0;background:#0f0f10;">
+    <div style="font-size:16px;font-weight:800;">🗺️ <span id="histMapTitle">Today's Trips</span></div>
+    <button onclick="closeHistoryMap()" style="background:#1c1c1e;border:1px solid #2c2c2e;border-radius:10px;color:#fff;font-size:13px;font-weight:600;padding:8px 16px;cursor:pointer;">✕</button>
+  </div>
+  <div id="historyMapEl" style="flex:1;width:100%;min-height:0;"></div>
 </div>
 
 <!-- ═══════════════════ ADMIN PANEL ═══════════════════ -->
