@@ -1101,7 +1101,8 @@ input[type="time"].form-input{ -webkit-appearance:auto; appearance:auto; }
 <div class="bookings-panel" id="historyPanel">
   <div class="bookings-header">
     <div style="font-size:18px;font-weight:800;">📋 <span data-i18n="tripHistory">Trip History</span></div>
-    <div style="display:flex;align-items:center;gap:10px;">
+    <div style="display:flex;align-items:center;gap:8px;">
+      <button id="historyMapBtn" onclick="openHistoryMap()" style="display:none;background:#17181c;border:1px solid #2c2c2e;color:#fff;border-radius:10px;padding:7px 12px;font-size:13px;font-weight:700;cursor:pointer;">🗺️</button>
       <button id="clearAllBtn" onclick="confirmClearAll()" style="display:none;background:#2a1a1a;border:none;color:#ff453a;border-radius:10px;padding:7px 12px;font-size:13px;font-weight:700;cursor:pointer;" data-i18n="clearAll">Clear All</button>
     </div>
   </div>
@@ -3578,6 +3579,8 @@ ${extraRows}${waitRow}
       dirtRoad: chipState.dirtRoad,
       waitCharge: getWaitCharge(),
       waitMs: getWaitMs(),
+      destLat: _geoCache.lat || null,
+      destLng: _geoCache.lng || null,
     };
 
     const saveBtn = document.getElementById('saveTripBtn');
@@ -4297,13 +4300,18 @@ function shiftedDate(d){
   return s;
 }
 
+let _lastLoadedTrips = [];
+
 function renderHistory(trips){
+  _lastLoadedTrips = trips;
   const list = document.getElementById('historyList');
   const stats = document.getElementById('historyStats');
   const clearBtn = document.getElementById('clearAllBtn');
+  const mapBtn  = document.getElementById('historyMapBtn');
   if(!list) return;
 
   if(clearBtn) clearBtn.style.display = trips.length ? 'block' : 'none';
+  if(mapBtn)   mapBtn.style.display   = trips.length ? 'block' : 'none';
 
   const fmt = n => Number.isInteger(n) ? n : parseFloat(n.toFixed(2));
 
@@ -4774,6 +4782,98 @@ window.addEventListener('DOMContentLoaded', ()=>{
 });
 
 </script>
+
+<script>
+// ── History map ───────────────────────────────────────────────
+const HIST_ZONE_COORDS = {
+  'Airport':[41.2555,-70.0611],'Cisco/ Miacomet':[41.2522,-70.1318],
+  'Cross Town':[41.2893,-70.1099],'Dionis':[41.2846,-70.1518],
+  'Eel Point':[41.2898,-70.1853],'Hoicks Hollow':[41.2898,-69.9809],
+  'Low Beach':[41.2520,-69.9809],'Madaket':[41.2758,-70.1937],
+  'Madequecham':[41.2520,-70.0329],'Massassoit Bridge':[41.2676,-70.1681],
+  'Mid - Island B':[41.2572,-70.0888],'Mid Island A':[41.2777,-70.0800],
+  'Mid Island C':[41.2739,-70.1313],'Pocomo':[41.3133,-70.0169],
+  'Polpis':[41.2849,-70.0097],'Quaise':[41.2821,-70.0338],
+  'Quidnet':[41.3031,-69.9882],'Sankaty Light':[41.2793,-69.9772],
+  'Shimmo':[41.2830,-70.0581],'Siasconset':[41.2662,-69.9758],
+  'Squam':[41.3182,-69.9895],'Tom Nevers':[41.2517,-70.0029],
+  'Town':[41.2793,-70.1015],'Wauwinet':[41.3188,-69.9986],
+};
+
+let _histMapInstance = null;
+let _histMapMarkers  = [];
+
+function openHistoryMap(){
+  const overlay = document.getElementById('historyMapOverlay');
+  overlay.style.display = 'flex';
+
+  const title = document.getElementById('histMapTitle');
+  if(title) title.textContent = currentLang==='ru' ? 'Поездки сегодня' : "Today's Trips";
+
+  setTimeout(()=>{
+    // Init map once
+    if(!_histMapInstance){
+      _histMapInstance = L.map('historyMapEl',{zoomControl:true}).setView([41.2793,-70.1015],12);
+      L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{
+        attribution:'© OpenStreetMap', maxZoom:18
+      }).addTo(_histMapInstance);
+    }
+    _histMapInstance.invalidateSize();
+
+    // Remove old markers
+    _histMapMarkers.forEach(m=>m.remove());
+    _histMapMarkers=[];
+
+    // Filter today's trips
+    const todayKey = shiftedDate(new Date()).toDateString();
+    const todayTrips = _lastLoadedTrips.filter(tr=>{
+      const d = tr.localTs ? new Date(tr.localTs) : (tr.ts?.toDate ? tr.ts.toDate() : null);
+      return d && shiftedDate(d).toDateString()===todayKey;
+    });
+
+    const bounds=[];
+    todayTrips.forEach(trip=>{
+      let lat = trip.destLat, lng = trip.destLng;
+      if((!lat||!lng) && trip.toZone && HIST_ZONE_COORDS[trip.toZone]){
+        [lat,lng]=HIST_ZONE_COORDS[trip.toZone];
+      }
+      if(!lat||!lng) return;
+
+      const d = trip.localTs ? new Date(trip.localTs) : (trip.ts?.toDate ? trip.ts.toDate() : new Date());
+      const time = d.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',hour12:true});
+      const dest = trip.destination || trip.toZone || '—';
+      const fare = `$${trip.fare%1===0?trip.fare:trip.fare.toFixed(2)}`;
+
+      const icon = L.divIcon({
+        className:'',
+        html:`<div style="background:#30d158;color:#000;font-size:11px;font-weight:800;padding:4px 7px;border-radius:20px;white-space:nowrap;box-shadow:0 2px 8px rgba(0,0,0,.5);">${fare}</div>`,
+        iconAnchor:[20,12]
+      });
+      const marker = L.marker([lat,lng],{icon}).addTo(_histMapInstance);
+      marker.bindPopup(`<b style="font-size:13px;">${dest}</b><br><span style="opacity:.6;">${time} · ${trip.pax||1} пас.</span><br><b style="color:#30d158;font-size:15px;">${fare}</b>`);
+      _histMapMarkers.push(marker);
+      bounds.push([lat,lng]);
+    });
+
+    if(bounds.length>0){
+      _histMapInstance.fitBounds(bounds,{padding:[40,40],maxZoom:14});
+    }
+  },120);
+}
+
+function closeHistoryMap(){
+  document.getElementById('historyMapOverlay').style.display='none';
+}
+</script>
+
+<!-- ═══════════════════ HISTORY MAP ═══════════════════ -->
+<div id="historyMapOverlay" style="display:none;position:fixed;inset:0;z-index:60000;background:#0a0a0b;flex-direction:column;">
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid #1c1c1e;flex-shrink:0;">
+    <div style="font-size:16px;font-weight:800;">🗺️ <span id="histMapTitle">Today's Trips</span></div>
+    <button onclick="closeHistoryMap()" style="background:#1c1c1e;border:1px solid #2c2c2e;border-radius:10px;color:#fff;font-size:13px;font-weight:600;padding:8px 14px;cursor:pointer;">✕</button>
+  </div>
+  <div id="historyMapEl" style="flex:1;min-height:0;"></div>
+</div>
 
 <!-- ═══════════════════ ADMIN PANEL ═══════════════════ -->
 <div id="adminRoot" style="display:none;position:fixed;inset:0;background:#0a0a0b;z-index:999999;overflow-y:auto;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#fff;">
