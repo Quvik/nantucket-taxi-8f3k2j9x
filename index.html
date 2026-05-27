@@ -4856,8 +4856,8 @@ function openHistoryMap(){
 
       const icon=L.divIcon({
         className:'',
-        html:`<div style="width:46px;height:46px;background:#30d158;color:#000;font-size:12px;font-weight:900;border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 3px 10px rgba(0,0,0,.5);border:2px solid rgba(0,0,0,.25);white-space:nowrap;">${fare}</div>`,
-        iconAnchor:[23,23]
+        html:`<div style="width:36px;height:36px;background:#30d158;color:#000;font-size:11px;font-weight:900;border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 3px 10px rgba(0,0,0,.5);border:2px solid rgba(0,0,0,.25);white-space:nowrap;">${fare}</div>`,
+        iconAnchor:[18,18]
       });
       const marker=L.marker([lat,lng],{icon}).addTo(_histMapInstance);
       marker.bindPopup(`<div style="min-width:140px;"><b>${dest}</b><br><span style="opacity:.6;font-size:12px;">${time} · ${trip.pax||1} pax</span><br><b style="color:#30d158;font-size:16px;">${fare}</b></div>`);
