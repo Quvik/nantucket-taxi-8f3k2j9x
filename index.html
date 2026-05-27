@@ -3498,9 +3498,15 @@ async function calculateFare() {
     if (gpsWarnEl) {
         if (!destinationZone) {
             gpsWarnEl.textContent = '⚠️ Зона не найдена — проверьте адрес или выберите зону вручную';
+            gpsWarnEl.style.cssText += ';background:#2a1a1a;color:#ff453a;';
             gpsWarnEl.style.display = 'block';
         } else if (!lat && !navigator.onLine) {
             gpsWarnEl.textContent = '⚠️ Нет интернета — зона из локальной базы, проверьте на карте';
+            gpsWarnEl.style.cssText += ';background:#2a1a1a;color:#ff453a;';
+            gpsWarnEl.style.display = 'block';
+        } else if (!lat) {
+            gpsWarnEl.textContent = 'ℹ️ Зона найдена по базе — может быть неточной';
+            gpsWarnEl.style.cssText += ';background:#1a1f2a;color:#64b5f6;';
             gpsWarnEl.style.display = 'block';
         } else {
             gpsWarnEl.style.display = 'none';
