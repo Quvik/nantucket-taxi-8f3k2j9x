@@ -3499,7 +3499,7 @@ async function calculateFare() {
         if (!destinationZone) {
             gpsWarnEl.textContent = '⚠️ Зона не найдена — проверьте адрес или выберите зону вручную';
             gpsWarnEl.style.display = 'block';
-        } else if (!lat) {
+        } else if (!lat && !navigator.onLine) {
             gpsWarnEl.textContent = '⚠️ Нет интернета — зона из локальной базы, проверьте на карте';
             gpsWarnEl.style.display = 'block';
         } else {
