@@ -4820,7 +4820,7 @@ function openHistoryMap(){
   if(title) title.textContent = currentLang==='ru' ? 'Поездки сегодня' : "Today's Trips";
 
   // Double RAF: first paints flex layout, second gives Leaflet real dimensions
-  requestAnimationFrame(()=>requestAnimationFrame(()=>{
+  requestAnimationFrame(()=>requestAnimationFrame(async ()=>{
     if(!_histMapInstance){
       _histMapInstance = L.map('historyMapEl',{zoomControl:true})
         .setView([41.2793,-70.1015],12);
@@ -4841,38 +4841,44 @@ function openHistoryMap(){
       return d && shiftedDate(d).toDateString()===todayKey;
     });
 
-    const zoneCount={}, bounds=[];
-    todayTrips.forEach(trip=>{
-      let lat=trip.destLat, lng=trip.destLng;
-      const hasExact = lat && lng;
-
-      if(!hasExact && trip.toZone && HIST_ZONE_COORDS[trip.toZone]){
-        const key=trip.toZone;
-        zoneCount[key]=(zoneCount[key]||0)+1;
-        const n=zoneCount[key];
-        // Small tight spiral so zone-only markers don't fully stack
-        const angle=n*137.5*Math.PI/180;
-        const r=n===1?0:0.0003*Math.sqrt(n-1);
-        lat=HIST_ZONE_COORDS[key][0]+r*Math.sin(angle);
-        lng=HIST_ZONE_COORDS[key][1]+r*Math.cos(angle);
+    // Resolve coords for every trip (exact saved or geocode address)
+    async function resolveCoords(trip){
+      if(trip.destLat && trip.destLng) return {lat:trip.destLat, lng:trip.destLng};
+      const addr = trip.destination;
+      if(!addr) return null;
+      try{
+        const res = await fetch(`https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(addr+', Nantucket, MA')}&key=${GMAPS_KEY}&bounds=41.19,-70.38|41.34,-69.84`);
+        const data = await res.json();
+        const r = data.results?.[0];
+        if(r) return {lat:r.geometry.location.lat, lng:r.geometry.location.lng};
+      }catch{}
+      // fallback: zone center
+      if(trip.toZone && HIST_ZONE_COORDS[trip.toZone]){
+        const [zlat,zlng]=HIST_ZONE_COORDS[trip.toZone];
+        return {lat:zlat,lng:zlng};
       }
-      if(!lat||!lng) return;
+      return null;
+    }
 
+    const iconHtml = fare => `<div style="width:36px;height:36px;background:#30d158;color:#000;font-size:11px;font-weight:900;border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 3px 10px rgba(0,0,0,.5);border:2px solid rgba(0,0,0,.25);">${fare}</div>`;
+
+    const bounds=[];
+    const resolved = await Promise.all(todayTrips.map(async trip=>{
+      const coords = await resolveCoords(trip);
+      return {trip, coords};
+    }));
+
+    resolved.forEach(({trip, coords})=>{
+      if(!coords) return;
+      const {lat,lng} = coords;
       const d=trip.localTs?new Date(trip.localTs):(trip.ts?.toDate?trip.ts.toDate():new Date());
       const time=d.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',hour12:true});
       const dest=trip.destination||trip.toZone||'—';
       const fare=trip.fare%1===0?`$${trip.fare}`:`$${trip.fare.toFixed(2)}`;
 
-      // Exact coords = solid green; zone-only = grey outline
-      const iconHtml = hasExact
-        ? `<div style="width:36px;height:36px;background:#30d158;color:#000;font-size:11px;font-weight:900;border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 3px 10px rgba(0,0,0,.5);border:2px solid rgba(0,0,0,.25);">${fare}</div>`
-        : `<div style="width:36px;height:36px;background:#2c2c2e;color:#aaa;font-size:11px;font-weight:900;border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(0,0,0,.4);border:2px dashed #555;">${fare}</div>`;
-
-      const approxNote = hasExact ? '' : `<br><span style="opacity:.5;font-size:11px;">~${trip.toZone||'зона'}</span>`;
-
-      const icon=L.divIcon({className:'',html:iconHtml,iconAnchor:[18,18]});
+      const icon=L.divIcon({className:'',html:iconHtml(fare),iconAnchor:[18,18]});
       const marker=L.marker([lat,lng],{icon}).addTo(_histMapInstance);
-      marker.bindPopup(`<div style="min-width:140px;"><b>${dest}</b>${approxNote}<br><span style="opacity:.6;font-size:12px;">${time} · ${trip.pax||1} pax</span><br><b style="color:#30d158;font-size:16px;">${fare}</b></div>`);
+      marker.bindPopup(`<div style="min-width:140px;"><b>${dest}</b><br><span style="opacity:.6;font-size:12px;">${time} · ${trip.pax||1} pax</span><br><b style="color:#30d158;font-size:16px;">${fare}</b></div>`);
       _histMapMarkers.push(marker);
       bounds.push([lat,lng]);
     });
