@@ -4891,19 +4891,45 @@ function openHistoryMap(){
         }
 
         if(!coords){
+          // 1) Google Maps Geocoding — works from browser (sends Referer header automatically)
+          let googleStatus='';
           try{
             const url=`https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(addr+', Nantucket, MA')}&key=${GMAPS_KEY}&bounds=41.19,-70.38|41.34,-69.84`;
             const res=await fetch(url);
             const data=await res.json();
+            googleStatus=data.status;
             const r=data.results?.[0];
-            if(r){
+            if(r && data.status==='OK'){
               const lat=r.geometry.location.lat, lng=r.geometry.location.lng;
               if(inNantucket(lat,lng)){
                 coords={lat,lng};
                 localStorage.setItem(cacheKey,JSON.stringify(coords));
               }
             }
-          }catch{}
+          }catch(e){ googleStatus='FETCH_ERROR'; }
+
+          // 2) Nominatim fallback — skip administrative areas (town/city) that cluster at center
+          if(!coords){
+            const skipClass=['boundary'];
+            const skipType=['town','city','county','state','country','administrative','municipality','island'];
+            try{
+              const url=`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(addr+', Nantucket, MA')}&format=json&limit=5&countrycodes=us&viewbox=-70.38,41.34,-69.84,41.19`;
+              const res=await fetch(url,{headers:{'Accept-Language':'en'}});
+              const data=await res.json();
+              for(const item of (data||[])){
+                const lat=parseFloat(item.lat), lng=parseFloat(item.lon);
+                if(inNantucket(lat,lng) && !skipClass.includes(item.class) && !skipType.includes(item.type)){
+                  coords={lat,lng};
+                  localStorage.setItem(cacheKey,JSON.stringify(coords));
+                  break;
+                }
+              }
+            }catch{}
+            await new Promise(r=>setTimeout(r,1100));
+          }
+
+          // Show diagnostic in status bar (Google status helps debug key restrictions)
+          if(statusEl) statusEl.textContent=`Google:${googleStatus||'?'} | ${addr.substring(0,20)}`;
         }
 
         if(coords && inNantucket(coords.lat,coords.lng)){
