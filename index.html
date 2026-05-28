@@ -4864,32 +4864,22 @@ function openHistoryMap(){
       return [lat,lng];
     }
 
-    // First pass: trips with saved coords (instant)
+    // All trips go through Google geocoder — Firestore destLat/destLng from old
+    // Nominatim runs may be wrong, so we don't trust them. localStorage cache
+    // (key _ntgeo4_) stores trusted Google results for fast subsequent opens.
     const bounds=[];
-    const needGeocode=[];
     const zoneCount={};
 
-    todayTrips.forEach(trip=>{
-      if(trip.destLat && trip.destLng && inNantucket(trip.destLat,trip.destLng)){
-        bounds.push(addTripMarker(trip.destLat,trip.destLng,trip));
-      } else {
-        needGeocode.push(trip);
-      }
-    });
-
-    if(bounds.length>0) _histMapInstance.fitBounds(bounds,{padding:[50,50],maxZoom:15});
-
-    // Second pass: geocode addresses with Nominatim (OSM) + localStorage cache
     const statusEl = document.getElementById('histMapStatus');
     let geocoded=0;
-    if(statusEl && needGeocode.length>0) statusEl.textContent=`Уточняем адреса 0/${needGeocode.length}...`;
+    if(statusEl && todayTrips.length>0) statusEl.textContent=`Геокодируем адреса...`;
 
-    for(const trip of needGeocode){
+    for(const trip of todayTrips){
       let placed=false;
       const addr=(trip.destination||'').trim();
       if(addr){
-        // v3 prefix: re-geocode everything with Census API (Nominatim had wrong data)
-        const cacheKey='_ntgeo3_'+addr.toLowerCase().replace(/[^a-z0-9]/g,'_');
+        // v4: Google Maps results only — clears all previous bad cache entries
+        const cacheKey='_ntgeo4_'+addr.toLowerCase().replace(/[^a-z0-9]/g,'_');
         let coords=null;
         const cached=localStorage.getItem(cacheKey);
         if(cached){
@@ -4901,7 +4891,6 @@ function openHistoryMap(){
         }
 
         if(!coords){
-          // Google Maps Geocoding API — same key already used by the main app
           try{
             const url=`https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(addr+', Nantucket, MA')}&key=${GMAPS_KEY}&bounds=41.19,-70.38|41.34,-69.84`;
             const res=await fetch(url);
@@ -4921,12 +4910,7 @@ function openHistoryMap(){
           bounds.push(addTripMarker(coords.lat,coords.lng,trip));
           placed=true;
           geocoded++;
-          if(statusEl) statusEl.textContent=`Уточняем адреса ${geocoded}/${needGeocode.length}...`;
-          // Save back to Firestore so next time coords are instant
-          if(fbDb&&fbUser&&trip.id){
-            fbDb.collection('users').doc(fbUser.uid).collection('trips').doc(trip.id)
-              .update({destLat:coords.lat,destLng:coords.lng}).catch(()=>{});
-          }
+          if(statusEl) statusEl.textContent=`Адреса: ${geocoded}/${todayTrips.length}`;
         }
       }
       // Fallback: zone center with spiral offset
