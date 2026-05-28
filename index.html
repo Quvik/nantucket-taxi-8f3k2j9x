@@ -4844,9 +4844,13 @@ function openHistoryMap(){
     const NAN_BOX = {minLat:41.19,maxLat:41.34,minLng:-70.38,maxLng:-69.84};
     function inNantucket(lat,lng){ return lat>=NAN_BOX.minLat&&lat<=NAN_BOX.maxLat&&lng>=NAN_BOX.minLng&&lng<=NAN_BOX.maxLng; }
 
-    function makeMarkerIcon(fare){
+    function makeMarkerIcon(fare, addr){
+      const short = addr ? addr.replace(/, Nantucket.*$/i,'').substring(0,22) : '';
       return L.divIcon({className:'',iconAnchor:[18,18],
-        html:`<div style="width:36px;height:36px;background:#30d158;color:#000;font-size:11px;font-weight:900;border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 3px 10px rgba(0,0,0,.5);border:2px solid rgba(0,0,0,.25);">${fare}</div>`});
+        html:`<div style="display:flex;flex-direction:column;align-items:center;gap:2px;">
+          <div style="width:36px;height:36px;background:#30d158;color:#000;font-size:11px;font-weight:900;border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 3px 10px rgba(0,0,0,.5);border:2px solid rgba(0,0,0,.25);">${fare}</div>
+          ${short?`<div style="font-size:9px;font-weight:600;color:#fff;background:rgba(0,0,0,.65);border-radius:4px;padding:1px 4px;white-space:nowrap;max-width:90px;overflow:hidden;text-overflow:ellipsis;">${short}</div>`:''}
+        </div>`});
     }
 
     function addTripMarker(lat,lng,trip){
@@ -4854,7 +4858,7 @@ function openHistoryMap(){
       const time=d.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',hour12:true});
       const dest=trip.destination||trip.toZone||'—';
       const fare=trip.fare%1===0?`$${trip.fare}`:`$${trip.fare.toFixed(2)}`;
-      const m=L.marker([lat,lng],{icon:makeMarkerIcon(fare)}).addTo(_histMapInstance);
+      const m=L.marker([lat,lng],{icon:makeMarkerIcon(fare,dest)}).addTo(_histMapInstance);
       m.bindPopup(`<div style="min-width:140px;"><b>${dest}</b><br><span style="opacity:.6;font-size:12px;">${time} · ${trip.pax||1} pax</span><br><b style="color:#30d158;font-size:16px;">${fare}</b></div>`);
       _histMapMarkers.push(m);
       return [lat,lng];
@@ -4888,18 +4892,27 @@ function openHistoryMap(){
         const cacheKey='_ntgeo_'+addr.toLowerCase().replace(/[^a-z0-9]/g,'_');
         let coords=null;
         const cached=localStorage.getItem(cacheKey);
-        if(cached){ try{ coords=JSON.parse(cached); }catch{} }
+        if(cached){
+          try{
+            const c=JSON.parse(cached);
+            if(c && typeof c.lat==='number' && inNantucket(c.lat,c.lng)) coords=c;
+            else localStorage.removeItem(cacheKey); // clear bad/stale cache
+          }catch{ localStorage.removeItem(cacheKey); }
+        }
 
         if(!coords){
           try{
-            const url=`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(addr+', Nantucket, MA, USA')}&format=json&limit=1&countrycodes=us&bounded=1&viewbox=-70.38,41.34,-69.84,41.19`;
-            const res=await fetch(url,{headers:{'Accept-Language':'en','User-Agent':'NantucketTaxiApp'}});
+            // limit=5 + skip administrative objects (town/city/county) which would all land at Nantucket center
+            const url=`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(addr+', Nantucket, MA')}&format=json&limit=5&countrycodes=us&viewbox=-70.38,41.34,-69.84,41.19`;
+            const res=await fetch(url,{headers:{'Accept-Language':'en'}});
             const data=await res.json();
-            if(data?.[0]){
-              const lat=parseFloat(data[0].lat), lng=parseFloat(data[0].lon);
-              if(inNantucket(lat,lng)){
+            const adminTypes=['town','city','county','state','country','administrative','municipality'];
+            for(const item of (data||[])){
+              const lat=parseFloat(item.lat), lng=parseFloat(item.lon);
+              if(inNantucket(lat,lng) && !adminTypes.includes(item.type)){
                 coords={lat,lng};
                 localStorage.setItem(cacheKey,JSON.stringify(coords));
+                break;
               }
             }
           }catch{}
