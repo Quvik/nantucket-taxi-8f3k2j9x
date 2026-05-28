@@ -4841,47 +4841,73 @@ function openHistoryMap(){
       return d && shiftedDate(d).toDateString()===todayKey;
     });
 
-    // Resolve coords for every trip (exact saved or geocode address)
-    async function resolveCoords(trip){
-      if(trip.destLat && trip.destLng) return {lat:trip.destLat, lng:trip.destLng};
-      const addr = trip.destination;
-      if(!addr) return null;
-      try{
-        const res = await fetch(`https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(addr+', Nantucket, MA')}&key=${GMAPS_KEY}&bounds=41.19,-70.38|41.34,-69.84`);
-        const data = await res.json();
-        const r = data.results?.[0];
-        if(r) return {lat:r.geometry.location.lat, lng:r.geometry.location.lng};
-      }catch{}
-      // fallback: zone center
-      if(trip.toZone && HIST_ZONE_COORDS[trip.toZone]){
-        const [zlat,zlng]=HIST_ZONE_COORDS[trip.toZone];
-        return {lat:zlat,lng:zlng};
-      }
-      return null;
+    const NAN_BOX = {minLat:41.19,maxLat:41.34,minLng:-70.38,maxLng:-69.84};
+    function inNantucket(lat,lng){ return lat>=NAN_BOX.minLat&&lat<=NAN_BOX.maxLat&&lng>=NAN_BOX.minLng&&lng<=NAN_BOX.maxLng; }
+
+    function makeMarkerIcon(fare){
+      return L.divIcon({className:'',iconAnchor:[18,18],
+        html:`<div style="width:36px;height:36px;background:#30d158;color:#000;font-size:11px;font-weight:900;border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 3px 10px rgba(0,0,0,.5);border:2px solid rgba(0,0,0,.25);">${fare}</div>`});
     }
 
-    const iconHtml = fare => `<div style="width:36px;height:36px;background:#30d158;color:#000;font-size:11px;font-weight:900;border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 3px 10px rgba(0,0,0,.5);border:2px solid rgba(0,0,0,.25);">${fare}</div>`;
-
-    const bounds=[];
-    const resolved = await Promise.all(todayTrips.map(async trip=>{
-      const coords = await resolveCoords(trip);
-      return {trip, coords};
-    }));
-
-    resolved.forEach(({trip, coords})=>{
-      if(!coords) return;
-      const {lat,lng} = coords;
+    function addTripMarker(lat,lng,trip){
       const d=trip.localTs?new Date(trip.localTs):(trip.ts?.toDate?trip.ts.toDate():new Date());
       const time=d.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',hour12:true});
       const dest=trip.destination||trip.toZone||'—';
       const fare=trip.fare%1===0?`$${trip.fare}`:`$${trip.fare.toFixed(2)}`;
+      const m=L.marker([lat,lng],{icon:makeMarkerIcon(fare)}).addTo(_histMapInstance);
+      m.bindPopup(`<div style="min-width:140px;"><b>${dest}</b><br><span style="opacity:.6;font-size:12px;">${time} · ${trip.pax||1} pax</span><br><b style="color:#30d158;font-size:16px;">${fare}</b></div>`);
+      _histMapMarkers.push(m);
+      return [lat,lng];
+    }
 
-      const icon=L.divIcon({className:'',html:iconHtml(fare),iconAnchor:[18,18]});
-      const marker=L.marker([lat,lng],{icon}).addTo(_histMapInstance);
-      marker.bindPopup(`<div style="min-width:140px;"><b>${dest}</b><br><span style="opacity:.6;font-size:12px;">${time} · ${trip.pax||1} pax</span><br><b style="color:#30d158;font-size:16px;">${fare}</b></div>`);
-      _histMapMarkers.push(marker);
-      bounds.push([lat,lng]);
+    // First pass: trips with saved coords (instant)
+    const bounds=[];
+    const needGeocode=[];
+    const zoneCount={};
+
+    todayTrips.forEach(trip=>{
+      if(trip.destLat && trip.destLng && inNantucket(trip.destLat,trip.destLng)){
+        bounds.push(addTripMarker(trip.destLat,trip.destLng,trip));
+      } else {
+        needGeocode.push(trip);
+      }
     });
+
+    if(bounds.length>0) _histMapInstance.fitBounds(bounds,{padding:[50,50],maxZoom:15});
+
+    // Second pass: geocode addresses sequentially
+    for(const trip of needGeocode){
+      let placed=false;
+      const addr=trip.destination;
+      if(addr){
+        try{
+          const res=await fetch(`https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(addr+', Nantucket, MA')}&key=${GMAPS_KEY}&components=locality:Nantucket|administrative_area:MA|country:US`);
+          const data=await res.json();
+          const r=data.results?.[0];
+          if(r){
+            const {lat,lng}={lat:r.geometry.location.lat,lng:r.geometry.location.lng};
+            if(inNantucket(lat,lng)){
+              bounds.push(addTripMarker(lat,lng,trip));
+              placed=true;
+            }
+          }
+        }catch{}
+        await new Promise(r=>setTimeout(r,80));
+      }
+      // Fallback: zone center with spiral offset
+      if(!placed && trip.toZone && HIST_ZONE_COORDS[trip.toZone]){
+        const key=trip.toZone;
+        zoneCount[key]=(zoneCount[key]||0)+1;
+        const n=zoneCount[key];
+        const angle=n*137.5*Math.PI/180;
+        const r2=n===1?0:0.0003*Math.sqrt(n-1);
+        const lat=HIST_ZONE_COORDS[key][0]+r2*Math.sin(angle);
+        const lng=HIST_ZONE_COORDS[key][1]+r2*Math.cos(angle);
+        bounds.push(addTripMarker(lat,lng,trip));
+      }
+    }
+
+    if(bounds.length>0) _histMapInstance.fitBounds(bounds,{padding:[50,50],maxZoom:15});
 
     if(bounds.length>0){
       _histMapInstance.fitBounds(bounds,{padding:[50,50],maxZoom:15});
