@@ -4881,7 +4881,7 @@ function openHistoryMap(){
       const addr=trip.destination;
       if(addr){
         try{
-          const res=await fetch(`https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(addr+', Nantucket, MA')}&key=${GMAPS_KEY}&components=locality:Nantucket|administrative_area:MA|country:US`);
+          const res=await fetch(`https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(addr+', Nantucket, MA')}&key=${GMAPS_KEY}&bounds=41.19,-70.38|41.34,-69.84`);
           const data=await res.json();
           const r=data.results?.[0];
           if(r){
