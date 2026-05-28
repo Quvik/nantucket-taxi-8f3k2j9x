@@ -4888,8 +4888,8 @@ function openHistoryMap(){
       let placed=false;
       const addr=(trip.destination||'').trim();
       if(addr){
-        // v2 prefix: forces re-geocoding of old cached results that may have been wrong
-        const cacheKey='_ntgeo2_'+addr.toLowerCase().replace(/[^a-z0-9]/g,'_');
+        // v3 prefix: re-geocode everything with Census API (Nominatim had wrong data)
+        const cacheKey='_ntgeo3_'+addr.toLowerCase().replace(/[^a-z0-9]/g,'_');
         let coords=null;
         const cached=localStorage.getItem(cacheKey);
         if(cached){
@@ -4901,22 +4901,32 @@ function openHistoryMap(){
         }
 
         if(!coords){
-          const skipClass=['boundary'];
-          const skipType=['town','city','county','state','country','administrative','municipality','island'];
-
-          // For addresses like "2 Boyer's Alley" or "14 Pine St",
-          // try Nominatim structured query first — far more precise for specific house numbers
-          const queries=[];
           const numMatch=addr.match(/^(\d+[a-zA-Z]?)\s+(.+)$/);
-          if(numMatch){
-            queries.push(`https://nominatim.openstreetmap.org/search?house=${encodeURIComponent(numMatch[1])}&street=${encodeURIComponent(numMatch[2])}&city=Nantucket&state=MA&country=US&format=json&limit=3`);
-          }
-          // Freetext always included as fallback
-          queries.push(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(addr+', Nantucket, MA')}&format=json&limit=5&countrycodes=us&viewbox=-70.38,41.34,-69.84,41.19`);
 
-          for(const url of queries){
-            if(coords) break;
+          // 1st attempt: US Census Bureau Geocoding API — free, no key, very accurate for US addresses
+          if(numMatch){
             try{
+              const url=`https://geocoding.geo.census.gov/geocoder/locations/address?street=${encodeURIComponent(addr)}&city=Nantucket&state=MA&benchmark=Public_AR_Current&format=json`;
+              const res=await fetch(url);
+              const data=await res.json();
+              const match=data?.result?.addressMatches?.[0];
+              if(match){
+                const lat=match.coordinates.y, lng=match.coordinates.x;
+                if(inNantucket(lat,lng)){
+                  coords={lat,lng};
+                  localStorage.setItem(cacheKey,JSON.stringify(coords));
+                }
+              }
+            }catch{}
+            await new Promise(r=>setTimeout(r,300));
+          }
+
+          // 2nd attempt: Nominatim — good for place names (hotels, restaurants, beaches)
+          if(!coords){
+            const skipClass=['boundary'];
+            const skipType=['town','city','county','state','country','administrative','municipality','island'];
+            try{
+              const url=`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(addr+', Nantucket, MA')}&format=json&limit=5&countrycodes=us&viewbox=-70.38,41.34,-69.84,41.19`;
               const res=await fetch(url,{headers:{'Accept-Language':'en'}});
               const data=await res.json();
               for(const item of (data||[])){
@@ -4928,7 +4938,7 @@ function openHistoryMap(){
                 }
               }
             }catch{}
-            await new Promise(r=>setTimeout(r,1100)); // Nominatim: max 1 req/sec
+            await new Promise(r=>setTimeout(r,1100));
           }
         }
 

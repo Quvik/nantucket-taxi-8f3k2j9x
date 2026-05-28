@@ -1,4 +1,4 @@
-const CACHE      = 'ntaxi-v42';
+const CACHE      = 'ntaxi-v43';
 const TILE_CACHE = 'ntaxi-tiles-v2';
 const MAX_TILES  = 1000;
 
@@ -36,6 +36,7 @@ const SKIP_HOSTS = [
   'allorigins.win','corsproxy.io','codetabs.com',
   'flaticon.com',
   'nominatim.openstreetmap.org', // geocoding — always network, never cache
+  'geocoding.geo.census.gov',   // US Census geocoding — always network
 ];
 
 // ── Tile math ──────────────────────────────────────────────────
