@@ -4875,29 +4875,48 @@ function openHistoryMap(){
 
     if(bounds.length>0) _histMapInstance.fitBounds(bounds,{padding:[50,50],maxZoom:15});
 
-    // Second pass: geocode addresses sequentially
+    // Second pass: geocode addresses with Nominatim (OSM) + localStorage cache
     const statusEl = document.getElementById('histMapStatus');
     let geocoded=0;
-    if(statusEl && needGeocode.length>0) statusEl.textContent=`Уточняем адреса (0/${needGeocode.length})...`;
+    if(statusEl && needGeocode.length>0) statusEl.textContent=`Уточняем адреса 0/${needGeocode.length}...`;
+
     for(const trip of needGeocode){
       let placed=false;
-      const addr=trip.destination;
+      const addr=(trip.destination||'').trim();
       if(addr){
-        try{
-          const res=await fetch(`https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(addr+', Nantucket, MA')}&key=${GMAPS_KEY}&bounds=41.19,-70.38|41.34,-69.84`);
-          const data=await res.json();
-          const r=data.results?.[0];
-          if(r){
-            const {lat,lng}={lat:r.geometry.location.lat,lng:r.geometry.location.lng};
-            if(inNantucket(lat,lng)){
-              bounds.push(addTripMarker(lat,lng,trip));
-              placed=true;
-              geocoded++;
-              if(statusEl) statusEl.textContent=`Геокодировано: ${geocoded}/${needGeocode.length}`;
+        // Check localStorage cache first
+        const cacheKey='_ntgeo_'+addr.toLowerCase().replace(/[^a-z0-9]/g,'_');
+        let coords=null;
+        const cached=localStorage.getItem(cacheKey);
+        if(cached){ try{ coords=JSON.parse(cached); }catch{} }
+
+        if(!coords){
+          try{
+            const url=`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(addr+', Nantucket, MA, USA')}&format=json&limit=1&countrycodes=us&bounded=1&viewbox=-70.38,41.34,-69.84,41.19`;
+            const res=await fetch(url,{headers:{'Accept-Language':'en','User-Agent':'NantucketTaxiApp'}});
+            const data=await res.json();
+            if(data?.[0]){
+              const lat=parseFloat(data[0].lat), lng=parseFloat(data[0].lon);
+              if(inNantucket(lat,lng)){
+                coords={lat,lng};
+                localStorage.setItem(cacheKey,JSON.stringify(coords));
+              }
             }
+          }catch{}
+          await new Promise(r=>setTimeout(r,1100)); // Nominatim: max 1 req/sec
+        }
+
+        if(coords && inNantucket(coords.lat,coords.lng)){
+          bounds.push(addTripMarker(coords.lat,coords.lng,trip));
+          placed=true;
+          geocoded++;
+          if(statusEl) statusEl.textContent=`Уточняем адреса ${geocoded}/${needGeocode.length}...`;
+          // Save back to Firestore so next time coords are instant
+          if(fbDb&&fbUser&&trip.id){
+            fbDb.collection('users').doc(fbUser.uid).collection('trips').doc(trip.id)
+              .update({destLat:coords.lat,destLng:coords.lng}).catch(()=>{});
           }
-        }catch(e){}
-        await new Promise(res2=>setTimeout(res2,80));
+        }
       }
       // Fallback: zone center with spiral offset
       if(!placed && trip.toZone && HIST_ZONE_COORDS[trip.toZone]){
