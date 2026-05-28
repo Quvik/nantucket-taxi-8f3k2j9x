@@ -4876,6 +4876,9 @@ function openHistoryMap(){
     if(bounds.length>0) _histMapInstance.fitBounds(bounds,{padding:[50,50],maxZoom:15});
 
     // Second pass: geocode addresses sequentially
+    const statusEl = document.getElementById('histMapStatus');
+    let geocoded=0;
+    if(statusEl && needGeocode.length>0) statusEl.textContent=`Уточняем адреса (0/${needGeocode.length})...`;
     for(const trip of needGeocode){
       let placed=false;
       const addr=trip.destination;
@@ -4889,10 +4892,12 @@ function openHistoryMap(){
             if(inNantucket(lat,lng)){
               bounds.push(addTripMarker(lat,lng,trip));
               placed=true;
+              geocoded++;
+              if(statusEl) statusEl.textContent=`Геокодировано: ${geocoded}/${needGeocode.length}`;
             }
           }
-        }catch{}
-        await new Promise(r=>setTimeout(r,80));
+        }catch(e){}
+        await new Promise(res2=>setTimeout(res2,80));
       }
       // Fallback: zone center with spiral offset
       if(!placed && trip.toZone && HIST_ZONE_COORDS[trip.toZone]){
@@ -4908,10 +4913,7 @@ function openHistoryMap(){
     }
 
     if(bounds.length>0) _histMapInstance.fitBounds(bounds,{padding:[50,50],maxZoom:15});
-
-    if(bounds.length>0){
-      _histMapInstance.fitBounds(bounds,{padding:[50,50],maxZoom:15});
-    }
+    if(statusEl) statusEl.textContent='';
   }));
 }
 
@@ -4933,7 +4935,10 @@ function closeHistoryMap(){
 <!-- ═══════════════════ HISTORY MAP OVERLAY ═══════════════════ -->
 <div id="historyMapOverlay" style="display:none;position:fixed;inset:0;z-index:60000;background:#0f0f10;flex-direction:column;">
   <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid #1c1c1e;flex-shrink:0;background:#0f0f10;">
-    <div style="font-size:16px;font-weight:800;">🗺️ <span id="histMapTitle">Today's Trips</span></div>
+    <div>
+      <div style="font-size:16px;font-weight:800;">🗺️ <span id="histMapTitle">Today's Trips</span></div>
+      <div id="histMapStatus" style="font-size:11px;color:#30d158;margin-top:2px;min-height:14px;"></div>
+    </div>
     <button onclick="closeHistoryMap()" style="background:#1c1c1e;border:1px solid #2c2c2e;border-radius:10px;color:#fff;font-size:13px;font-weight:600;padding:8px 16px;cursor:pointer;">✕</button>
   </div>
   <div id="historyMapEl" style="flex:1;width:100%;min-height:0;"></div>
