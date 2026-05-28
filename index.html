@@ -4844,12 +4844,15 @@ function openHistoryMap(){
     const zoneCount={}, bounds=[];
     todayTrips.forEach(trip=>{
       let lat=trip.destLat, lng=trip.destLng;
-      if((!lat||!lng) && trip.toZone && HIST_ZONE_COORDS[trip.toZone]){
+      const hasExact = lat && lng;
+
+      if(!hasExact && trip.toZone && HIST_ZONE_COORDS[trip.toZone]){
         const key=trip.toZone;
         zoneCount[key]=(zoneCount[key]||0)+1;
         const n=zoneCount[key];
+        // Small tight spiral so zone-only markers don't fully stack
         const angle=n*137.5*Math.PI/180;
-        const r=n===1?0:0.0008*Math.sqrt(n-1);
+        const r=n===1?0:0.0003*Math.sqrt(n-1);
         lat=HIST_ZONE_COORDS[key][0]+r*Math.sin(angle);
         lng=HIST_ZONE_COORDS[key][1]+r*Math.cos(angle);
       }
@@ -4860,13 +4863,16 @@ function openHistoryMap(){
       const dest=trip.destination||trip.toZone||'—';
       const fare=trip.fare%1===0?`$${trip.fare}`:`$${trip.fare.toFixed(2)}`;
 
-      const icon=L.divIcon({
-        className:'',
-        html:`<div style="width:36px;height:36px;background:#30d158;color:#000;font-size:11px;font-weight:900;border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 3px 10px rgba(0,0,0,.5);border:2px solid rgba(0,0,0,.25);white-space:nowrap;">${fare}</div>`,
-        iconAnchor:[18,18]
-      });
+      // Exact coords = solid green; zone-only = grey outline
+      const iconHtml = hasExact
+        ? `<div style="width:36px;height:36px;background:#30d158;color:#000;font-size:11px;font-weight:900;border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 3px 10px rgba(0,0,0,.5);border:2px solid rgba(0,0,0,.25);">${fare}</div>`
+        : `<div style="width:36px;height:36px;background:#2c2c2e;color:#aaa;font-size:11px;font-weight:900;border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(0,0,0,.4);border:2px dashed #555;">${fare}</div>`;
+
+      const approxNote = hasExact ? '' : `<br><span style="opacity:.5;font-size:11px;">~${trip.toZone||'зона'}</span>`;
+
+      const icon=L.divIcon({className:'',html:iconHtml,iconAnchor:[18,18]});
       const marker=L.marker([lat,lng],{icon}).addTo(_histMapInstance);
-      marker.bindPopup(`<div style="min-width:140px;"><b>${dest}</b><br><span style="opacity:.6;font-size:12px;">${time} · ${trip.pax||1} pax</span><br><b style="color:#30d158;font-size:16px;">${fare}</b></div>`);
+      marker.bindPopup(`<div style="min-width:140px;"><b>${dest}</b>${approxNote}<br><span style="opacity:.6;font-size:12px;">${time} · ${trip.pax||1} pax</span><br><b style="color:#30d158;font-size:16px;">${fare}</b></div>`);
       _histMapMarkers.push(marker);
       bounds.push([lat,lng]);
     });
