@@ -4446,7 +4446,13 @@ function _showEditModal(tripData){
       <div style="margin-bottom:12px;">
         <div style="font-size:11px;opacity:.5;margin-bottom:5px;">${currentLang==='ru'?'ОТКУДА (точнее)':'FROM (specific)'}</div>
         <input id="et_fromAddr" type="text" placeholder="${currentLang==='ru'?'Напр: Club Car, White Elephant...':'E.g. Club Car, White Elephant...'}" value="${(td.fromAddress||'').replace(/"/g,'&quot;')}"
-          style="width:100%;box-sizing:border-box;background:#12121a;border:1px solid #333;color:white;border-radius:10px;padding:10px;font-size:14px;">
+          style="width:100%;box-sizing:border-box;background:#12121a;border:1px solid #333;color:white;border-radius:10px;padding:10px;font-size:14px;margin-bottom:8px;">
+        <div style="display:flex;flex-wrap:wrap;gap:6px;">
+          ${['Hy-Line Ferry','Steamship Authority','Club Car','White Elephant','Galley Beach','Cisco Brewers','Airport','Straight Wharf','Brant Point','Jetties Beach'].map(p=>`
+            <button type="button" onclick="document.getElementById('et_fromAddr').value='${p}'"
+              style="background:#1c2030;border:1px solid #333;color:#ccc;border-radius:20px;padding:5px 11px;font-size:12px;cursor:pointer;white-space:nowrap;">${p}</button>
+          `).join('')}
+        </div>
       </div>
 
       <div style="margin-bottom:12px;">
