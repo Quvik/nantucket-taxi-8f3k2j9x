@@ -4388,6 +4388,7 @@ function renderHistory(trips){
         <div style="flex:1;min-width:0;">
           <div style="font-size:15px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${from} → ${dest}</div>
           <div style="font-size:12px;opacity:.5;margin-top:2px;">${toZone}${showDest?'':''} · ${time} · ${extras}</div>
+          ${trip.notes?`<div style="font-size:12px;color:#ffd60a;margin-top:5px;white-space:pre-wrap;word-break:break-word;">📝 ${trip.notes.replace(/</g,'&lt;')}</div>`:''}
         </div>
         <div style="font-size:20px;font-weight:900;color:#30d158;flex-shrink:0;">$${trip.fare!=null?fmt(trip.fare):'?'}</div>
         <button onclick="editTrip('${trip.id}')" style="background:#1a2233;border:none;color:#0a84ff;border-radius:10px;width:34px;height:34px;font-size:16px;cursor:pointer;flex-shrink:0;">✏️</button>
@@ -4508,6 +4509,11 @@ function _showEditModal(tripData){
         <button id="et_night" data-on="${td.nightFee?'1':'0'}" onclick="etToggle('et_night','🌙 Night')" style="flex:1;border-radius:10px;padding:10px;font-size:13px;font-weight:700;cursor:pointer;border:none;${td.nightFee?'background:#1a1a3a;color:#0a84ff;':'background:#252530;color:white;'}">${t('nightFee')}</button>
       </div>
 
+      <div style="margin-bottom:16px;">
+        <div style="font-size:11px;opacity:.5;margin-bottom:5px;">📝 ${currentLang==='ru'?'ЗАМЕТКА':'NOTE'}</div>
+        <textarea id="et_notes" rows="3" placeholder="${currentLang==='ru'?'Добавить заметку к поездке...':'Add a note to this trip...'}" style="width:100%;box-sizing:border-box;background:#12121a;border:1px solid #333;color:#ffd60a;border-radius:10px;padding:10px;font-size:14px;resize:vertical;font-family:inherit;">${(td.notes||'').replace(/</g,'&lt;')}</textarea>
+      </div>
+
       <div style="display:flex;gap:10px;">
         <button onclick="document.getElementById('editTripOverlay').remove()" style="flex:1;background:#252530;border:none;color:white;border-radius:14px;padding:14px;font-size:15px;font-weight:700;cursor:pointer;">${t('cancel')}</button>
         <button onclick="saveEditTrip()" style="flex:1;background:#0a84ff;border:none;color:white;border-radius:14px;padding:14px;font-size:15px;font-weight:700;cursor:pointer;">${t('save')}</button>
@@ -4587,9 +4593,10 @@ function saveEditTrip(){
   const nightBtn  = document.getElementById('et_night');
   const dirtRoad  = dirtBtn  ? dirtBtn.dataset.on  === '1' : false;
   const nightFee  = nightBtn ? nightBtn.dataset.on === '1' : false;
+  const notes     = ((document.getElementById('et_notes')||{}).value||'').trim();
 
   fbDb.collection('users').doc(fbUser.uid).collection('trips').doc(_editingTripId)
-    .update({ fromZone, toZone, destination:dest, fare, passengers, waitCharge, dogs, bikes, bags, dirtRoad, nightFee })
+    .update({ fromZone, toZone, destination:dest, fare, passengers, waitCharge, dogs, bikes, bags, dirtRoad, nightFee, notes })
     .then(()=>{
       const overlay = document.getElementById('editTripOverlay');
       if(overlay) overlay.remove();
