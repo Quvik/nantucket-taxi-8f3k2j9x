@@ -4873,15 +4873,28 @@ function openHistoryMap(){
         </div>`});
     }
 
+    // Track placed coords to offset duplicate-location markers (spiral spread)
+    const _placedKeys={};
+    function spreadCoords(lat,lng){
+      const key=`${lat.toFixed(4)},${lng.toFixed(4)}`;
+      const n=(_placedKeys[key]||0);
+      _placedKeys[key]=n+1;
+      if(n===0) return [lat,lng];
+      const angle=n*137.5*Math.PI/180;
+      const r=0.00022*Math.sqrt(n); // ~24m per step
+      return [lat+r*Math.sin(angle), lng+r*Math.cos(angle)];
+    }
+
     function addTripMarker(lat,lng,trip){
+      const [slat,slng]=spreadCoords(lat,lng);
       const d=trip.localTs?new Date(trip.localTs):(trip.ts?.toDate?trip.ts.toDate():new Date());
       const time=d.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',hour12:true});
       const dest=trip.destination||trip.toZone||'—';
       const fare=trip.fare%1===0?`$${trip.fare}`:`$${trip.fare.toFixed(2)}`;
-      const m=L.marker([lat,lng],{icon:makeMarkerIcon(fare,dest)}).addTo(_histMapInstance);
-      m.bindPopup(`<div style="min-width:140px;"><b>${dest}</b><br><span style="opacity:.6;font-size:12px;">${time} · ${trip.pax||1} pax</span><br><b style="color:#30d158;font-size:16px;">${fare}</b></div>`);
+      const m=L.marker([slat,slng],{icon:makeMarkerIcon(fare,dest)}).addTo(_histMapInstance);
+      m.bindPopup(`<div style="min-width:140px;"><b>${dest}</b><br><span style="opacity:.6;font-size:12px;">${time} · ${trip.passengers||1} pax</span><br><b style="color:#30d158;font-size:16px;">${fare}</b></div>`);
       _histMapMarkers.push(m);
-      return [lat,lng];
+      return [slat,slng];
     }
 
     // Pass 1: trips that already have GPS coords from Google Places (saved during trip entry)
