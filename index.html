@@ -4884,82 +4884,75 @@ function openHistoryMap(){
       return [lat,lng];
     }
 
-    // All trips go through Google geocoder — Firestore destLat/destLng from old
-    // Nominatim runs may be wrong, so we don't trust them. localStorage cache
-    // (key _ntgeo4_) stores trusted Google results for fast subsequent opens.
+    // Pass 1: trips that already have GPS coords from Google Places (saved during trip entry)
     const bounds=[];
+    const needGeocode=[];
     const zoneCount={};
 
-    const statusEl = document.getElementById('histMapStatus');
-    let geocoded=0;
-    if(statusEl && todayTrips.length>0) statusEl.textContent=`Геокодируем адреса...`;
+    todayTrips.forEach(trip=>{
+      if(trip.destLat && trip.destLng && inNantucket(trip.destLat,trip.destLng)){
+        bounds.push(addTripMarker(trip.destLat,trip.destLng,trip));
+      } else {
+        needGeocode.push(trip);
+      }
+    });
 
-    for(const trip of todayTrips){
+    if(bounds.length>0) _histMapInstance.fitBounds(bounds,{padding:[50,50],maxZoom:15});
+
+    // Pass 2: geocode remaining trips using Google Places JS SDK — same API as main map
+    const statusEl=document.getElementById('histMapStatus');
+    if(statusEl && needGeocode.length>0) statusEl.textContent=`Геокодируем ${needGeocode.length}...`;
+
+    const nanBounds=new google.maps.LatLngBounds(
+      new google.maps.LatLng(41.19,-70.38), new google.maps.LatLng(41.34,-69.84));
+    const _psvc=new google.maps.places.PlacesService(document.createElement('div'));
+    const _gcdr=new google.maps.Geocoder();
+
+    function geocodeAddr(addr){
+      const cacheKey='_ntgeo4_'+addr.toLowerCase().replace(/[^a-z0-9]/g,'_');
+      const cached=localStorage.getItem(cacheKey);
+      if(cached){ try{ const c=JSON.parse(cached); if(c&&inNantucket(c.lat,c.lng)) return Promise.resolve(c); }catch{} localStorage.removeItem(cacheKey); }
+
+      // Try Places findPlaceFromQuery first (great for POI names like "Galley Beach")
+      return new Promise(resolve=>{
+        _psvc.findPlaceFromQuery({query:addr+', Nantucket, MA',fields:['geometry'],locationBias:nanBounds},(r,s)=>{
+          if(s===google.maps.places.PlacesServiceStatus.OK && r?.[0]?.geometry){
+            const lat=r[0].geometry.location.lat(), lng=r[0].geometry.location.lng();
+            if(inNantucket(lat,lng)){
+              const c={lat,lng};
+              localStorage.setItem(cacheKey,JSON.stringify(c));
+              return resolve(c);
+            }
+          }
+          // Fallback: JS Geocoder (good for street addresses like "14 Pine St")
+          _gcdr.geocode({address:addr+', Nantucket, MA',bounds:nanBounds},(r2,s2)=>{
+            if(s2==='OK' && r2?.[0]){
+              const lat=r2[0].geometry.location.lat(), lng=r2[0].geometry.location.lng();
+              if(inNantucket(lat,lng)){
+                const c={lat,lng};
+                localStorage.setItem(cacheKey,JSON.stringify(c));
+                return resolve(c);
+              }
+            }
+            resolve(null);
+          });
+        });
+      });
+    }
+
+    let geocoded=0;
+    for(const trip of needGeocode){
       let placed=false;
       const addr=(trip.destination||'').trim();
       if(addr){
-        // v4: Google Maps results only — clears all previous bad cache entries
-        const cacheKey='_ntgeo4_'+addr.toLowerCase().replace(/[^a-z0-9]/g,'_');
-        let coords=null;
-        const cached=localStorage.getItem(cacheKey);
-        if(cached){
-          try{
-            const c=JSON.parse(cached);
-            if(c && typeof c.lat==='number' && inNantucket(c.lat,c.lng)) coords=c;
-            else localStorage.removeItem(cacheKey);
-          }catch{ localStorage.removeItem(cacheKey); }
-        }
-
-        if(!coords){
-          // 1) Google Maps Geocoding — works from browser (sends Referer header automatically)
-          let googleStatus='';
-          try{
-            const url=`https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(addr+', Nantucket, MA')}&key=${GMAPS_KEY}&bounds=41.19,-70.38|41.34,-69.84`;
-            const res=await fetch(url);
-            const data=await res.json();
-            googleStatus=data.status;
-            const r=data.results?.[0];
-            if(r && data.status==='OK'){
-              const lat=r.geometry.location.lat, lng=r.geometry.location.lng;
-              if(inNantucket(lat,lng)){
-                coords={lat,lng};
-                localStorage.setItem(cacheKey,JSON.stringify(coords));
-              }
-            }
-          }catch(e){ googleStatus='FETCH_ERROR'; }
-
-          // 2) Nominatim fallback — skip administrative areas (town/city) that cluster at center
-          if(!coords){
-            const skipClass=['boundary'];
-            const skipType=['town','city','county','state','country','administrative','municipality','island'];
-            try{
-              const url=`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(addr+', Nantucket, MA')}&format=json&limit=5&countrycodes=us&viewbox=-70.38,41.34,-69.84,41.19`;
-              const res=await fetch(url,{headers:{'Accept-Language':'en'}});
-              const data=await res.json();
-              for(const item of (data||[])){
-                const lat=parseFloat(item.lat), lng=parseFloat(item.lon);
-                if(inNantucket(lat,lng) && !skipClass.includes(item.class) && !skipType.includes(item.type)){
-                  coords={lat,lng};
-                  localStorage.setItem(cacheKey,JSON.stringify(coords));
-                  break;
-                }
-              }
-            }catch{}
-            await new Promise(r=>setTimeout(r,1100));
-          }
-
-          // Show diagnostic in status bar (Google status helps debug key restrictions)
-          if(statusEl) statusEl.textContent=`Google:${googleStatus||'?'} | ${addr.substring(0,20)}`;
-        }
-
-        if(coords && inNantucket(coords.lat,coords.lng)){
+        const coords=await geocodeAddr(addr);
+        if(coords){
           bounds.push(addTripMarker(coords.lat,coords.lng,trip));
           placed=true;
           geocoded++;
-          if(statusEl) statusEl.textContent=`Адреса: ${geocoded}/${todayTrips.length}`;
+          if(statusEl) statusEl.textContent=`${geocoded}/${needGeocode.length}`;
         }
       }
-      // Fallback: zone center with spiral offset
       if(!placed && trip.toZone && HIST_ZONE_COORDS[trip.toZone]){
         const key=trip.toZone;
         zoneCount[key]=(zoneCount[key]||0)+1;
