@@ -4370,7 +4370,7 @@ function renderHistory(trips){
     </div>
     ${group.trips.map(trip=>{
       const time = trip._date.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',hour12:true});
-      const from = trip.fromZone||'—';
+      const from = trip.fromAddress||trip.fromZone||'—';
       const toZone = trip.toZone||'—';
       const dest = trip.destination||toZone;
       const showDest = dest && dest.toLowerCase()!==toZone.toLowerCase();
@@ -4441,6 +4441,12 @@ function _showEditModal(tripData){
             ${zoneOpts}
           </select>
         </div>
+      </div>
+
+      <div style="margin-bottom:12px;">
+        <div style="font-size:11px;opacity:.5;margin-bottom:5px;">${currentLang==='ru'?'ОТКУДА (точнее)':'FROM (specific)'}</div>
+        <input id="et_fromAddr" type="text" placeholder="${currentLang==='ru'?'Напр: Club Car, White Elephant...':'E.g. Club Car, White Elephant...'}" value="${(td.fromAddress||'').replace(/"/g,'&quot;')}"
+          style="width:100%;box-sizing:border-box;background:#12121a;border:1px solid #333;color:white;border-radius:10px;padding:10px;font-size:14px;">
       </div>
 
       <div style="margin-bottom:12px;">
@@ -4593,10 +4599,11 @@ function saveEditTrip(){
   const nightBtn  = document.getElementById('et_night');
   const dirtRoad  = dirtBtn  ? dirtBtn.dataset.on  === '1' : false;
   const nightFee  = nightBtn ? nightBtn.dataset.on === '1' : false;
-  const notes     = ((document.getElementById('et_notes')||{}).value||'').trim();
+  const notes       = ((document.getElementById('et_notes')||{}).value||'').trim();
+  const fromAddress = ((document.getElementById('et_fromAddr')||{}).value||'').trim();
 
   fbDb.collection('users').doc(fbUser.uid).collection('trips').doc(_editingTripId)
-    .update({ fromZone, toZone, destination:dest, fare, passengers, waitCharge, dogs, bikes, bags, dirtRoad, nightFee, notes })
+    .update({ fromZone, toZone, destination:dest, fare, passengers, waitCharge, dogs, bikes, bags, dirtRoad, nightFee, notes, fromAddress })
     .then(()=>{
       const overlay = document.getElementById('editTripOverlay');
       if(overlay) overlay.remove();
