@@ -4873,44 +4873,64 @@ function openHistoryMap(){
         </div>`});
     }
 
-    // Track placed coords to offset duplicate-location markers (spiral spread)
-    const _placedKeys={};
-    function spreadCoords(lat,lng){
+    // Group trips by location key — same coords share one marker showing total fare
+    const _locGroups={}; // key → {lat,lng,trips:[]}
+    function queueTripMarker(lat,lng,trip){
       const key=`${lat.toFixed(4)},${lng.toFixed(4)}`;
-      const n=(_placedKeys[key]||0);
-      _placedKeys[key]=n+1;
-      if(n===0) return [lat,lng];
-      const angle=n*137.5*Math.PI/180;
-      const r=0.00022*Math.sqrt(n); // ~24m per step
-      return [lat+r*Math.sin(angle), lng+r*Math.cos(angle)];
+      if(!_locGroups[key]) _locGroups[key]={lat,lng,trips:[]};
+      _locGroups[key].trips.push(trip);
+    }
+    function flushMarkers(){
+      Object.values(_locGroups).forEach(({lat,lng,trips})=>{
+        const totalFare=trips.reduce((s,t)=>s+(t.fare||0),0);
+        const fareStr=totalFare%1===0?`$${totalFare}`:`$${totalFare.toFixed(2)}`;
+        const dest=trips[0].destination||trips[0].toZone||'—';
+        const count=trips.length;
+
+        const icon=L.divIcon({className:'',iconAnchor:[22,22],
+          html:`<div style="display:flex;flex-direction:column;align-items:center;gap:2px;">
+            <div style="position:relative;width:44px;height:44px;background:#30d158;color:#000;font-size:${count>1?'10':'11'}px;font-weight:900;border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 3px 10px rgba(0,0,0,.5);border:2px solid rgba(0,0,0,.25);">
+              ${fareStr}
+              ${count>1?`<div style="position:absolute;top:-5px;right:-5px;background:#ff9f0a;color:#000;font-size:10px;font-weight:900;border-radius:50%;width:18px;height:18px;display:flex;align-items:center;justify-content:center;">${count}</div>`:''}
+            </div>
+            <div style="font-size:9px;font-weight:600;color:#fff;background:rgba(0,0,0,.65);border-radius:4px;padding:1px 4px;white-space:nowrap;max-width:90px;overflow:hidden;text-overflow:ellipsis;">${dest.replace(/, Nantucket.*$/i,'').substring(0,22)}</div>
+          </div>`});
+
+        const popupRows=trips.map(t=>{
+          const d=t.localTs?new Date(t.localTs):(t.ts?.toDate?t.ts.toDate():new Date());
+          const time=d.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',hour12:true});
+          const f=t.fare%1===0?`$${t.fare}`:`$${t.fare.toFixed(2)}`;
+          return `<div style="display:flex;justify-content:space-between;gap:12px;padding:4px 0;border-bottom:1px solid #333;">
+            <span style="opacity:.7;font-size:12px;">${time} · ${t.passengers||1} pax</span>
+            <b style="color:#30d158;">${f}</b>
+          </div>`;
+        }).join('');
+
+        const popupContent=`<div style="min-width:160px;">
+          <b style="font-size:13px;">${dest}</b>
+          <div style="margin:8px 0 4px;">${popupRows}</div>
+          ${count>1?`<div style="text-align:right;font-size:13px;font-weight:900;color:#30d158;margin-top:4px;">Итого: ${fareStr}</div>`:''}
+        </div>`;
+
+        const m=L.marker([lat,lng],{icon}).addTo(_histMapInstance);
+        m.bindPopup(popupContent,{maxWidth:220});
+        _histMapMarkers.push(m);
+        bounds.push([lat,lng]);
+      });
     }
 
-    function addTripMarker(lat,lng,trip){
-      const [slat,slng]=spreadCoords(lat,lng);
-      const d=trip.localTs?new Date(trip.localTs):(trip.ts?.toDate?trip.ts.toDate():new Date());
-      const time=d.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',hour12:true});
-      const dest=trip.destination||trip.toZone||'—';
-      const fare=trip.fare%1===0?`$${trip.fare}`:`$${trip.fare.toFixed(2)}`;
-      const m=L.marker([slat,slng],{icon:makeMarkerIcon(fare,dest)}).addTo(_histMapInstance);
-      m.bindPopup(`<div style="min-width:140px;"><b>${dest}</b><br><span style="opacity:.6;font-size:12px;">${time} · ${trip.passengers||1} pax</span><br><b style="color:#30d158;font-size:16px;">${fare}</b></div>`);
-      _histMapMarkers.push(m);
-      return [slat,slng];
-    }
-
-    // Pass 1: trips that already have GPS coords from Google Places (saved during trip entry)
+    // Pass 1: trips with saved GPS coords
     const bounds=[];
     const needGeocode=[];
     const zoneCount={};
 
     todayTrips.forEach(trip=>{
       if(trip.destLat && trip.destLng && inNantucket(trip.destLat,trip.destLng)){
-        bounds.push(addTripMarker(trip.destLat,trip.destLng,trip));
+        queueTripMarker(trip.destLat,trip.destLng,trip);
       } else {
         needGeocode.push(trip);
       }
     });
-
-    if(bounds.length>0) _histMapInstance.fitBounds(bounds,{padding:[50,50],maxZoom:15});
 
     // Pass 2: geocode remaining trips using Google Places JS SDK — same API as main map
     const statusEl=document.getElementById('histMapStatus');
@@ -4960,7 +4980,7 @@ function openHistoryMap(){
       if(addr){
         const coords=await geocodeAddr(addr);
         if(coords){
-          bounds.push(addTripMarker(coords.lat,coords.lng,trip));
+          queueTripMarker(coords.lat,coords.lng,trip);
           placed=true;
           geocoded++;
           if(statusEl) statusEl.textContent=`${geocoded}/${needGeocode.length}`;
@@ -4974,10 +4994,11 @@ function openHistoryMap(){
         const r2=n===1?0:0.0003*Math.sqrt(n-1);
         const lat=HIST_ZONE_COORDS[key][0]+r2*Math.sin(angle);
         const lng=HIST_ZONE_COORDS[key][1]+r2*Math.cos(angle);
-        bounds.push(addTripMarker(lat,lng,trip));
+        queueTripMarker(lat,lng,trip);
       }
     }
 
+    flushMarkers();
     if(bounds.length>0) _histMapInstance.fitBounds(bounds,{padding:[50,50],maxZoom:15});
     if(statusEl) statusEl.textContent='';
   }));
