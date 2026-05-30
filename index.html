@@ -4831,16 +4831,22 @@ const HIST_ZONE_COORDS = {
 
 let _histMapInstance = null;
 let _histMapMarkers  = [];
+let _histMapDayOffset = 0; // 0=today, -1=yesterday, -2=two days ago, etc.
+
+function histMapShiftDay(delta){
+  const newOffset = _histMapDayOffset + delta;
+  if(newOffset > 0) return; // can't go into the future
+  _histMapDayOffset = newOffset;
+  _renderHistoryMap();
+}
 
 function openHistoryMap(){
+  _histMapDayOffset = 0;
   const overlay = document.getElementById('historyMapOverlay');
   overlay.style.display = 'flex';
 
-  const title = document.getElementById('histMapTitle');
-  if(title) title.textContent = currentLang==='ru' ? 'Поездки сегодня' : "Today's Trips";
-
   // Double RAF: first paints flex layout, second gives Leaflet real dimensions
-  requestAnimationFrame(()=>requestAnimationFrame(async ()=>{
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{
     if(!_histMapInstance){
       _histMapInstance = L.map('historyMapEl',{zoomControl:true})
         .setView([41.2793,-70.1015],12);
@@ -4849,16 +4855,38 @@ function openHistoryMap(){
       }).addTo(_histMapInstance);
     }
     _histMapInstance.invalidateSize(true);
+    _renderHistoryMap();
+  }));
+}
 
+async function _renderHistoryMap(){
     // Clear old markers
     _histMapMarkers.forEach(m=>m.remove());
     _histMapMarkers=[];
 
-    // Filter today's trips
-    const todayKey = shiftedDate(new Date()).toDateString();
+    // Compute target date
+    const targetDate = shiftedDate(new Date());
+    targetDate.setDate(targetDate.getDate() + _histMapDayOffset);
+    const dayKey = targetDate.toDateString();
+
+    // Update header title
+    const title = document.getElementById('histMapTitle');
+    const nextBtn = document.getElementById('histMapNextBtn');
+    if(nextBtn) nextBtn.style.opacity = _histMapDayOffset >= 0 ? '0.3' : '1';
+    if(title){
+      if(_histMapDayOffset === 0){
+        title.textContent = currentLang==='ru' ? 'Поездки сегодня' : "Today's Trips";
+      } else if(_histMapDayOffset === -1){
+        title.textContent = currentLang==='ru' ? 'Вчера' : 'Yesterday';
+      } else {
+        const opts={month:'short',day:'numeric'};
+        title.textContent = targetDate.toLocaleDateString(currentLang==='ru'?'ru-RU':'en-US', opts);
+      }
+    }
+
     const todayTrips = _lastLoadedTrips.filter(tr=>{
       const d = tr.localTs ? new Date(tr.localTs) : (tr.ts?.toDate ? tr.ts.toDate() : null);
-      return d && shiftedDate(d).toDateString()===todayKey;
+      return d && shiftedDate(d).toDateString()===dayKey;
     });
 
     const NAN_BOX = {minLat:41.19,maxLat:41.34,minLng:-70.38,maxLng:-69.84};
@@ -5001,7 +5029,6 @@ function openHistoryMap(){
     flushMarkers();
     if(bounds.length>0) _histMapInstance.fitBounds(bounds,{padding:[50,50],maxZoom:15});
     if(statusEl) statusEl.textContent='';
-  }));
 }
 
 function closeHistoryMap(){
@@ -5021,12 +5048,14 @@ function closeHistoryMap(){
 
 <!-- ═══════════════════ HISTORY MAP OVERLAY ═══════════════════ -->
 <div id="historyMapOverlay" style="display:none;position:fixed;inset:0;z-index:60000;background:#0f0f10;flex-direction:column;">
-  <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid #1c1c1e;flex-shrink:0;background:#0f0f10;">
-    <div>
-      <div style="font-size:16px;font-weight:800;">🗺️ <span id="histMapTitle">Today's Trips</span></div>
-      <div id="histMapStatus" style="font-size:11px;color:#30d158;margin-top:2px;min-height:14px;"></div>
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid #1c1c1e;flex-shrink:0;background:#0f0f10;">
+    <button onclick="histMapShiftDay(-1)" style="background:#1c1c1e;border:1px solid #2c2c2e;border-radius:10px;color:#fff;font-size:18px;font-weight:700;width:38px;height:38px;cursor:pointer;flex-shrink:0;">‹</button>
+    <div style="text-align:center;flex:1;">
+      <div style="font-size:15px;font-weight:800;">🗺️ <span id="histMapTitle">Today's Trips</span></div>
+      <div id="histMapStatus" style="font-size:11px;color:#30d158;margin-top:1px;min-height:13px;"></div>
     </div>
-    <button onclick="closeHistoryMap()" style="background:#1c1c1e;border:1px solid #2c2c2e;border-radius:10px;color:#fff;font-size:13px;font-weight:600;padding:8px 16px;cursor:pointer;">✕</button>
+    <button onclick="histMapShiftDay(1)" id="histMapNextBtn" style="background:#1c1c1e;border:1px solid #2c2c2e;border-radius:10px;color:#fff;font-size:18px;font-weight:700;width:38px;height:38px;cursor:pointer;flex-shrink:0;">›</button>
+    <button onclick="closeHistoryMap()" style="background:#1c1c1e;border:1px solid #2c2c2e;border-radius:10px;color:#fff;font-size:13px;font-weight:600;padding:8px 12px;cursor:pointer;margin-left:8px;">✕</button>
   </div>
   <div id="historyMapEl" style="flex:1;width:100%;min-height:0;"></div>
 </div>
