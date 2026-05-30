@@ -5001,28 +5001,32 @@ async function _renderHistoryMap(){
       });
     }
 
-    let geocoded=0;
-    for(const trip of needGeocode){
-      let placed=false;
+    // Geocode all trips in parallel — deduplicate same address with shared promises
+    const _inFlight={};
+    function geocodeAddrCached(addr){
+      if(_inFlight[addr]) return _inFlight[addr];
+      _inFlight[addr]=geocodeAddr(addr);
+      return _inFlight[addr];
+    }
+
+    if(statusEl && needGeocode.length>0) statusEl.textContent=`Геокодируем...`;
+
+    const results=await Promise.all(needGeocode.map(trip=>{
       const addr=(trip.destination||'').trim();
-      if(addr){
-        const coords=await geocodeAddr(addr);
-        if(coords){
-          queueTripMarker(coords.lat,coords.lng,trip);
-          placed=true;
-          geocoded++;
-          if(statusEl) statusEl.textContent=`${geocoded}/${needGeocode.length}`;
-        }
-      }
+      return (addr ? geocodeAddrCached(addr) : Promise.resolve(null))
+        .then(coords=>({trip,coords}));
+    }));
+
+    for(const {trip,coords} of results){
+      let placed=false;
+      if(coords){ queueTripMarker(coords.lat,coords.lng,trip); placed=true; }
       if(!placed && trip.toZone && HIST_ZONE_COORDS[trip.toZone]){
         const key=trip.toZone;
         zoneCount[key]=(zoneCount[key]||0)+1;
         const n=zoneCount[key];
         const angle=n*137.5*Math.PI/180;
         const r2=n===1?0:0.0003*Math.sqrt(n-1);
-        const lat=HIST_ZONE_COORDS[key][0]+r2*Math.sin(angle);
-        const lng=HIST_ZONE_COORDS[key][1]+r2*Math.cos(angle);
-        queueTripMarker(lat,lng,trip);
+        queueTripMarker(HIST_ZONE_COORDS[key][0]+r2*Math.sin(angle), HIST_ZONE_COORDS[key][1]+r2*Math.cos(angle), trip);
       }
     }
 
