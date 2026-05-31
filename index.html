@@ -1395,7 +1395,8 @@ const fareTable = {
 
 let currentZoneName = null;
 let zonesGeoJSON = null;
-let _gpsMarker = null; // driver's current position on zone map
+let _gpsMarker  = null; // driver's current position on zone map
+let _gpsWatchId = null; // watchPosition handle
 
 const ZONE_CENTROIDS = {
     'Airport':             [41.2555, -70.0611],
@@ -1476,12 +1477,15 @@ fetch('zones.kml')
 });
 
 function detectCurrentLocation() {
+    // Clear any previous watch before starting a new one
+    if (_gpsWatchId !== null) {
+        navigator.geolocation.clearWatch(_gpsWatchId);
+        _gpsWatchId = null;
+    }
 
-    navigator.geolocation.getCurrentPosition(pos => {
-
+    function onPosition(pos) {
         const lat = pos.coords.latitude;
         const lng = pos.coords.longitude;
-
         const point = turf.point([lng, lat]);
 
         // Update GPS position marker on zone map (blue dot, replaced each time)
@@ -1498,20 +1502,23 @@ function detectCurrentLocation() {
         }
 
         const { zone: detected, isCrossTown } = findZoneInfo(point);
-        gpsZoneName     = detected;
-        gpsIsCrossTown  = isCrossTown;
-        gpsLat          = lat;
-        gpsLng          = lng;
+        gpsZoneName    = detected;
+        gpsIsCrossTown = isCrossTown;
+        gpsLat         = lat;
+        gpsLng         = lng;
 
         // Only apply if user hasn't overridden manually
-        if(!zoneIsManual){
+        if (!zoneIsManual) {
             currentZoneName = detected;
             document.getElementById('currentZone').innerText = currentZoneName || 'Unknown';
         }
+    }
 
-    }, err => {
-        alert('Allow location access');
-    });
+    _gpsWatchId = navigator.geolocation.watchPosition(
+        onPosition,
+        err => { if (err.code === err.PERMISSION_DENIED) alert('Allow location access'); },
+        { enableHighAccuracy: true, maximumAge: 15000, timeout: 15000 }
+    );
 }
 
 // True only when GPS is within 1000m of Nantucket Airport terminal (ACK).
