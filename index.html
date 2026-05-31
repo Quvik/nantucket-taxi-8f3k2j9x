@@ -1395,6 +1395,7 @@ const fareTable = {
 
 let currentZoneName = null;
 let zonesGeoJSON = null;
+let _gpsMarker = null; // driver's current position on zone map
 
 const ZONE_CENTROIDS = {
     'Airport':             [41.2555, -70.0611],
@@ -1482,6 +1483,19 @@ function detectCurrentLocation() {
         const lng = pos.coords.longitude;
 
         const point = turf.point([lng, lat]);
+
+        // Update GPS position marker on zone map (blue dot, replaced each time)
+        if (_gpsMarker) { _gpsMarker.remove(); _gpsMarker = null; }
+        if (typeof map !== 'undefined') {
+            _gpsMarker = L.marker([lat, lng], {
+                icon: L.divIcon({
+                    html: '<div style="background:#3b82f6;width:14px;height:14px;border-radius:50%;border:3px solid white;box-shadow:0 0 6px rgba(59,130,246,.8)"></div>',
+                    iconSize: [14,14], iconAnchor: [7,7], className: ''
+                }),
+                zIndexOffset: 500
+            }).addTo(map);
+            _gpsMarker.bindTooltip('You', { permanent: false, direction: 'top' });
+        }
 
         const { zone: detected, isCrossTown } = findZoneInfo(point);
         gpsZoneName     = detected;
