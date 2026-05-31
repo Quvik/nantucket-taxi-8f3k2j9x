@@ -1395,7 +1395,6 @@ const fareTable = {
 
 let currentZoneName = null;
 let zonesGeoJSON = null;
-let _crossTownBuf = null; // Cross Town polygon expanded by 200m for destination detection
 
 let map;
 try {
@@ -1416,16 +1415,6 @@ fetch('zones.kml')
     const kml = parser.parseFromString(kmlText, 'text/xml');
 
     zonesGeoJSON = toGeoJSON.kml(kml);
-
-    // Pre-build 200m buffered Cross Town polygon for destination zone checks.
-    // Geocoding can place addresses up to ~100m off the polygon edge, causing
-    // border addresses (Union St etc.) to miss the Cross Town overlay.
-    const ctFeat = zonesGeoJSON.features.find(f =>
-        normalizeZoneName(f.properties?.name || '') === 'Cross Town');
-    if (ctFeat) {
-        try { _crossTownBuf = turf.buffer(ctFeat, 0.2, { units: 'kilometers' }); }
-        catch(e) {}
-    }
 
     // Computed polygon centroids (shoelace formula, verified inside each polygon)
     const LABEL_POS = {
@@ -3450,21 +3439,11 @@ async function calculateFare() {
 
     // ── ШАГИ 1-2: Получить координаты → проверить KML полигон ──
     // Шаг 1: Google Places (если пользователь выбрал из автодополнения)
-    // Checks if a geocoded point falls in Cross Town, with 200m buffer for geocoding imprecision.
-    function checkCrossTown(pt) {
-        const { isCrossTown: exact } = findZoneInfo(pt);
-        if (exact) return true;
-        if (_crossTownBuf) {
-            try { return turf.booleanPointInPolygon(pt, _crossTownBuf); } catch(e) {}
-        }
-        return false;
-    }
-
     if (window.selectedPlace?.geometry) {
         lat = window.selectedPlace.geometry.location.lat();
         lng = window.selectedPlace.geometry.location.lng();
-        const { zone: z } = findZoneInfo(turf.point([lng, lat]));
-        if (z) { destinationZone = z; destIsCrossTown = checkCrossTown(turf.point([lng, lat])); }
+        const { zone: z, isCrossTown: ct } = findZoneInfo(turf.point([lng, lat]));
+        if (z) { destinationZone = z; destIsCrossTown = ct; }
     }
 
     // Шаг 2: Google Geocoding → KML (если Google Places не дал координаты)
@@ -3478,10 +3457,9 @@ async function calculateFare() {
             if (r) {
                 lat = r.geometry.location.lat;
                 lng = r.geometry.location.lng;
-                const { zone: z } = findZoneInfo(turf.point([lng, lat]));
+                const { zone: z, isCrossTown: ct } = findZoneInfo(turf.point([lng, lat]));
                 if (z) {
-                    destinationZone = z;
-                    destIsCrossTown = checkCrossTown(turf.point([lng, lat]));
+                    destinationZone = z; destIsCrossTown = ct;
                     // Update mini-map preview with corrected coordinates
                     showAddressPreview(lat, lng, address);
                 }
