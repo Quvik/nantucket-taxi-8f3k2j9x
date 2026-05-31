@@ -1503,9 +1503,9 @@ function detectCurrentLocation() {
     });
 }
 
-// True only when GPS is within 600m of Nantucket Airport terminal (ACK)
-// Distinguishes "at the airport" from "somewhere in the Airport zone"
+// True when GPS is in the Airport zone polygon (most reliable) or within 600m of terminal
 function gpsIsAtActualAirport() {
+    if (gpsZoneName === 'Airport') return true;
     if (!gpsLat || !gpsLng) return false;
     const R = 6371000;
     const dLat = (gpsLat - 41.2532) * Math.PI / 180;
@@ -3525,7 +3525,8 @@ async function calculateFare() {
         .includes(addrCore);
     const fromZone = (!zoneIsManual && gpsIsCrossTown && isExplicitAirport)
         ? 'Cross Town' : currentZoneName;
-    const toZone = (!zoneIsManual && gpsIsAtActualAirport() && destIsCrossTown)
+    const atAirport = gpsIsAtActualAirport() || currentZoneName === 'Airport';
+    const toZone = (atAirport && destIsCrossTown)
         ? 'Cross Town' : destinationZone;
 
     let baseFare = getFare(fromZone, toZone);
