@@ -1503,16 +1503,17 @@ function detectCurrentLocation() {
     });
 }
 
-// True when GPS is in the Airport zone polygon (most reliable) or within 600m of terminal
+// True only when GPS is within 1000m of Nantucket Airport terminal (ACK).
+// Airport zone polygon is ~2km wide — this radius covers terminal + parking + FBO
+// without including surrounding roads/houses that are also in the Airport zone.
 function gpsIsAtActualAirport() {
-    if (gpsZoneName === 'Airport') return true;
     if (!gpsLat || !gpsLng) return false;
     const R = 6371000;
     const dLat = (gpsLat - 41.2532) * Math.PI / 180;
     const dLng = (gpsLng - (-70.0601)) * Math.PI / 180;
     const a = Math.sin(dLat/2)**2 +
         Math.cos(41.2532 * Math.PI/180) * Math.cos(gpsLat * Math.PI/180) * Math.sin(dLng/2)**2;
-    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)) < 600;
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)) < 1000;
 }
 
 // Returns { zone: underlying zone name, isCrossTown: bool }
@@ -3525,8 +3526,11 @@ async function calculateFare() {
         .includes(addrCore);
     const fromZone = (!zoneIsManual && gpsIsCrossTown && isExplicitAirport)
         ? 'Cross Town' : currentZoneName;
-    const atAirport = gpsIsAtActualAirport() || currentZoneName === 'Airport';
-    const toZone = (atAirport && destIsCrossTown)
+    // $27 Cross Town rate only when GPS confirms you're actually at the terminal,
+    // OR when the user has manually set the zone to Airport (trusted explicit selection).
+    // Being anywhere in the large Airport zone polygon is NOT enough.
+    const manuallyAtAirport = zoneIsManual && currentZoneName === 'Airport';
+    const toZone = ((gpsIsAtActualAirport() || manuallyAtAirport) && destIsCrossTown)
         ? 'Cross Town' : destinationZone;
 
     let baseFare = getFare(fromZone, toZone);
