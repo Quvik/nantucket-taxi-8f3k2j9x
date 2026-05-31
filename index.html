@@ -1396,6 +1396,33 @@ const fareTable = {
 let currentZoneName = null;
 let zonesGeoJSON = null;
 
+const ZONE_CENTROIDS = {
+    'Airport':             [41.2555, -70.0611],
+    'Cisco/ Miacomet':     [41.2522, -70.1318],
+    'Cross Town':          [41.2893, -70.1099],
+    'Dionis':              [41.2846, -70.1518],
+    'Eel Point':           [41.2898, -70.1853],
+    'Hoicks Hollow':       [41.2898, -69.9809],
+    'Low Beach':           [41.2520, -69.9809],
+    'Madaket':             [41.2758, -70.1937],
+    'Madequecham':         [41.2520, -70.0329],
+    'Massassoit Bridge':   [41.2676, -70.1681],
+    'Mid - Island B':      [41.2572, -70.0888],
+    'Mid Island A':        [41.2777, -70.0800],
+    'Mid Island C':        [41.2739, -70.1313],
+    'Pocomo':              [41.3133, -70.0169],
+    'Polpis':              [41.2849, -70.0097],
+    'Quaise':              [41.2821, -70.0338],
+    'Quidnet':             [41.3031, -69.9882],
+    'Sankaty Light':       [41.2793, -69.9772],
+    'Shimmo':              [41.2830, -70.0581],
+    'Siasconset':          [41.2662, -69.9758],
+    'Squam':               [41.3182, -69.9895],
+    'Tom Nevers':          [41.2517, -70.0029],
+    'Town':                [41.2793, -70.1015],
+    'Wauwinet':            [41.3188, -69.9986],
+};
+
 let map;
 try {
     map = L.map('map').setView([41.2835, -70.0995], 13);
@@ -1416,34 +1443,6 @@ fetch('zones.kml')
 
     zonesGeoJSON = toGeoJSON.kml(kml);
 
-    // Computed polygon centroids (shoelace formula, verified inside each polygon)
-    const LABEL_POS = {
-        'Airport':             [41.2555, -70.0611],
-        'Cisco/ Miacomet':     [41.2522, -70.1318],
-        'Cross Town':          [41.2893, -70.1099],
-        'Dionis':              [41.2846, -70.1518],
-        'Eel Point':           [41.2898, -70.1853],
-        'Hoicks Hollow':       [41.2898, -69.9809],
-        'Low Beach':           [41.2520, -69.9809],
-        'Madaket':             [41.2758, -70.1937],
-        'Madequecham':         [41.2520, -70.0329],
-        'Massassoit Bridge':   [41.2676, -70.1681],
-        'Mid - Island B':      [41.2572, -70.0888],
-        'Mid Island A':        [41.2777, -70.0800],
-        'Mid Island C':        [41.2739, -70.1313],
-        'Pocomo':              [41.3133, -70.0169],
-        'Polpis':              [41.2849, -70.0097],
-        'Quaise':              [41.2821, -70.0338],
-        'Quidnet':             [41.3031, -69.9882],
-        'Sankaty Light':       [41.2793, -69.9772],
-        'Shimmo':              [41.2830, -70.0581],
-        'Siasconset':          [41.2662, -69.9758],
-        'Squam':               [41.3182, -69.9895],
-        'Tom Nevers':          [41.2517, -70.0029],
-        'Town':                [41.2793, -70.1015],
-        'Wauwinet':            [41.3188, -69.9986],
-    };
-
     try {
         const layer = L.geoJSON(zonesGeoJSON, {
             style: { color: '#00bfff', weight: 2, fillOpacity: 0.15 },
@@ -1452,8 +1451,8 @@ fetch('zones.kml')
                 if(!name) return;
                 try {
                     let lat, lng;
-                    if(LABEL_POS[name]){
-                        [lat, lng] = LABEL_POS[name];
+                    if(ZONE_CENTROIDS[name]){
+                        [lat, lng] = ZONE_CENTROIDS[name];
                     } else {
                         const c = turf.centroid(feature).geometry.coordinates;
                         lng = c[0]; lat = c[1];
@@ -1483,8 +1482,6 @@ function detectCurrentLocation() {
         const lng = pos.coords.longitude;
 
         const point = turf.point([lng, lat]);
-
-        L.marker([lat, lng]).addTo(map);
 
         const { zone: detected, isCrossTown } = findZoneInfo(point);
         gpsZoneName     = detected;
@@ -3485,6 +3482,10 @@ async function calculateFare() {
     }
 
     // ── Маркер на карте + автооткрытие для визуальной проверки ──
+    // Fallback: if geocoding gave no coords but zone is known, place marker at zone centroid
+    if (!lat && destinationZone && ZONE_CENTROIDS[destinationZone]) {
+        [lat, lng] = ZONE_CENTROIDS[destinationZone];
+    }
     if (lat && lng && destinationZone) {
         updateDestMarker(lat, lng, destinationZone);
         openZoneMap();
