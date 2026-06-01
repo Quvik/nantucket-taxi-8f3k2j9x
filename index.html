@@ -4292,7 +4292,7 @@ function loadHistory(){
   if(list) list.innerHTML=`<div style="text-align:center;padding:40px;opacity:.4;">${t('loading')}</div>`;
   if(_unsubTrips) _unsubTrips();
   _unsubTrips = fbDb.collection('users').doc(fbUser.uid).collection('trips')
-    .orderBy('ts','desc').limit(100)
+    .orderBy('ts','desc')
     .onSnapshot(snap=>{
       renderHistory(snap.docs.map(d=>({id:d.id,...d.data()})));
     }, ()=>{});
