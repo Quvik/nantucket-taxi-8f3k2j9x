@@ -1414,18 +1414,19 @@ function detectCurrentLocation() {
 
         const point = turf.point([lng, lat]);
 
-        L.marker([lat, lng]).addTo(map);
 
-        const { zone: detected, isCrossTown } = findZoneInfo(point);
-        gpsZoneName     = detected;
-        gpsIsCrossTown  = isCrossTown;
-        gpsLat          = lat;
-        gpsLng          = lng;
+        gpsLat = lat;
+        gpsLng = lng;
 
-        // Only apply if user hasn't overridden manually
-        if(!zoneIsManual){
-            currentZoneName = detected;
-            document.getElementById('currentZone').innerText = currentZoneName || 'Unknown';
+        // Only update zone when no destination is entered and user hasn't overridden manually
+        if (!_zoneLockedByDest) {
+            const { zone: detected, isCrossTown } = findZoneInfo(point);
+            gpsZoneName    = detected;
+            gpsIsCrossTown = isCrossTown;
+            if (!zoneIsManual) {
+                currentZoneName = detected;
+                document.getElementById('currentZone').innerText = currentZoneName || 'Unknown';
+            }
         }
 
     }, err => {
@@ -2996,6 +2997,7 @@ function resetAll(){
     document.getElementById('destination').value = '';
     lastDestinationAddress = '';
     window.selectedPlace = null;
+    _zoneLockedByDest = false;
     hideDropdown();
     // Reset counters to defaults
     const defaults = { passengers:1, dogs:0, bikes:0, bags:0 };
@@ -3295,6 +3297,7 @@ async function calculateFare() {
 
     document.getElementById('destinationZone').innerText =
         destinationZone || 'Unknown';
+    if (destinationZone) _zoneLockedByDest = true;
 
     const gpsWarnEl = document.getElementById('gpsZoneWarning');
     if (gpsWarnEl) {
@@ -3421,6 +3424,7 @@ function initAutocompleteUI(){
     const raw = input.value.trim();
     // Reset fare display when cleared
     if(!raw){
+      _zoneLockedByDest = false;
       hideDropdown();
       hideStreetView();
       try{
@@ -3789,11 +3793,12 @@ function toggleStreetViewMode(){
 
 <script>
 // ── Manual zone picker ───────────────────────────────────────
-let gpsZoneName    = null;
-let gpsIsCrossTown = false;
-let zoneIsManual   = false;
-let gpsLat         = null;
-let gpsLng         = null;
+let gpsZoneName       = null;
+let gpsIsCrossTown    = false;
+let zoneIsManual      = false;
+let gpsLat            = null;
+let gpsLng            = null;
+let _zoneLockedByDest = false; // freeze zone while destination is entered
 
 // Все зоны из fareTable (уникальные, отсортированные)
 const ALL_ZONES = [...new Set(
