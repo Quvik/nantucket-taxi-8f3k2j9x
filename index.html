@@ -3892,6 +3892,10 @@ function initFirebase(){
     firebase.initializeApp(FIREBASE_CONFIG);
     fbAuth = firebase.auth();
     fbDb   = firebase.firestore();
+    fbDb.enablePersistence({ synchronizeTabs: true }).catch(err => {
+      if (err.code !== 'failed-precondition' && err.code !== 'unimplemented')
+        console.warn('Firestore persistence:', err);
+    });
     fbAuth.getRedirectResult().catch(e=>console.warn('redirect:', e));
     // If offline and was previously logged in — hide overlay immediately
     const overlay = document.getElementById('loginOverlay');
@@ -4032,7 +4036,8 @@ function saveTripManual(){
   if(!_lastTripData) return;
   const btn = document.getElementById('saveTripBtn');
   saveTrip(_lastTripData);
-  if(btn){ btn.textContent=t('savedMsg'); btn.disabled=true; }
+  const offlineMsg = !navigator.onLine ? ' (офлайн — синхр. позже)' : '';
+  if(btn){ btn.textContent = t('savedMsg') + offlineMsg; btn.disabled=true; }
   _lastTripData = null;
 }
 
