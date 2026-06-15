@@ -5203,6 +5203,8 @@ function closeHistoryMap(){
   }
 
   onFirebaseReady((auth)=>{
+    // Persist admin session across page reloads
+    auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch(()=>{});
     auth.onAuthStateChanged(user=>{
       if(user && user.email === 'adminQQ@nantuckettaxi.com'){
         document.getElementById('adminLogin').style.display = 'none';
@@ -5210,10 +5212,8 @@ function closeHistoryMap(){
         const lbl = document.getElementById('adminWhoLabel');
         if(lbl) lbl.textContent = user.email || '';
         adminLoadData(firebase.firestore());
-      } else if(user){
-        auth.signOut();
-        document.getElementById('adminLoginErr').textContent = 'Нет доступа для этого аккаунта';
       } else {
+        // Don't sign out other users — just show login form
         document.getElementById('adminLogin').style.display = 'flex';
         document.getElementById('adminDash').style.display  = 'none';
       }
