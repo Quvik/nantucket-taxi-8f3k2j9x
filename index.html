@@ -5203,17 +5203,15 @@ function closeHistoryMap(){
   }
 
   onFirebaseReady((auth)=>{
-    // Persist admin session across page reloads
-    auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch(()=>{});
     auth.onAuthStateChanged(user=>{
       if(user && user.email === 'adminqq@nantuckettaxi.com'){
+        window._adminLoggingIn = false;
         document.getElementById('adminLogin').style.display = 'none';
         document.getElementById('adminDash').style.display  = 'block';
         const lbl = document.getElementById('adminWhoLabel');
         if(lbl) lbl.textContent = user.email || '';
         adminLoadData(firebase.firestore());
-      } else {
-        // Don't sign out other users — just show login form
+      } else if(!window._adminLoggingIn){
         document.getElementById('adminLogin').style.display = 'flex';
         document.getElementById('adminDash').style.display  = 'none';
       }
@@ -5230,11 +5228,15 @@ function adminDoLogin(){
   err.textContent='';
   btn.textContent='Входим…';
   btn.disabled=true;
-  firebase.auth().signInWithEmailAndPassword(email, pass).catch(()=>{
-    err.textContent='Неверный email или пароль';
-    btn.textContent='Войти';
-    btn.disabled=false;
-  });
+  window._adminLoggingIn = true;
+  firebase.auth().signInWithEmailAndPassword(email, pass)
+    .then(()=>{ window._adminLoggingIn = false; })
+    .catch(()=>{
+      window._adminLoggingIn = false;
+      err.textContent='Неверный email или пароль';
+      btn.textContent='Войти';
+      btn.disabled=false;
+    });
 }
 
 function adminDoLogout(){
