@@ -4143,7 +4143,7 @@ function initFirebase(){
     }
 
     const ADMIN_EMAIL = 'dima.kdy04@gmail.com';
-    const ADMIN_PANEL_UID = 'Aq1HD74p54ZaoqjW82L6C0SauIG3';
+    const ADMIN_PANEL_EMAIL = 'adminQQ@nantuckettaxi.com';
 
     fbAuth.onAuthStateChanged(async user=>{
       fbUser = user;
@@ -4162,7 +4162,7 @@ function initFirebase(){
 
         // Access check — admin always has access
         const paywall = document.getElementById('paywallOverlay');
-        if(user.email !== ADMIN_EMAIL && user.uid !== ADMIN_PANEL_UID){
+        if(user.email !== ADMIN_EMAIL && user.email !== ADMIN_PANEL_EMAIL){
           try{
             const doc = await fbDb.collection('users').doc(user.uid).get();
             const expiry = doc.data()?.accessExpiry?.toDate?.() || null;
@@ -5204,7 +5204,7 @@ function closeHistoryMap(){
 
   onFirebaseReady((auth)=>{
     auth.onAuthStateChanged(user=>{
-      if(user && user.uid === 'Aq1HD74p54ZaoqjW82L6C0SauIG3'){
+      if(user && user.email === 'adminQQ@nantuckettaxi.com'){
         document.getElementById('adminLogin').style.display = 'none';
         document.getElementById('adminDash').style.display  = 'block';
         const lbl = document.getElementById('adminWhoLabel');
