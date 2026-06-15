@@ -4890,6 +4890,13 @@ if('serviceWorker' in navigator){
     sessionStorage.setItem('_sw_reloaded', '1');
     location.reload();
   });
+  // Fallback: SW sends SW_UPDATED after claim() in case controllerchange fires before listener is ready
+  navigator.serviceWorker.addEventListener('message', e => {
+    if(e.data?.type !== 'SW_UPDATED') return;
+    if(sessionStorage.getItem('_sw_reloaded')) return;
+    sessionStorage.setItem('_sw_reloaded', '1');
+    location.reload();
+  });
   window.addEventListener('load', ()=>{
     navigator.serviceWorker.register('/nantucket-taxi-8f3k2j9x/sw.js')
       .then(reg => { reg.update(); })

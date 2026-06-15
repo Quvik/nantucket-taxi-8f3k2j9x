@@ -1,4 +1,4 @@
-const CACHE      = 'ntaxi-v62';
+const CACHE      = 'ntaxi-v63';
 const TILE_CACHE = 'ntaxi-tiles-v2';
 const MAX_TILES  = 1000;
 
@@ -80,6 +80,8 @@ self.addEventListener('activate', e => {
         keys.filter(k => k !== CACHE && k !== TILE_CACHE).map(k => caches.delete(k))
       ))
       .then(() => self.clients.claim())
+      .then(() => self.clients.matchAll({includeUncontrolled: true}))
+      .then(clients => clients.forEach(c => c.postMessage({type:'SW_UPDATED'})))
   );
 });
 
