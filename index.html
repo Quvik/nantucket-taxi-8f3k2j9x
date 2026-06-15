@@ -5258,6 +5258,8 @@ async function adminLoadData(db){
   const allTripsSnap = await db.collectionGroup('trips').get();
 
   const byUid = {};
+  // Seed from profiles so users without trips still appear
+  Object.keys(profiles).forEach(uid=>{ byUid[uid]={uid, trips:[], earn:0}; });
   for(const tdoc of allTripsSnap.docs){
     const trip = {id:tdoc.id,...tdoc.data()};
     const uid  = trip.uid || tdoc.ref.parent.parent.id;
@@ -5319,9 +5321,12 @@ async function adminLoadData(db){
     const expiryStr = expiry
       ? expiry.toLocaleDateString('ru-RU',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'})
       : 'нет';
-    const accessBadge = hasAccess
-      ? `<span style="background:#0a2a0a;color:#30d158;border:1px solid #30d15844;border-radius:8px;padding:3px 8px;font-size:11px;font-weight:700;">✓ до ${expiryStr}</span>`
-      : `<span style="background:#2a0a0a;color:#ff453a;border:1px solid #ff453a44;border-radius:8px;padding:3px 8px;font-size:11px;font-weight:700;">✗ нет доступа</span>`;
+    const isAdminAcc = mail === 'dima.kdy04@gmail.com' || mail === 'adminQQ@nantuckettaxi.com';
+    const accessBadge = isAdminAcc
+      ? `<span style="background:#1a1a2a;color:#0a84ff;border:1px solid #0a84ff44;border-radius:8px;padding:3px 8px;font-size:11px;font-weight:700;">👑 Admin</span>`
+      : hasAccess
+        ? `<span style="background:#0a2a0a;color:#30d158;border:1px solid #30d15844;border-radius:8px;padding:3px 8px;font-size:11px;font-weight:700;">✓ до ${expiryStr}</span>`
+        : `<span style="background:#2a0a0a;color:#ff453a;border:1px solid #ff453a44;border-radius:8px;padding:3px 8px;font-size:11px;font-weight:700;">✗ нет доступа</span>`;
 
     const tripsHtml = row.trips.length===0
       ? '<div style="opacity:.3;font-size:12px;text-align:center;padding:14px 0;">Нет поездок</div>'
@@ -5353,10 +5358,10 @@ async function adminLoadData(db){
         </div>
       </div>
       <div style="margin-bottom:10px;">${accessBadge}</div>
-      <button onclick="adminGrantAccess('${row.uid}',this)"
+      ${!isAdminAcc ? `<button onclick="adminGrantAccess('${row.uid}',this)"
         style="width:100%;padding:10px;background:#0a2a0a;border:1px solid #30d15844;border-radius:10px;color:#30d158;font-size:13px;font-weight:700;cursor:pointer;margin-bottom:8px;">
         🔓 Выдать доступ на 1 неделю
-      </button>
+      </button>` : ''}
       <div style="font-size:11px;opacity:.3;margin-bottom:10px;">Последняя поездка: ${lastStr}</div>
       <button onclick="adminToggleTrips('atrips${i}',this)"
         style="width:100%;padding:9px;background:#0f0f10;border:1px solid #252528;border-radius:10px;color:#fff;font-size:12px;font-weight:600;cursor:pointer;">
