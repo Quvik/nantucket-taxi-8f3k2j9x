@@ -4143,7 +4143,7 @@ function initFirebase(){
     }
 
     const ADMIN_EMAIL = 'dima.kdy04@gmail.com';
-    const ADMIN_PANEL_EMAIL = 'adminQQ@nantuckettaxi.com';
+    const ADMIN_PANEL_EMAIL = 'adminqq@nantuckettaxi.com';
 
     fbAuth.onAuthStateChanged(async user=>{
       fbUser = user;
@@ -5206,7 +5206,7 @@ function closeHistoryMap(){
     // Persist admin session across page reloads
     auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch(()=>{});
     auth.onAuthStateChanged(user=>{
-      if(user && user.email === 'adminQQ@nantuckettaxi.com'){
+      if(user && user.email === 'adminqq@nantuckettaxi.com'){
         document.getElementById('adminLogin').style.display = 'none';
         document.getElementById('adminDash').style.display  = 'block';
         const lbl = document.getElementById('adminWhoLabel');
@@ -5321,7 +5321,7 @@ async function adminLoadData(db){
     const expiryStr = expiry
       ? expiry.toLocaleDateString('ru-RU',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'})
       : 'нет';
-    const isAdminAcc = mail === 'dima.kdy04@gmail.com' || mail === 'adminQQ@nantuckettaxi.com';
+    const isAdminAcc = mail === 'dima.kdy04@gmail.com' || mail === 'adminqq@nantuckettaxi.com';
     const accessBadge = isAdminAcc
       ? `<span style="background:#1a1a2a;color:#0a84ff;border:1px solid #0a84ff44;border-radius:8px;padding:3px 8px;font-size:11px;font-weight:700;">👑 Admin</span>`
       : hasAccess
