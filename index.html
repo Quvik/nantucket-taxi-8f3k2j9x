@@ -4143,6 +4143,7 @@ function initFirebase(){
     }
 
     const ADMIN_EMAIL = 'dima.kdy04@gmail.com';
+    const ADMIN_PANEL_UID = 'Aq1HD74p54ZaoqjW82L6C0SauIG3';
 
     fbAuth.onAuthStateChanged(async user=>{
       fbUser = user;
@@ -4161,7 +4162,7 @@ function initFirebase(){
 
         // Access check — admin always has access
         const paywall = document.getElementById('paywallOverlay');
-        if(user.email !== ADMIN_EMAIL){
+        if(user.email !== ADMIN_EMAIL && user.uid !== ADMIN_PANEL_UID){
           try{
             const doc = await fbDb.collection('users').doc(user.uid).get();
             const expiry = doc.data()?.accessExpiry?.toDate?.() || null;
