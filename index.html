@@ -5203,7 +5203,7 @@ function closeHistoryMap(){
 
   onFirebaseReady((auth)=>{
     auth.onAuthStateChanged(user=>{
-      if(user && user.email === 'dima.kdy04@gmail.com'){
+      if(user && user.uid === 'Aq1HD74p54ZaoqjW82L6C0SauIG3'){
         document.getElementById('adminLogin').style.display = 'none';
         document.getElementById('adminDash').style.display  = 'block';
         const lbl = document.getElementById('adminWhoLabel');
