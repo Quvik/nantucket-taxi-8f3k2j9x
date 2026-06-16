@@ -3137,6 +3137,7 @@ function resetAll(){
     lastDestinationAddress = '';
     window.selectedPlace = null;
     _zoneLockedByDest = false;
+    _pickupGeoKey = null; _pickupGeoResult = null;
     hideDropdown();
     // Reset counters to defaults
     const defaults = { passengers:1, dogs:0, bikes:0, bags:0 };
@@ -3278,6 +3279,8 @@ const chipState = { nightFee: false, dirtRoad: false };
 let _geoCache = { addr:'', zone:null, isCrossTown:false, lat:null, lng:null };
 let _nightAutoMode = true; // false once user manually toggles
 let waitStartTime = null;
+let _pickupGeoKey = null;   // destination address last used for pickup geocode
+let _pickupGeoResult = null; // cached fromAddress from Nominatim
 let waitAccruedMs = 0;
 let waitTickId = null;
 let _staticTotalNoWait = 0;
@@ -3658,8 +3661,11 @@ ${extraRows}${waitRow}
       fromLng: gpsLng || null,
     };
 
-    // Reverse-geocode pickup location in background so analytics show specific places
-    if(gpsLat && gpsLng){
+    // Reverse-geocode pickup location — only when destination changes (not on pax/extras re-calc)
+    if(_pickupGeoResult) {
+      _lastTripData.fromAddress = _pickupGeoResult;
+    } else if(gpsLat && gpsLng && address !== _pickupGeoKey){
+      _pickupGeoKey = address;
       const _tripSnap = _lastTripData;
       fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${gpsLat}&lon=${gpsLng}&zoom=18&addressdetails=1`, {headers:{'Accept-Language':'en'}})
         .then(r=>r.json())
@@ -3667,6 +3673,7 @@ ${extraRows}${waitRow}
           const a = d.address||{};
           const name = a.amenity||a.tourism||a.restaurant||a.bar||a.cafe||a.fast_food||
                        a.hotel||a.leisure||a.shop||a.ferry_terminal||null;
+          if(name){ _pickupGeoResult = name; }
           if(name && _tripSnap === _lastTripData) _lastTripData.fromAddress = name;
           else if(name && _tripSnap) _tripSnap.fromAddress = name;
         }).catch(()=>{});
@@ -3714,6 +3721,7 @@ function initAutocompleteUI(){
     // Reset fare display when cleared
     if(!raw){
       _zoneLockedByDest = false;
+    _pickupGeoKey = null; _pickupGeoResult = null;
       hideDropdown();
       hideStreetView();
       try{
