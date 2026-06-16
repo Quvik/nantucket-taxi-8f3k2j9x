@@ -2476,6 +2476,7 @@ let lastFlightRefresh = 0;
 let lastAdsbRefresh   = 0;
 let flightLiveData = null;
 let flightScheduleData = null;
+let _flightApiPending  = false; // true while live API fetch is in progress
 let flightTickId = null;
 let selectedFlightDay = 0;
 
@@ -2833,6 +2834,7 @@ async function refreshFlightsLive(){
   const lbl=document.getElementById('refreshFlightLabel');
   const badge=document.getElementById('flightSourceBadge');
   icon.innerText='⏳'; lbl.innerText=t('loading'); btn.disabled=true;
+  _flightApiPending=true; renderFlightTab('loading');
 
   const [airlabsRes, aeroRes, infaxRes, adsbRes]=await Promise.allSettled([
     fetchAirLabs(),
@@ -2891,6 +2893,7 @@ async function refreshFlightsLive(){
     icon.innerText='⚠️';lbl.innerText=t('noLiveData');
   }
   lastFlightRefresh=Date.now();
+  _flightApiPending=false;
   renderFlightTab('live');
   btn.disabled=false;
   setTimeout(()=>{icon.innerText='📡';lbl.innerText='ADS-B Live';},4000);
@@ -2910,7 +2913,8 @@ function renderFlightTab(source){
   const now=new Date();
   const isToday=selectedFlightDay===0;
   const targetMs=Date.now()+selectedFlightDay*86400000;
-  const schedule=flightScheduleData||builtinFlightArrivals(new Date(targetMs))||[];
+  // While live API is pending, don't fall back to built-in (would show stale/wrong data)
+  const schedule=flightScheduleData||(_flightApiPending?[]:builtinFlightArrivals(new Date(targetMs)))||[];
   const isAirlabsData=flightScheduleData?.length>0&&flightScheduleData[0]?.source==='airlabs';
   const isAeroData=flightScheduleData?.length>0&&flightScheduleData[0]?.source==='aerodatabox';
   const upcoming=schedule.filter(a=>a.dateObj>now-FLIGHT_GRACE_MS);
@@ -2972,7 +2976,8 @@ function renderFlightTab(source){
     else html=`<div style="text-align:center;padding:40px;opacity:.5;">${t('noFlightData')}</div>`;
   }
 
-  if(!html) html=`<div style="text-align:center;padding:40px;opacity:.5;">${t('noDataPress')}</div>`;
+  if(!html && _flightApiPending) html=`<div style="text-align:center;padding:48px 20px;"><div style="font-size:36px;margin-bottom:12px;">✈️</div><div style="opacity:.4;font-size:14px;">Loading flights…</div></div>`;
+  else if(!html) html=`<div style="text-align:center;padding:40px;opacity:.5;">${t('noDataPress')}</div>`;
 
   document.getElementById('flightArrivalsContainer').innerHTML=html;
   if(isToday){ renderFlightStatusCard(upcoming,now); try{updateFlightWidget();}catch(e){} }
