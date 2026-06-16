@@ -1131,7 +1131,10 @@ input[type="time"].form-input{ -webkit-appearance:auto; appearance:auto; }
 
 <div class="bookings-panel" id="historyPanel">
   <div class="bookings-header">
-    <div style="font-size:18px;font-weight:800;">📋 <span data-i18n="tripHistory">Trip History</span></div>
+    <div style="display:flex;gap:6px;">
+      <button id="tabHistoryBtn" onclick="switchHistoryTab('history')" style="background:#0a84ff;border:none;color:#fff;border-radius:8px;padding:6px 13px;font-size:13px;font-weight:700;cursor:pointer;">📋 История</button>
+      <button id="tabAnalyticsBtn" onclick="switchHistoryTab('analytics')" style="background:transparent;border:1px solid #2c2c2e;color:#888;border-radius:8px;padding:6px 13px;font-size:13px;font-weight:700;cursor:pointer;">📊 Анализ</button>
+    </div>
     <div style="display:flex;align-items:center;gap:8px;">
       <button id="historyMapBtn" onclick="openHistoryMap()" style="display:none;background:#17181c;border:1px solid #2c2c2e;color:#fff;border-radius:10px;padding:7px 12px;font-size:13px;font-weight:700;cursor:pointer;">🗺️</button>
       <button id="clearAllBtn" onclick="confirmClearAll()" style="display:none;background:#2a1a1a;border:none;color:#ff453a;border-radius:10px;padding:7px 12px;font-size:13px;font-weight:700;cursor:pointer;" data-i18n="clearAll">Clear All</button>
@@ -1141,6 +1144,7 @@ input[type="time"].form-input{ -webkit-appearance:auto; appearance:auto; }
     <div id="historyAuthHint" style="font-size:12px;opacity:.5;text-align:center;margin-bottom:8px;"></div>
     <div id="historyStats" style="margin-bottom:14px;"></div>
     <div id="historyList"><div style="text-align:center;padding:40px;opacity:.4;" data-i18n="signInHistory">Sign in to view history</div></div>
+    <div id="historyAnalytics" style="display:none;"></div>
   </div>
 </div>
 
@@ -4488,6 +4492,112 @@ function renderHistory(trips){
       </div>`;
     }).join('')}
   `).join('');
+}
+
+// ── Analytics tab ─────────────────────────────────────────
+function switchHistoryTab(tab){
+  const isA = tab === 'analytics';
+  document.getElementById('historyStats').style.display    = isA ? 'none' : '';
+  document.getElementById('historyList').style.display     = isA ? 'none' : '';
+  document.getElementById('historyAnalytics').style.display= isA ? '' : 'none';
+  const hBtn = document.getElementById('tabHistoryBtn');
+  const aBtn = document.getElementById('tabAnalyticsBtn');
+  if(hBtn){ hBtn.style.background=isA?'transparent':'#0a84ff'; hBtn.style.color=isA?'#888':'#fff'; hBtn.style.border=isA?'1px solid #2c2c2e':'none'; }
+  if(aBtn){ aBtn.style.background=isA?'#0a84ff':'transparent'; aBtn.style.color=isA?'#fff':'#888'; aBtn.style.border=isA?'none':'1px solid #2c2c2e'; }
+  const clearBtn = document.getElementById('clearAllBtn');
+  const mapBtn   = document.getElementById('historyMapBtn');
+  if(clearBtn) clearBtn.style.display = isA ? 'none' : (_lastLoadedTrips.length ? 'block' : 'none');
+  if(mapBtn)   mapBtn.style.display   = isA ? 'none' : (_lastLoadedTrips.length ? 'block' : 'none');
+  if(isA) renderAnalytics(_lastLoadedTrips);
+}
+
+function renderAnalytics(trips){
+  const el = document.getElementById('historyAnalytics');
+  if(!el) return;
+  if(!trips || !trips.length){
+    el.innerHTML='<div style="text-align:center;padding:40px;opacity:.4;">Недостаточно данных</div>';
+    return;
+  }
+
+  // Pickup zones
+  const pickupCnt={};
+  trips.forEach(t=>{ const z=t.fromZone||'Unknown'; pickupCnt[z]=(pickupCnt[z]||0)+1; });
+  const topPickups=Object.entries(pickupCnt).sort((a,b)=>b[1]-a[1]).slice(0,8);
+  const maxP=topPickups[0]?.[1]||1;
+
+  // Time of day
+  const byHour=new Array(24).fill(0);
+  trips.forEach(t=>{
+    const d=t.localTs?new Date(t.localTs):(t.ts?(t.ts.toDate?t.ts.toDate():new Date(t.ts)):null);
+    if(d) byHour[d.getHours()]++;
+  });
+  const periods=[
+    {label:'Morning (6–11)', hours:[6,7,8,9,10], icon:'🌅'},
+    {label:'Afternoon (11–17)', hours:[11,12,13,14,15,16], icon:'☀️'},
+    {label:'Evening (17–22)', hours:[17,18,19,20,21], icon:'🌆'},
+    {label:'Night (22–5)', hours:[22,23,0,1,2,3,4,5], icon:'🌙'},
+  ].map(p=>({...p, count:p.hours.reduce((s,h)=>s+byHour[h],0)}));
+  const maxPer=Math.max(...periods.map(p=>p.count),1);
+
+  // Top routes
+  const routeCnt={};
+  trips.forEach(t=>{
+    const from=t.fromZone||'?';
+    const to=t.toZone||t.destination||'?';
+    const k=`${from} → ${to}`;
+    routeCnt[k]=(routeCnt[k]||0)+1;
+  });
+  const topRoutes=Object.entries(routeCnt).sort((a,b)=>b[1]-a[1]).slice(0,6);
+  const maxR=topRoutes[0]?.[1]||1;
+
+  // Avg fare per pickup zone
+  const zoneFare={}, zoneCount={};
+  trips.forEach(t=>{
+    const z=t.fromZone||'Unknown';
+    zoneFare[z]=(zoneFare[z]||0)+(t.fare||0);
+    zoneCount[z]=(zoneCount[z]||0)+1;
+  });
+
+  const bar=(pct,color)=>`<div style="height:5px;background:#252528;border-radius:3px;overflow:hidden;flex:1;"><div style="height:100%;width:${Math.round(pct)}%;background:${color};border-radius:3px;"></div></div>`;
+
+  el.innerHTML=`
+  <div>
+    <div style="font-size:11px;font-weight:700;opacity:.35;letter-spacing:1px;margin-bottom:12px;">ОТКУДА ЗАБИРАЕШЬ ЧАЩЕ ВСЕГО</div>
+    ${topPickups.map(([zone,cnt])=>`
+      <div style="margin-bottom:9px;">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px;">
+          <span style="font-size:13px;font-weight:600;">${zone}</span>
+          <span style="font-size:12px;opacity:.4;margin-left:8px;">${cnt}× · avg $${((zoneFare[zone]||0)/(zoneCount[zone]||1)).toFixed(0)}</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;">${bar(cnt/maxP*100,'#30d158')}</div>
+      </div>`).join('')}
+
+    <div style="border-top:1px solid #252528;margin:20px 0;"></div>
+
+    <div style="font-size:11px;font-weight:700;opacity:.35;letter-spacing:1px;margin-bottom:12px;">КОГДА БОЛЬШЕ ВСЕГО ПОЕЗДОК</div>
+    ${periods.map(p=>`
+      <div style="margin-bottom:9px;">
+        <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
+          <span style="font-size:13px;">${p.icon} ${p.label}</span>
+          <span style="font-size:12px;opacity:.4;">${p.count}</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;">${bar(p.count/maxPer*100,'#0a84ff')}</div>
+      </div>`).join('')}
+
+    <div style="border-top:1px solid #252528;margin:20px 0;"></div>
+
+    <div style="font-size:11px;font-weight:700;opacity:.35;letter-spacing:1px;margin-bottom:12px;">ПОПУЛЯРНЫЕ МАРШРУТЫ</div>
+    ${topRoutes.length?topRoutes.map(([route,cnt])=>`
+      <div style="margin-bottom:9px;">
+        <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
+          <span style="font-size:12px;font-weight:600;">${route}</span>
+          <span style="font-size:12px;opacity:.4;">${cnt}×</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;">${bar(cnt/maxR*100,'#ff9f0a')}</div>
+      </div>`).join(''):'<div style="opacity:.3;font-size:12px;">Нет данных</div>'}
+
+    <div style="font-size:11px;opacity:.2;text-align:center;margin-top:20px;padding-bottom:8px;">На основе ${trips.length} поездок</div>
+  </div>`;
 }
 
 // ── Edit trip ─────────────────────────────────────────────
