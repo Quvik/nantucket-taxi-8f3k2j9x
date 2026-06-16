@@ -3654,7 +3654,23 @@ ${extraRows}${waitRow}
       waitMs: getWaitMs(),
       destLat: _geoCache.lat || null,
       destLng: _geoCache.lng || null,
+      fromLat: gpsLat || null,
+      fromLng: gpsLng || null,
     };
+
+    // Reverse-geocode pickup location in background so analytics show specific places
+    if(gpsLat && gpsLng){
+      const _tripSnap = _lastTripData;
+      fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${gpsLat}&lon=${gpsLng}&zoom=18&addressdetails=1`, {headers:{'Accept-Language':'en'}})
+        .then(r=>r.json())
+        .then(d=>{
+          const a = d.address||{};
+          const name = a.amenity||a.tourism||a.restaurant||a.bar||a.cafe||a.fast_food||
+                       a.hotel||a.leisure||a.shop||a.ferry_terminal||null;
+          if(name && _tripSnap === _lastTripData) _lastTripData.fromAddress = name;
+          else if(name && _tripSnap) _tripSnap.fromAddress = name;
+        }).catch(()=>{});
+    }
 
     const saveBtn = document.getElementById('saveTripBtn');
     if(saveBtn){ saveBtn.style.display='flex'; saveBtn.textContent=t('saveTripBtn'); saveBtn.disabled=false; }
@@ -4519,9 +4535,9 @@ function renderAnalytics(trips){
     return;
   }
 
-  // Pickup zones
+  // Pickup places (specific address if available, else zone)
   const pickupCnt={};
-  trips.forEach(t=>{ const z=t.fromZone||'Unknown'; pickupCnt[z]=(pickupCnt[z]||0)+1; });
+  trips.forEach(t=>{ const z=t.fromAddress||t.fromZone||'Unknown'; pickupCnt[z]=(pickupCnt[z]||0)+1; });
   const topPickups=Object.entries(pickupCnt).sort((a,b)=>b[1]-a[1]).slice(0,8);
   const maxP=topPickups[0]?.[1]||1;
 
@@ -4539,21 +4555,21 @@ function renderAnalytics(trips){
   ].map(p=>({...p, count:p.hours.reduce((s,h)=>s+byHour[h],0)}));
   const maxPer=Math.max(...periods.map(p=>p.count),1);
 
-  // Top routes
+  // Top routes (specific place → destination where known)
   const routeCnt={};
   trips.forEach(t=>{
-    const from=t.fromZone||'?';
-    const to=t.toZone||t.destination||'?';
+    const from=t.fromAddress||t.fromZone||'?';
+    const to=t.destination||t.toZone||'?';
     const k=`${from} → ${to}`;
     routeCnt[k]=(routeCnt[k]||0)+1;
   });
   const topRoutes=Object.entries(routeCnt).sort((a,b)=>b[1]-a[1]).slice(0,6);
   const maxR=topRoutes[0]?.[1]||1;
 
-  // Avg fare per pickup zone
+  // Avg fare per pickup place
   const zoneFare={}, zoneCount={};
   trips.forEach(t=>{
-    const z=t.fromZone||'Unknown';
+    const z=t.fromAddress||t.fromZone||'Unknown';
     zoneFare[z]=(zoneFare[z]||0)+(t.fare||0);
     zoneCount[z]=(zoneCount[z]||0)+1;
   });
