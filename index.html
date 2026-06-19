@@ -3601,8 +3601,7 @@ async function calculateFare() {
     if (window.selectedPlace?.geometry) {
         lat = window.selectedPlace.geometry.location.lat();
         lng = window.selectedPlace.geometry.location.lng();
-        const [bLat, bLng] = _difficultMode ? boostNudge(lat, lng) : [lat, lng];
-        const { zone: z, isCrossTown: ct } = findZoneInfo(turf.point([bLng, bLat]));
+        const { zone: z, isCrossTown: ct } = findZoneInfo(turf.point([lng, lat]));
         if (z) { destinationZone = z; destIsCrossTown = ct; }
     }
 
@@ -3617,8 +3616,7 @@ async function calculateFare() {
             if (r) {
                 lat = r.geometry.location.lat;
                 lng = r.geometry.location.lng;
-                const [bLat2, bLng2] = _difficultMode ? boostNudge(lat, lng) : [lat, lng];
-                const { zone: z, isCrossTown: ct } = findZoneInfo(turf.point([bLng2, bLat2]));
+                const { zone: z, isCrossTown: ct } = findZoneInfo(turf.point([lng, lat]));
                 if (z) {
                     destinationZone = z; destIsCrossTown = ct;
                     // Update mini-map preview with corrected coordinates
