@@ -953,6 +953,8 @@ input[type="time"].form-input{ -webkit-appearance:auto; appearance:auto; }
 <div class="chips" style="margin-top:2px;">
 <button class="chip toggle-chip" id="nightFeeBtn" onclick="toggleChip(this,'nightFee')">🌙 Night +$5</button>
 <button class="chip toggle-chip" id="dirtRoadBtn" onclick="toggleChip(this,'dirtRoad')">🛣 Dirt +$5</button>
+<button class="chip toggle-chip" id="airportResBtn" onclick="toggleChip(this,'airportRes')">✈️ Airport Res +$12</button>
+<button class="chip toggle-chip" id="ferryResBtn" onclick="toggleChip(this,'ferryRes')">⛴ Ferry Res +$6</button>
 </div>
 <button id="waitBtn" onclick="toggleWait()" style="width:100%;margin-top:8px;background:#1e1e28;border:1px solid #333;color:#aaa;border-radius:14px;padding:11px;font-size:15px;font-weight:700;cursor:pointer;transition:all .2s;letter-spacing:.3px;">⏱ Wait</button>
 
@@ -3150,9 +3152,10 @@ function resetAll(){
         document.getElementById(id).value = val;
         document.getElementById(id+'Value').innerText = val;
     }
-    // Reset night/dirt toggles
-    chipState.dirtRoad = false;
-    document.getElementById('dirtRoadBtn').classList.remove('on');
+    // Reset night/dirt/reservation toggles
+    chipState.dirtRoad   = false; document.getElementById('dirtRoadBtn').classList.remove('on');
+    chipState.airportRes = false; document.getElementById('airportResBtn').classList.remove('on');
+    chipState.ferryRes   = false; document.getElementById('ferryResBtn').classList.remove('on');
     _nightAutoMode = true;
     applyNightAuto();
     waitStartTime=null; waitAccruedMs=0; _staticTotalNoWait=0;
@@ -3280,7 +3283,7 @@ function openWaze() {
 // Haptic feedback — works on Android; iOS Safari ignores silently
 function haptic(pattern){ try{ navigator.vibrate(pattern); }catch(e){} }
 
-const chipState = { nightFee: false, dirtRoad: false };
+const chipState = { nightFee: false, dirtRoad: false, airportRes: false, ferryRes: false };
 let _geoCache = { addr:'', zone:null, isCrossTown:false, lat:null, lng:null };
 let _nightAutoMode = true; // false once user manually toggles
 let waitStartTime = null;
@@ -3315,7 +3318,7 @@ function _restoreWaitState(){
 
 // ── App state persistence (survives iOS background kill) ──────
 const _APP_KEYS = ['nta_dest','nta_pax','nta_dogs','nta_bikes','nta_bags',
-                   'nta_night','nta_dirt','nta_zone_manual','nta_zone_name','nta_trip'];
+                   'nta_night','nta_dirt','nta_airportres','nta_ferryres','nta_zone_manual','nta_zone_name','nta_trip'];
 
 function saveAppState(){
   const dest = document.getElementById('destination').value.trim();
@@ -3325,8 +3328,10 @@ function saveAppState(){
   localStorage.setItem('nta_dogs',  document.getElementById('dogs').value);
   localStorage.setItem('nta_bikes', document.getElementById('bikes').value);
   localStorage.setItem('nta_bags',  document.getElementById('bags').value);
-  localStorage.setItem('nta_night', chipState.nightFee ? '1' : '0');
-  localStorage.setItem('nta_dirt',  chipState.dirtRoad ? '1' : '0');
+  localStorage.setItem('nta_night',      chipState.nightFee   ? '1' : '0');
+  localStorage.setItem('nta_dirt',       chipState.dirtRoad   ? '1' : '0');
+  localStorage.setItem('nta_airportres', chipState.airportRes ? '1' : '0');
+  localStorage.setItem('nta_ferryres',   chipState.ferryRes   ? '1' : '0');
   localStorage.setItem('nta_zone_manual', zoneIsManual ? '1' : '0');
   if(zoneIsManual) localStorage.setItem('nta_zone_name', currentZoneName || '');
   if(_lastTripData) localStorage.setItem('nta_trip', JSON.stringify(_lastTripData));
@@ -3362,6 +3367,16 @@ function restoreAppState(){
   chipState.dirtRoad = dirt;
   const dirtBtn = document.getElementById('dirtRoadBtn');
   if(dirtBtn) dirtBtn.classList.toggle('on', dirt);
+
+  const airportRes = localStorage.getItem('nta_airportres') === '1';
+  chipState.airportRes = airportRes;
+  const airportResBtn = document.getElementById('airportResBtn');
+  if(airportResBtn) airportResBtn.classList.toggle('on', airportRes);
+
+  const ferryRes = localStorage.getItem('nta_ferryres') === '1';
+  chipState.ferryRes = ferryRes;
+  const ferryResBtn = document.getElementById('ferryResBtn');
+  if(ferryResBtn) ferryResBtn.classList.toggle('on', ferryRes);
 
   if(localStorage.getItem('nta_zone_manual') === '1'){
     const zoneName = localStorage.getItem('nta_zone_name');
@@ -3487,8 +3502,10 @@ async function calculateFare() {
 
     const bagCharge = bags * 2;
 
-    const nightCharge = chipState.nightFee ? 5 : 0;
-    const dirtCharge  = chipState.dirtRoad  ? 5 : 0;
+    const nightCharge     = chipState.nightFee   ? 5  : 0;
+    const dirtCharge      = chipState.dirtRoad   ? 5  : 0;
+    const airportResCharge= chipState.airportRes ? 12 : 0;
+    const ferryResCharge  = chipState.ferryRes   ? 6  : 0;
 
     let destinationZone = null;
     let destIsCrossTown = false;
@@ -3619,7 +3636,7 @@ async function calculateFare() {
     }
 
     const waitCharge = getWaitCharge();
-    _staticTotalNoWait = baseFare + passengerCharge + dogCharge + bikeCharge + bagCharge + nightCharge + dirtCharge;
+    _staticTotalNoWait = baseFare + passengerCharge + dogCharge + bikeCharge + bagCharge + nightCharge + dirtCharge + airportResCharge + ferryResCharge;
     _saveWaitState();
     const totalFare = _staticTotalNoWait + waitCharge;
 
@@ -3633,6 +3650,8 @@ async function calculateFare() {
         ['Bags ×' + bags, bagCharge],
         ['Night', nightCharge],
         ['Dirt Road', dirtCharge],
+        ['✈️ Airport Res', airportResCharge],
+        ['⛴ Ferry Res', ferryResCharge],
     ].filter(([,v]) => v > 0);
 
     const extraRows = extras.map(([label, val]) =>
