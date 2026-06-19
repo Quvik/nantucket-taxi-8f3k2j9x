@@ -3316,10 +3316,29 @@ let _pickupGeoKey = null;   // destination address last used for pickup geocode
 // ── Zone Boost (difficult customer mode) ──────────────────────
 let _difficultMode = localStorage.getItem('nta_difficult') === '1';
 
-const ZONE_BOOST_OVERRIDES = [
-    [/cisco\s*brew/i,     'Cisco/ Miacomet'],
-    [/miacomet\s*golf/i,  'Cisco/ Miacomet'],
-];
+// One-step zone upgrade ladder (each zone → next more expensive)
+const ZONE_BOOST_TIER = {
+    'Mid Island A':        'Mid - Island B',
+    'Mid - Island B':      'Cisco/ Miacomet',
+    'Mid Island C':        'Cisco/ Miacomet',
+    'Shimmo':              'Cisco/ Miacomet',
+    'Dionis':              'Cisco/ Miacomet',
+    'Cisco/ Miacomet':     'Tom Nevers',
+    'Quaise':              'Polpis',
+    'Tom Nevers':          'Polpis',
+    'Eel Point':           'Madaket',
+    'Madaket':             'Polpis',
+    'Polpis':              'Siasconset',
+    'Siasconset':          'Low Beach',
+    'Low Beach':           'Madequecham',
+    'Madequecham':         'Sankaty Light',
+    'Madequecham Valley':  'Sankaty Light',
+    'Sankaty Light':       'Massassoit Bridge',
+    'Quidnet':             'Sankaty Light',
+    'Pocomo':              'Wauwinet',
+    'Wauwinet':            'Squam',
+    'Hoicks Hollow':       'Massassoit Bridge',
+};
 
 function openSettings(){
     closeDrawer();
@@ -3669,12 +3688,11 @@ async function calculateFare() {
     const toZone = ((gpsIsAtActualAirport() || manuallyAtAirport) && destIsCrossTown)
         ? 'Cross Town' : destinationZone;
 
-    // Zone Boost: remap toZone for specific destinations when difficult mode is on
+    // Zone Boost: shift toZone one step up the price ladder
     let effectiveToZone = toZone;
-    if (_difficultMode && toZone) {
-        for (const [pattern, zone] of ZONE_BOOST_OVERRIDES) {
-            if (pattern.test(address)) { effectiveToZone = zone; break; }
-        }
+    if (_difficultMode && toZone && ZONE_BOOST_TIER[toZone]) {
+        effectiveToZone = ZONE_BOOST_TIER[toZone];
+        document.getElementById('destinationZone').innerText = effectiveToZone;
     }
 
     let baseFare = getFare(fromZone, effectiveToZone);
@@ -3723,7 +3741,7 @@ async function calculateFare() {
         : `<div class="fare-row" id="waitBreakdownRow"></div>`;
 
     document.getElementById('fareBreakdown').innerHTML =
-`<div class="fare-row" style="margin-top:8px;"><span>Base (${currentZoneName} → ${destinationZone})</span><span>$${baseFare}</span></div>
+`<div class="fare-row" style="margin-top:8px;"><span>Base (${currentZoneName} → ${effectiveToZone || destinationZone})</span><span>$${baseFare}</span></div>
 ${extraRows}${waitRow}
 <div class="total-row"><span>Total</span><span>$${Number.isInteger(totalFare)?totalFare:totalFare.toFixed(2)}</span></div>`;
 
