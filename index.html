@@ -3340,6 +3340,15 @@ const ZONE_BOOST_TIER = {
     'Hoicks Hollow':       'Massassoit Bridge',
 };
 
+// Nudge coordinates away from Town center (~150m) so border addresses
+// fall into the more expensive adjacent zone when Zone Boost is on.
+const _TOWN_LAT = 41.2835, _TOWN_LNG = -70.0995, _BOOST_NUDGE = 0.0015;
+function boostNudge(lat, lng) {
+    const dLat = lat - _TOWN_LAT, dLng = lng - _TOWN_LNG;
+    const len = Math.sqrt(dLat*dLat + dLng*dLng) || 1;
+    return [lat + (dLat/len)*_BOOST_NUDGE, lng + (dLng/len)*_BOOST_NUDGE];
+}
+
 function openSettings(){
     closeDrawer();
     const p = document.getElementById('settingsPanel');
@@ -3592,7 +3601,8 @@ async function calculateFare() {
     if (window.selectedPlace?.geometry) {
         lat = window.selectedPlace.geometry.location.lat();
         lng = window.selectedPlace.geometry.location.lng();
-        const { zone: z, isCrossTown: ct } = findZoneInfo(turf.point([lng, lat]));
+        const [bLat, bLng] = _difficultMode ? boostNudge(lat, lng) : [lat, lng];
+        const { zone: z, isCrossTown: ct } = findZoneInfo(turf.point([bLng, bLat]));
         if (z) { destinationZone = z; destIsCrossTown = ct; }
     }
 
@@ -3607,7 +3617,8 @@ async function calculateFare() {
             if (r) {
                 lat = r.geometry.location.lat;
                 lng = r.geometry.location.lng;
-                const { zone: z, isCrossTown: ct } = findZoneInfo(turf.point([lng, lat]));
+                const [bLat2, bLng2] = _difficultMode ? boostNudge(lat, lng) : [lat, lng];
+                const { zone: z, isCrossTown: ct } = findZoneInfo(turf.point([bLng2, bLat2]));
                 if (z) {
                     destinationZone = z; destIsCrossTown = ct;
                     // Update mini-map preview with corrected coordinates
