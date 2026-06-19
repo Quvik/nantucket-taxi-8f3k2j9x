@@ -119,6 +119,12 @@ select {
     justify-content:center;
     transition:background .2s;
 }
+.sw-wrap{position:relative;display:inline-block;width:48px;height:27px;flex-shrink:0;}
+.sw-wrap input{opacity:0;width:0;height:0;}
+.sw-track{position:absolute;cursor:pointer;inset:0;background:#333;border-radius:27px;transition:.25s;}
+.sw-track:before{content:"";position:absolute;height:21px;width:21px;left:3px;bottom:3px;background:#fff;border-radius:50%;transition:.25s;}
+.sw-wrap input:checked+.sw-track{background:#30d158;}
+.sw-wrap input:checked+.sw-track:before{transform:translateX(21px);}
 
 .toggle-chip.on {
     background:#0A84FF;
@@ -749,6 +755,10 @@ input[type="time"].form-input{ -webkit-appearance:auto; appearance:auto; }
     <span id="langGlobe" style="font-size:20px;">🌐</span>
     <span style="flex:1;" data-i18n="languageLabel">Language</span>
     <span id="langCurrentLabel" style="font-size:14px;opacity:.5;font-weight:600;"></span>
+  </button>
+  <button class="drawer-item" onclick="openSettings();">
+    <span style="font-size:20px;">⚙️</span> <span>Settings</span>
+    <span id="difficultIndicator" style="display:none;width:8px;height:8px;background:#ff9500;border-radius:50%;margin-left:auto;flex-shrink:0;"></span>
   </button>
   <div style="border-bottom:1px solid #252528;margin:8px 0;"></div>
   <div style="padding:4px 16px 6px;font-size:11px;opacity:.4;letter-spacing:1px;font-weight:700;" data-i18n="ferryNav">FERRY NAVIGATION</div>
@@ -3302,6 +3312,34 @@ let _geoCache = { addr:'', zone:null, isCrossTown:false, lat:null, lng:null };
 let _nightAutoMode = true; // false once user manually toggles
 let waitStartTime = null;
 let _pickupGeoKey = null;   // destination address last used for pickup geocode
+
+// ── Zone Boost (difficult customer mode) ──────────────────────
+let _difficultMode = localStorage.getItem('nta_difficult') === '1';
+
+const ZONE_BOOST_OVERRIDES = [
+    [/cisco\s*brew/i,     'Cisco/ Miacomet'],
+    [/miacomet\s*golf/i,  'Cisco/ Miacomet'],
+];
+
+function openSettings(){
+    closeDrawer();
+    const p = document.getElementById('settingsPanel');
+    p.style.display = 'flex';
+    document.getElementById('difficultModeToggle').checked = _difficultMode;
+}
+function closeSettings(){
+    document.getElementById('settingsPanel').style.display = 'none';
+}
+function setDifficultMode(on){
+    _difficultMode = on;
+    localStorage.setItem('nta_difficult', on ? '1' : '0');
+    const ind = document.getElementById('difficultIndicator');
+    if(ind) ind.style.display = on ? 'inline-block' : 'none';
+}
+function initDifficultIndicator(){
+    const ind = document.getElementById('difficultIndicator');
+    if(ind) ind.style.display = _difficultMode ? 'inline-block' : 'none';
+}
 let _pickupGeoResult = null; // cached fromAddress from Nominatim
 let waitAccruedMs = 0;
 let waitTickId = null;
@@ -3631,7 +3669,15 @@ async function calculateFare() {
     const toZone = ((gpsIsAtActualAirport() || manuallyAtAirport) && destIsCrossTown)
         ? 'Cross Town' : destinationZone;
 
-    let baseFare = getFare(fromZone, toZone);
+    // Zone Boost: remap toZone for specific destinations when difficult mode is on
+    let effectiveToZone = toZone;
+    if (_difficultMode && toZone) {
+        for (const [pattern, zone] of ZONE_BOOST_OVERRIDES) {
+            if (pattern.test(address)) { effectiveToZone = zone; break; }
+        }
+    }
+
+    let baseFare = getFare(fromZone, effectiveToZone);
 
     if (
         currentZoneName === 'Town' &&
@@ -3641,7 +3687,7 @@ async function calculateFare() {
     }
 
     if (!baseFare) {
-        const sameZone = fromZone === toZone;
+        const sameZone = fromZone === effectiveToZone;
         document.getElementById('fare').innerText = 'No fare found';
         document.getElementById('fareBreakdown').innerHTML = sameZone
             ? `<div style="color:#f90;font-size:13px;margin-top:6px;">⚠️ Начало и конец в одной зоне (${toZone}). Выберите зону отправления вручную.</div>`
@@ -5083,6 +5129,7 @@ if('serviceWorker' in navigator){
 window.addEventListener('DOMContentLoaded', ()=>{
   if(typeof _restoreWaitState==='function') _restoreWaitState();
   if(typeof restoreAppState==='function') restoreAppState();
+  initDifficultIndicator();
 });
 
 </script>
@@ -5610,6 +5657,31 @@ async function adminGrantAccess(uid, btn){
   }
 }
 </script>
+
+<!-- ── Settings Panel ─────────────────────────────────── -->
+<div id="settingsPanel" style="display:none;position:fixed;inset:0;z-index:9500;background:#0f0f10;flex-direction:column;overflow-y:auto;">
+  <div style="display:flex;align-items:center;padding:20px 16px 12px;gap:12px;border-bottom:1px solid #1e1e28;">
+    <button onclick="closeSettings()" style="background:none;border:none;color:white;font-size:22px;cursor:pointer;padding:4px;line-height:1;">←</button>
+    <div style="font-size:18px;font-weight:800;">⚙️ Settings</div>
+  </div>
+  <div style="padding:20px 16px;display:flex;flex-direction:column;gap:12px;">
+
+    <!-- Zone Boost -->
+    <div style="background:#17181c;border:1px solid #252528;border-radius:16px;padding:16px 18px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
+        <div>
+          <div style="font-size:15px;font-weight:700;">⚡ Zone Boost</div>
+          <div style="font-size:12px;opacity:.45;margin-top:4px;line-height:1.4;">Applies adjusted rates for specific destinations</div>
+        </div>
+        <label class="sw-wrap">
+          <input type="checkbox" id="difficultModeToggle" onchange="setDifficultMode(this.checked)">
+          <span class="sw-track"></span>
+        </label>
+      </div>
+    </div>
+
+  </div>
+</div>
 
 </body>
 </html>
