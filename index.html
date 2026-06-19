@@ -951,13 +951,24 @@ input[type="time"].form-input{ -webkit-appearance:auto; appearance:auto; }
 </div>
 
 <div class="chips" style="margin-top:2px;">
-<button class="chip toggle-chip" id="nightFeeBtn" onclick="toggleChip(this,'nightFee')" style="font-size:14px;">🌙 Night +$5</button>
-<button class="chip toggle-chip" id="dirtRoadBtn" onclick="toggleChip(this,'dirtRoad')" style="font-size:14px;">🛣 Dirt +$5</button>
+<button class="chip toggle-chip" id="nightFeeBtn" onclick="toggleChip(this,'nightFee')" style="flex-direction:column;gap:2px;">
+  <span style="font-size:14px;">🌙 Night</span>
+  <span style="font-size:12px;opacity:.7;">+$5</span>
+</button>
+<button class="chip toggle-chip" id="dirtRoadBtn" onclick="toggleChip(this,'dirtRoad')" style="flex-direction:column;gap:2px;">
+  <span style="font-size:14px;">🛣 Dirt</span>
+  <span style="font-size:12px;opacity:.7;">+$5</span>
+</button>
 </div>
-<div style="font-size:11px;color:#555;margin-top:8px;margin-bottom:3px;padding-left:2px;">Reservation fee</div>
-<div class="chips">
-<button class="chip toggle-chip" id="airportResBtn" onclick="toggleChip(this,'airportRes')" style="white-space:nowrap;font-size:14px;">✈️ Airport +$12</button>
-<button class="chip toggle-chip" id="ferryResBtn" onclick="toggleChip(this,'ferryRes')" style="white-space:nowrap;font-size:14px;">⛴ Ferry +$6</button>
+<div class="chips" style="margin-top:6px;">
+<button class="chip toggle-chip" id="airportResBtn" onclick="toggleChip(this,'airportRes')" style="flex-direction:column;gap:2px;">
+  <span style="font-size:14px;">✈️ Airport Res</span>
+  <span style="font-size:12px;opacity:.7;">+$12</span>
+</button>
+<button class="chip toggle-chip" id="ferryResBtn" onclick="toggleChip(this,'ferryRes')" style="flex-direction:column;gap:2px;">
+  <span style="font-size:14px;">⛴ Ferry Res</span>
+  <span style="font-size:12px;opacity:.7;">+$6</span>
+</button>
 </div>
 <button id="waitBtn" onclick="toggleWait()" style="width:100%;margin-top:8px;background:#1e1e28;border:1px solid #333;color:#aaa;border-radius:14px;padding:11px;font-size:15px;font-weight:700;cursor:pointer;transition:all .2s;letter-spacing:.3px;">⏱ Wait</button>
 
