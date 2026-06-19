@@ -4511,7 +4511,11 @@ function renderHistory(trips){
       ].filter(Boolean).join(' · ');
       return `<div style="background:#17181c;border:1px solid #252528;border-radius:14px;padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;gap:10px;">
         <div style="flex:1;min-width:0;">
-          <div style="font-size:15px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${from} → ${dest}</div>
+          <div style="font-size:15px;font-weight:800;display:flex;align-items:baseline;gap:3px;min-width:0;">
+            <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:0 1 auto;min-width:0;max-width:38%;">${from}</span>
+            <span style="flex-shrink:0;white-space:nowrap;"> → </span>
+            <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0;">${dest}</span>
+          </div>
           <div style="font-size:12px;opacity:.5;margin-top:2px;">${toZone}${showDest?'':''} · ${time} · ${extras}</div>
           ${trip.notes?`<div style="font-size:12px;color:#ffd60a;margin-top:5px;white-space:pre-wrap;word-break:break-word;">📝 ${trip.notes.replace(/</g,'&lt;')}</div>`:''}
         </div>
