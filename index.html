@@ -3762,6 +3762,8 @@ ${extraRows}${waitRow}
       dogs, bikes, bags,
       nightFee: chipState.nightFee,
       dirtRoad: chipState.dirtRoad,
+      airportRes: chipState.airportRes,
+      ferryRes: chipState.ferryRes,
       waitCharge: getWaitCharge(),
       waitMs: getWaitMs(),
       destLat: _geoCache.lat || null,
@@ -4855,9 +4857,13 @@ function _showEditModal(tripData){
         </div>
       </div>
 
+      <div style="display:flex;gap:10px;margin-bottom:8px;">
+        <button id="et_dirt" data-on="${td.dirtRoad?'1':'0'}" onclick="etToggle('et_dirt')" style="flex:1;border-radius:10px;padding:10px;font-size:13px;font-weight:700;cursor:pointer;border:none;${td.dirtRoad?'background:#1a3a1a;color:#30d158;':'background:#252530;color:white;'}">${t('dirtRoad')}</button>
+        <button id="et_night" data-on="${td.nightFee?'1':'0'}" onclick="etToggle('et_night')" style="flex:1;border-radius:10px;padding:10px;font-size:13px;font-weight:700;cursor:pointer;border:none;${td.nightFee?'background:#1a1a3a;color:#0a84ff;':'background:#252530;color:white;'}">${t('nightFee')}</button>
+      </div>
       <div style="display:flex;gap:10px;margin-bottom:20px;">
-        <button id="et_dirt" data-on="${td.dirtRoad?'1':'0'}" onclick="etToggle('et_dirt','🌿 Dirt')" style="flex:1;border-radius:10px;padding:10px;font-size:13px;font-weight:700;cursor:pointer;border:none;${td.dirtRoad?'background:#1a3a1a;color:#30d158;':'background:#252530;color:white;'}">${t('dirtRoad')}</button>
-        <button id="et_night" data-on="${td.nightFee?'1':'0'}" onclick="etToggle('et_night','🌙 Night')" style="flex:1;border-radius:10px;padding:10px;font-size:13px;font-weight:700;cursor:pointer;border:none;${td.nightFee?'background:#1a1a3a;color:#0a84ff;':'background:#252530;color:white;'}">${t('nightFee')}</button>
+        <button id="et_airportRes" data-on="${td.airportRes?'1':'0'}" onclick="etToggle('et_airportRes')" style="flex:1;border-radius:10px;padding:10px;font-size:13px;font-weight:700;cursor:pointer;border:none;${td.airportRes?'background:#2a1a00;color:#ff9500;':'background:#252530;color:white;'}">✈️ Airport Res +$12</button>
+        <button id="et_ferryRes" data-on="${td.ferryRes?'1':'0'}" onclick="etToggle('et_ferryRes')" style="flex:1;border-radius:10px;padding:10px;font-size:13px;font-weight:700;cursor:pointer;border:none;${td.ferryRes?'background:#0a1a2a;color:#64d2ff;':'background:#252530;color:white;'}">⛴ Ferry Res +$6</button>
       </div>
 
       <div style="margin-bottom:16px;">
@@ -4891,7 +4897,7 @@ function etStep(id, delta, min, max){
   etRecalc();
 }
 
-function etToggle(id, label){
+function etToggle(id){
   const btn = document.getElementById(id);
   if(!btn) return;
   const on = btn.dataset.on === '1';
@@ -4899,6 +4905,12 @@ function etToggle(id, label){
   if(id==='et_dirt'){
     btn.style.background = on ? '#252530' : '#1a3a1a';
     btn.style.color       = on ? 'white'  : '#30d158';
+  } else if(id==='et_airportRes'){
+    btn.style.background = on ? '#252530' : '#2a1a00';
+    btn.style.color       = on ? 'white'  : '#ff9500';
+  } else if(id==='et_ferryRes'){
+    btn.style.background = on ? '#252530' : '#0a1a2a';
+    btn.style.color       = on ? 'white'  : '#64d2ff';
   } else {
     btn.style.background = on ? '#252530' : '#1a1a3a';
     btn.style.color       = on ? 'white'  : '#0a84ff';
@@ -4913,16 +4925,20 @@ function etRecalc(){
   const bikes      = parseInt((document.getElementById('et_bikes')||{}).value)||0;
   const bags       = parseInt((document.getElementById('et_bags')||{}).value)||0;
   const waitCharge = parseFloat((document.getElementById('et_wait')||{}).value)||0;
-  const dirtOn     = (document.getElementById('et_dirt')||{}).dataset?.on === '1';
-  const nightOn    = (document.getElementById('et_night')||{}).dataset?.on === '1';
+  const dirtOn       = (document.getElementById('et_dirt')||{}).dataset?.on === '1';
+  const nightOn      = (document.getElementById('et_night')||{}).dataset?.on === '1';
+  const airportResOn = (document.getElementById('et_airportRes')||{}).dataset?.on === '1';
+  const ferryResOn   = (document.getElementById('et_ferryRes')||{}).dataset?.on === '1';
 
   const total = baseFare
     + Math.max(0, passengers - 1) * 3
     + dogs * 5
     + bikes * 5
     + bags * 2
-    + (nightOn ? 5 : 0)
-    + (dirtOn  ? 5 : 0)
+    + (nightOn      ? 5  : 0)
+    + (dirtOn       ? 5  : 0)
+    + (airportResOn ? 12 : 0)
+    + (ferryResOn   ? 6  : 0)
     + waitCharge;
 
   const fareEl = document.getElementById('et_fare');
@@ -4940,15 +4956,19 @@ function saveEditTrip(){
   const dogs      = parseInt((document.getElementById('et_dogs')||{}).value)||0;
   const bikes     = parseInt((document.getElementById('et_bikes')||{}).value)||0;
   const bags      = parseInt((document.getElementById('et_bags')||{}).value)||0;
-  const dirtBtn   = document.getElementById('et_dirt');
-  const nightBtn  = document.getElementById('et_night');
-  const dirtRoad  = dirtBtn  ? dirtBtn.dataset.on  === '1' : false;
-  const nightFee  = nightBtn ? nightBtn.dataset.on === '1' : false;
-  const notes       = ((document.getElementById('et_notes')||{}).value||'').trim();
-  const fromAddress = ((document.getElementById('et_fromAddr')||{}).value||'').trim();
+  const dirtBtn      = document.getElementById('et_dirt');
+  const nightBtn     = document.getElementById('et_night');
+  const airportBtn   = document.getElementById('et_airportRes');
+  const ferryBtn     = document.getElementById('et_ferryRes');
+  const dirtRoad     = dirtBtn    ? dirtBtn.dataset.on    === '1' : false;
+  const nightFee     = nightBtn   ? nightBtn.dataset.on   === '1' : false;
+  const airportRes   = airportBtn ? airportBtn.dataset.on === '1' : false;
+  const ferryRes     = ferryBtn   ? ferryBtn.dataset.on   === '1' : false;
+  const notes        = ((document.getElementById('et_notes')||{}).value||'').trim();
+  const fromAddress  = ((document.getElementById('et_fromAddr')||{}).value||'').trim();
 
   fbDb.collection('users').doc(fbUser.uid).collection('trips').doc(_editingTripId)
-    .update({ fromZone, toZone, destination:dest, fare, passengers, waitCharge, dogs, bikes, bags, dirtRoad, nightFee, notes, fromAddress })
+    .update({ fromZone, toZone, destination:dest, fare, passengers, waitCharge, dogs, bikes, bags, dirtRoad, nightFee, airportRes, ferryRes, notes, fromAddress })
     .then(()=>{
       const overlay = document.getElementById('editTripOverlay');
       if(overlay) overlay.remove();
