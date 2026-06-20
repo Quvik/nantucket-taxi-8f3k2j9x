@@ -33,7 +33,9 @@
   },
   {
     "name": "Faraway Nantucket",
-    "zone": "Town"
+    "zone": "Mid Island A",
+    "lat": 41.2533,
+    "lng": -70.0638
   },
   {
     "name": "Life House Nantucket",

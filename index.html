@@ -3885,14 +3885,30 @@ function selectLocalPlace(place){
   // Геокодируем название чтобы показать карту
   if(place.lat && place.lng){
     showAddressPreview(place.lat, place.lng, place.name);
+    const { zone: detectedZone, isCrossTown } = findZoneInfo(turf.point([place.lng, place.lat]));
+    if(detectedZone){
+      _geoCache = { addr: place.name, zone: detectedZone, isCrossTown, lat: place.lat, lng: place.lng };
+      calculateFare();
+    }
   } else {
-    fetch(`https://photon.komoot.io/api/?q=${encodeURIComponent(place.name + ' Nantucket')}&limit=1`)
+    fetch(`https://photon.komoot.io/api/?q=${encodeURIComponent(place.name + ' Nantucket MA')}&limit=3`)
       .then(r => r.json())
       .then(data => {
         if(data.features?.length){
-          const [lng, lat] = data.features[0].geometry.coordinates;
+          // Pick the result closest to Nantucket island (41.28, -70.1)
+          let best = data.features[0];
+          let bestDist = Infinity;
+          for(const f of data.features){
+            const [fLng, fLat] = f.geometry.coordinates;
+            const d = Math.hypot(fLat - 41.28, fLng + 70.1);
+            if(d < bestDist){ bestDist = d; best = f; }
+          }
+          const [lng, lat] = best.geometry.coordinates;
           showAddressPreview(lat, lng, place.name);
-          _geoCache = { addr: place.name, zone: place.zone, isCrossTown: false, lat, lng };
+          const { zone: detectedZone, isCrossTown } = findZoneInfo(turf.point([lng, lat]));
+          const zone = detectedZone || place.zone;
+          _geoCache = { addr: place.name, zone, isCrossTown, lat, lng };
+          if(detectedZone) calculateFare();
         }
       }).catch(()=>{});
   }
