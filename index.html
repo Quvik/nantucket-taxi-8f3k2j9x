@@ -3667,6 +3667,11 @@ async function calculateFare() {
     }
 
     // ── Маркер на карте + автооткрытие для визуальной проверки ──
+    // Use cached coords from Photon/selectLocalPlace if available for this address
+    if (!lat && _geoCache.lat && _geoCache.lng &&
+        (_geoCache.addr||'').toLowerCase() === addrCore) {
+        lat = _geoCache.lat; lng = _geoCache.lng;
+    }
     // Fallback: if geocoding gave no coords but zone is known, place marker at zone centroid
     if (!lat && destinationZone && ZONE_CENTROIDS[destinationZone]) {
         [lat, lng] = ZONE_CENTROIDS[destinationZone];
@@ -3929,7 +3934,7 @@ function selectLocalPlace(place){
           const { zone: detectedZone, isCrossTown } = findZoneInfo(turf.point([lng, lat]));
           const zone = detectedZone || place.zone;
           _geoCache = { addr: place.name, zone, isCrossTown, lat, lng };
-          if(detectedZone) calculateFare();
+          calculateFare();
         }
       }).catch(()=>{});
   }
