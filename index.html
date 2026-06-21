@@ -3596,6 +3596,18 @@ async function calculateFare() {
 
     await localPlacesReady;
 
+    // ── ШАГ 0: Локальное место с точными координатами (приоритет над Google) ──
+    {
+        const lm = localPlaces.find(p => p.lat && p.lng && p.name.toLowerCase() === addrCore)
+                || localPlaces.find(p => p.lat && p.lng && (addrCore.includes(p.name.toLowerCase()) || p.name.toLowerCase().includes(addrCore)));
+        if (lm) {
+            lat = lm.lat; lng = lm.lng;
+            const [bLat0, bLng0] = _difficultMode ? boostNudge(lat, lng) : [lat, lng];
+            const { zone: z, isCrossTown: ct } = findZoneInfo(turf.point([bLng0, bLat0]));
+            if (z) { destinationZone = z; destIsCrossTown = ct; }
+        }
+    }
+
     // ── ШАГИ 1-2: Получить координаты → проверить KML полигон ──
     // Шаг 1: Google Places (если пользователь выбрал из автодополнения)
     if (window.selectedPlace?.geometry) {
@@ -3642,7 +3654,16 @@ async function calculateFare() {
                 return streetOnly === pn || streetOnly.includes(pn) || pn.includes(streetOnly);
             });
         }
-        if (m) { destinationZone = m.zone; destIsCrossTown = false; lat = null; lng = null; }
+        if (m) {
+            if (m.lat && m.lng) {
+                lat = m.lat; lng = m.lng;
+                const [bLat3, bLng3] = _difficultMode ? boostNudge(lat, lng) : [lat, lng];
+                const { zone: z, isCrossTown: ct } = findZoneInfo(turf.point([bLng3, bLat3]));
+                destinationZone = z || m.zone; destIsCrossTown = ct;
+            } else {
+                destinationZone = m.zone; destIsCrossTown = false; lat = null; lng = null;
+            }
+        }
     }
 
     // ── Маркер на карте + автооткрытие для визуальной проверки ──
