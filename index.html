@@ -4344,6 +4344,12 @@ function initFirebase(){
     const overlay = document.getElementById('loginOverlay');
     if(!navigator.onLine && localStorage.getItem('wasLoggedIn')){
       if(overlay) overlay.style.display='none';
+      // Offline: check cached expiry
+      const cachedExpiry = localStorage.getItem('accessExpiry');
+      if(cachedExpiry && new Date(cachedExpiry) > new Date()){
+        const paywall = document.getElementById('paywallOverlay');
+        if(paywall) paywall.style.display = 'none'; // access still valid
+      }
     }
 
     const ADMIN_EMAIL = 'dima.kdy04@gmail.com';
@@ -4354,6 +4360,8 @@ function initFirebase(){
       updateAuthUI();
       if(user){
         localStorage.setItem('wasLoggedIn','1');
+        localStorage.setItem('userEmail', user.email || '');
+        localStorage.setItem('userName', user.displayName || '');
         if(overlay) overlay.style.display='none';
 
         // Save profile so admin panel can list users
@@ -4371,6 +4379,8 @@ function initFirebase(){
             const doc = await fbDb.collection('users').doc(user.uid).get();
             const expiry = doc.data()?.accessExpiry?.toDate?.() || null;
             const now = new Date();
+            // Cache expiry for offline use
+            if(expiry) localStorage.setItem('accessExpiry', expiry.toISOString());
             if(!expiry || expiry < now){
               const expiredMsg = document.getElementById('paywallExpiredMsg');
               const newMsg     = document.getElementById('paywallNewMsg');
@@ -4392,6 +4402,20 @@ function initFirebase(){
         if(navigator.onLine){
           localStorage.removeItem('wasLoggedIn');
           setTimeout(()=>{ if(!fbUser && overlay) overlay.style.display='flex'; }, 2000);
+        } else {
+          // Offline: allow app if was logged in and subscription is cached & valid
+          if(localStorage.getItem('wasLoggedIn')){
+            const cachedExpiry = localStorage.getItem('accessExpiry');
+            if(cachedExpiry && new Date(cachedExpiry) > new Date()){
+              if(overlay) overlay.style.display = 'none';
+              const paywall = document.getElementById('paywallOverlay');
+              if(paywall) paywall.style.display = 'none';
+              // Offline mode with valid cache
+              return;
+            }
+          }
+          // No valid cache or not logged in
+          if(overlay) overlay.style.display='flex';
         }
       }
     });

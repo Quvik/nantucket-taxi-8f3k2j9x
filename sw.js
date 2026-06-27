@@ -1,4 +1,4 @@
-const CACHE      = 'ntaxi-v86';
+const CACHE      = 'ntaxi-v87';
 const TILE_CACHE = 'ntaxi-tiles-v2';
 const MAX_TILES  = 1000;
 
