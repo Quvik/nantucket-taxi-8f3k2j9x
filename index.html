@@ -1566,7 +1566,8 @@ function detectCurrentLocation() {
         gpsLng = lng;
 
         // Only update zone when no destination is entered and user hasn't overridden manually
-        if (!_zoneLockedByDest) {
+        const hasDestinationEntered = document.getElementById('destination').value.trim().length > 0;
+        if (!_zoneLockedByDest && !hasDestinationEntered) {
             const { zone: detected, isCrossTown } = findZoneInfo(point);
             gpsZoneName    = detected;
             gpsIsCrossTown = isCrossTown;
@@ -1656,7 +1657,13 @@ const localPlacesReady = Promise.all([
 
 async function autoCalculate(){
   const destination = document.getElementById('destination').value.trim();
-  if(destination.length < 3){ _geoCache = {addr:'',zone:null,isCrossTown:false,lat:null,lng:null}; const rr=document.getElementById('reopenMapRow'); if(rr) rr.style.display='none'; return; }
+  if(destination.length < 3){
+    _geoCache = {addr:'',zone:null,isCrossTown:false,lat:null,lng:null};
+    _zoneLockedByDest = false; // unlock zone when destination cleared
+    const rr=document.getElementById('reopenMapRow');
+    if(rr) rr.style.display='none';
+    return;
+  }
   try{ await calculateFare(); }catch(e){ console.warn('Calculate fare error:', e); }
   // Save state for offline use
   localStorage.setItem('nta_lasttrip', JSON.stringify(_lastTripData));
@@ -4323,6 +4330,10 @@ function closeZonePicker(){
 
 function setZoneManual(zone){
   closeZonePicker();
+  // Clear destination when manually selecting zone so GPS can update again
+  const destInput = document.getElementById('destination');
+  if(destInput) destInput.value = '';
+  _zoneLockedByDest = false;
   if(zone === null){
     // Вернуть GPS
     zoneIsManual = false;
