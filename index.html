@@ -1647,16 +1647,19 @@ let localPlaces = [];
 // must NOT overwrite the other's data
 let _placesData = [], _streetsData = [];
 const localPlacesReady = Promise.all([
-  fetch('places.json?v=8').then(r => r.json()).then(d => { _placesData = d; }).catch(() => {}),
-  fetch('streets.json?v=3').then(r => r.json()).then(d => { _streetsData = d; }).catch(() => {})
-]).then(() => { localPlaces = [..._placesData, ..._streetsData]; });
+  fetch('places.json?v=8').then(r => r.json()).then(d => { _placesData = d; }).catch(() => { console.warn('Failed to load places.json'); }),
+  fetch('streets.json?v=3').then(r => r.json()).then(d => { _streetsData = d; }).catch(() => { console.warn('Failed to load streets.json'); })
+]).then(() => { localPlaces = [..._placesData, ..._streetsData]; })
+  .catch(e => { console.warn('localPlacesReady error:', e); });
 
 
 
-function autoCalculate(){
+async function autoCalculate(){
   const destination = document.getElementById('destination').value.trim();
   if(destination.length < 3){ _geoCache = {addr:'',zone:null,isCrossTown:false,lat:null,lng:null}; const rr=document.getElementById('reopenMapRow'); if(rr) rr.style.display='none'; return; }
-  try{ calculateFare(); }catch(e){}
+  try{ await calculateFare(); }catch(e){ console.warn('Calculate fare error:', e); }
+  // Save state for offline use
+  localStorage.setItem('nta_lasttrip', JSON.stringify(_lastTripData));
 }
 
 window.addEventListener('load',()=>{
@@ -3551,10 +3554,42 @@ function toggleChip(btn, id) {
 
 async function calculateFare() {
     haptic(15);
-    await localPlacesReady; // ensure places.json + streets.json are loaded first
     const address = document.getElementById('destination').value.trim();
 
-    if (!address) return;
+    if (!address) {
+        // Offline: restore last saved trip if available
+        if(!navigator.onLine){
+            const saved = localStorage.getItem('nta_lasttrip');
+            if(saved){
+                try{
+                    const trip = JSON.parse(saved);
+                    _lastTripData = trip;
+                    document.getElementById('destinationZone').innerText = trip.destination || 'Unknown';
+                    document.getElementById('totalFare').innerText = `$${trip.fare}`;
+                    return;
+                }catch(e){}
+            }
+        }
+        return;
+    }
+
+    // If offline, restore last trip and skip network geocoding
+    if(!navigator.onLine){
+        const saved = localStorage.getItem('nta_lasttrip');
+        if(saved){
+            try{
+                const trip = JSON.parse(saved);
+                if(trip.destination && trip.destination.toLowerCase() === address.toLowerCase()){
+                    _lastTripData = trip;
+                    document.getElementById('destinationZone').innerText = trip.toZone || 'Unknown';
+                    document.getElementById('totalFare').innerText = `$${trip.fare}`;
+                    return; // use cached price
+                }
+            }catch(e){}
+        }
+    }
+
+    await localPlacesReady; // ensure places.json + streets.json are loaded first
 
     lastDestinationAddress = address;
 
@@ -3637,7 +3672,9 @@ async function calculateFare() {
                     showAddressPreview(lat, lng, address);
                 }
             }
-        } catch(e) { /* офлайн */ }
+        } catch(e) {
+            // Offline: fall through to Step 3 to check localPlaces
+        }
     }
 
     // ── ШАГ 3: Офлайн — только локальная база (запасной вариант) ──
