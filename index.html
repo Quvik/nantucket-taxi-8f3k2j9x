@@ -4785,10 +4785,11 @@ function renderAnalytics(trips){
     if(d) byHour[d.getHours()]++;
   });
   const periods=[
-    {label:'Morning (6–11)', hours:[6,7,8,9,10], icon:'🌅'},
-    {label:'Afternoon (11–17)', hours:[11,12,13,14,15,16], icon:'☀️'},
-    {label:'Evening (17–22)', hours:[17,18,19,20,21], icon:'🌆'},
-    {label:'Night (22–5)', hours:[22,23,0,1,2,3,4,5], icon:'🌙'},
+    ...Array.from({length:24}, (_, h) => ({
+      label: `${String(h).padStart(2,'0')}:00`,
+      hours: [h],
+      icon: h >= 6 && h < 11 ? '🌅' : h >= 11 && h < 17 ? '☀️' : h >= 17 && h < 22 ? '🌆' : '🌙'
+    }))
   ].map(p=>({...p, count:p.hours.reduce((s,h)=>s+byHour[h],0)}));
   const maxPer=Math.max(...periods.map(p=>p.count),1);
 
