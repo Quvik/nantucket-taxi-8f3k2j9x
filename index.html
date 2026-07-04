@@ -4428,8 +4428,12 @@ function initFirebase(){
             const expiry = doc.data()?.accessExpiry?.toDate?.() || null;
             const now = new Date();
             // Cache expiry for offline use
-            if(expiry) localStorage.setItem('accessExpiry', expiry.toISOString());
+            if(expiry) {
+              localStorage.setItem('accessExpiry', expiry.toISOString());
+              localStorage.setItem('hasValidSubscription', '1');
+            }
             if(!expiry || expiry < now){
+              localStorage.removeItem('hasValidSubscription');
               const expiredMsg = document.getElementById('paywallExpiredMsg');
               const newMsg     = document.getElementById('paywallNewMsg');
               const isExpired  = !!expiry;
@@ -4453,8 +4457,11 @@ function initFirebase(){
         } else {
           // Offline: allow app if was logged in and subscription is cached & valid
           if(localStorage.getItem('wasLoggedIn')){
+            const hasValidSub = localStorage.getItem('hasValidSubscription') === '1';
             const cachedExpiry = localStorage.getItem('accessExpiry');
-            if(cachedExpiry && new Date(cachedExpiry) > new Date()){
+            const expiryOk = !cachedExpiry || new Date(cachedExpiry) > new Date();
+
+            if(hasValidSub && expiryOk){
               if(overlay) overlay.style.display = 'none';
               const paywall = document.getElementById('paywallOverlay');
               if(paywall) paywall.style.display = 'none';
