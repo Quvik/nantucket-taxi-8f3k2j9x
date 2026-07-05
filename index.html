@@ -3323,8 +3323,8 @@ let _nightAutoMode = true; // false once user manually toggles
 let waitStartTime = null;
 let _pickupGeoKey = null;   // destination address last used for pickup geocode
 
-// ── Zone Boost (difficult customer mode) ──────────────────────
-let _difficultMode = localStorage.getItem('nta_difficult') === '1';
+// ── Easy Mode (hide addresses, show zones only) ──────────────────────
+let _easyMode = localStorage.getItem('nta_easy_mode') === '1';
 
 // One-step zone upgrade ladder (each zone → next more expensive)
 const ZONE_BOOST_TIER = {
@@ -3351,32 +3351,18 @@ const ZONE_BOOST_TIER = {
 };
 
 // Nudge coordinates away from Town center (~150m) so border addresses
-// fall into the more expensive adjacent zone when Zone Boost is on.
-const _TOWN_LAT = 41.2835, _TOWN_LNG = -70.0995, _BOOST_NUDGE = 0.0003; // ~30m
-function boostNudge(lat, lng) {
-    const dLat = lat - _TOWN_LAT, dLng = lng - _TOWN_LNG;
-    const len = Math.sqrt(dLat*dLat + dLng*dLng) || 1;
-    return [lat + (dLat/len)*_BOOST_NUDGE, lng + (dLng/len)*_BOOST_NUDGE];
-}
-
 function openSettings(){
     closeDrawer();
     const p = document.getElementById('settingsPanel');
     p.style.display = 'flex';
-    document.getElementById('difficultModeToggle').checked = _difficultMode;
+    document.getElementById('easyModeToggle').checked = _easyMode;
 }
 function closeSettings(){
     document.getElementById('settingsPanel').style.display = 'none';
 }
-function setDifficultMode(on){
-    _difficultMode = on;
-    localStorage.setItem('nta_difficult', on ? '1' : '0');
-    const ind = document.getElementById('difficultIndicator');
-    if(ind) ind.style.display = on ? 'inline-block' : 'none';
-}
-function initDifficultIndicator(){
-    const ind = document.getElementById('difficultIndicator');
-    if(ind) ind.style.display = _difficultMode ? 'inline-block' : 'none';
+function setEasyMode(on){
+    _easyMode = on;
+    localStorage.setItem('nta_easy_mode', on ? '1' : '0');
 }
 let _pickupGeoResult = null; // cached fromAddress from Nominatim
 let waitAccruedMs = 0;
@@ -3644,7 +3630,7 @@ async function calculateFare() {
                 || localPlaces.find(p => p.lat && p.lng && (addrCore.includes(p.name.toLowerCase()) || p.name.toLowerCase().includes(addrCore)));
         if (lm) {
             lat = lm.lat; lng = lm.lng;
-            const [bLat0, bLng0] = _difficultMode ? boostNudge(lat, lng) : [lat, lng];
+            const [bLat0, bLng0] = [lat, lng];
             const { zone: z, isCrossTown: ct } = findZoneInfo(turf.point([bLng0, bLat0]));
             if (z) { destinationZone = z; destIsCrossTown = ct; }
         }
@@ -3655,7 +3641,7 @@ async function calculateFare() {
     if (window.selectedPlace?.geometry) {
         lat = window.selectedPlace.geometry.location.lat();
         lng = window.selectedPlace.geometry.location.lng();
-        const [bLat, bLng] = _difficultMode ? boostNudge(lat, lng) : [lat, lng];
+        const [bLat, bLng] = [lat, lng];
         const { zone: z, isCrossTown: ct } = findZoneInfo(turf.point([bLng, bLat]));
         if (z) { destinationZone = z; destIsCrossTown = ct; }
     }
@@ -3671,7 +3657,7 @@ async function calculateFare() {
             if (r) {
                 lat = r.geometry.location.lat;
                 lng = r.geometry.location.lng;
-                const [bLat2, bLng2] = _difficultMode ? boostNudge(lat, lng) : [lat, lng];
+                const [bLat2, bLng2] = [lat, lng];
                 const { zone: z, isCrossTown: ct } = findZoneInfo(turf.point([bLng2, bLat2]));
                 if (z) {
                     destinationZone = z; destIsCrossTown = ct;
@@ -3701,7 +3687,7 @@ async function calculateFare() {
         if (m) {
             if (m.lat && m.lng) {
                 lat = m.lat; lng = m.lng;
-                const [bLat3, bLng3] = _difficultMode ? boostNudge(lat, lng) : [lat, lng];
+                const [bLat3, bLng3] = [lat, lng];
                 const { zone: z, isCrossTown: ct } = findZoneInfo(turf.point([bLng3, bLat3]));
                 destinationZone = z || m.zone; destIsCrossTown = ct;
             } else {
@@ -3769,7 +3755,6 @@ async function calculateFare() {
     const toZone = ((gpsIsAtActualAirport() || manuallyAtAirport) && destIsCrossTown)
         ? 'Cross Town' : destinationZone;
 
-    // Zone Boost: zone already nudged via coordinates — no extra override needed
     const effectiveToZone = toZone;
 
     let baseFare = getFare(fromZone, effectiveToZone);
@@ -4714,9 +4699,9 @@ function renderHistory(trips){
     </div>
     ${group.trips.map(trip=>{
       const time = trip._date.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',hour12:true});
-      const from = trip.fromAddress||trip.fromZone||'—';
+      const from = _easyMode ? (trip.fromZone||'—') : (trip.fromAddress||trip.fromZone||'—');
       const toZone = trip.toZone||'—';
-      const dest = trip.destination||toZone;
+      const dest = _easyMode ? toZone : (trip.destination||toZone);
       const showDest = dest && dest.toLowerCase()!==toZone.toLowerCase();
       const pax = trip.passengers||1;
       const extras = [
@@ -5288,7 +5273,6 @@ if('serviceWorker' in navigator){
 window.addEventListener('DOMContentLoaded', ()=>{
   if(typeof _restoreWaitState==='function') _restoreWaitState();
   if(typeof restoreAppState==='function') restoreAppState();
-  initDifficultIndicator();
 });
 
 </script>
@@ -5877,15 +5861,15 @@ async function adminGrantAccess(uid, btn, days){
   </div>
   <div style="padding:20px 16px;display:flex;flex-direction:column;gap:12px;">
 
-    <!-- Zone Boost -->
+    <!-- Easy Mode -->
     <div style="background:#17181c;border:1px solid #252528;border-radius:16px;padding:16px 18px;">
       <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
         <div>
-          <div style="font-size:15px;font-weight:700;">⚡ Zone Boost</div>
-          <div style="font-size:12px;opacity:.45;margin-top:4px;line-height:1.4;">Applies adjusted rates for specific destinations</div>
+          <div style="font-size:15px;font-weight:700;">🎯 Easy Mode</div>
+          <div style="font-size:12px;opacity:.45;margin-top:4px;line-height:1.4;">Hide addresses in history, show zones only</div>
         </div>
         <label class="sw-wrap">
-          <input type="checkbox" id="difficultModeToggle" onchange="setDifficultMode(this.checked)">
+          <input type="checkbox" id="easyModeToggle" onchange="setEasyMode(this.checked)" ${_easyMode ? 'checked' : ''}>
           <span class="sw-track"></span>
         </label>
       </div>
