@@ -5582,10 +5582,16 @@ function closeHistoryMap(){
         <div style="font-size:17px;font-weight:800;">Admin Panel</div>
         <div id="adminWhoLabel" style="font-size:11px;opacity:.35;"></div>
       </div>
-      <button onclick="adminDoLogout()"
-        style="background:#1c1c1e;border:1px solid #2c2c2e;border-radius:10px;color:#ff453a;font-size:13px;font-weight:600;padding:8px 14px;cursor:pointer;">
-        Выйти
-      </button>
+      <div style="display:flex;gap:8px;">
+        <button onclick="adminClearCache()"
+          style="background:#1c2c1c;border:1px solid #30d15844;border-radius:10px;color:#30d158;font-size:13px;font-weight:600;padding:8px 14px;cursor:pointer;">
+          🔄 Обновить кэш
+        </button>
+        <button onclick="adminDoLogout()"
+          style="background:#1c1c1e;border:1px solid #2c2c2e;border-radius:10px;color:#ff453a;font-size:13px;font-weight:600;padding:8px 14px;cursor:pointer;">
+          Выйти
+        </button>
+      </div>
     </div>
     <!-- Summary -->
     <div id="adminSummary" style="padding:16px 18px;"></div>
@@ -5818,6 +5824,29 @@ function adminToggleTrips(id, btn){
   const open = el.style.display !== 'none';
   el.style.display = open ? 'none' : 'block';
   btn.textContent  = open ? 'История поездок ▾' : 'Скрыть ▴';
+}
+
+async function adminClearCache(){
+  const btn = event.target;
+  const orig = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = '⏳ Очищаю кэш…';
+  try{
+    // Clear all service worker caches
+    const cacheNames = await caches.keys();
+    await Promise.all(cacheNames.map(name => caches.delete(name)));
+    btn.textContent = '✅ Кэш очищен';
+    btn.style.color = '#30d158';
+    setTimeout(()=>{
+      btn.textContent = '🔄 Перезагружаю…';
+      location.reload();
+    }, 1500);
+  }catch(e){
+    btn.textContent = '❌ Ошибка';
+    btn.style.color = '#ff453a';
+    btn.disabled = false;
+    setTimeout(()=>{ btn.textContent = orig; btn.style.color = '#30d158'; }, 2000);
+  }
 }
 
 async function adminGrantAccess(uid, btn, days){
