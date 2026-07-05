@@ -1171,6 +1171,7 @@ input[type="time"].form-input{ -webkit-appearance:auto; appearance:auto; }
     <div id="historyStats" style="margin-bottom:14px;"></div>
     <div id="historyList"><div style="text-align:center;padding:40px;opacity:.4;" data-i18n="signInHistory">Sign in to view history</div></div>
     <div id="historyAnalytics" style="display:none;"></div>
+    <div style="text-align:center;padding:20px 16px 8px;font-size:10px;opacity:.3;border-top:1px solid #252528;margin-top:20px;">v1.0.0</div>
   </div>
 </div>
 
@@ -4677,12 +4678,14 @@ function renderHistory(trips){
       <div style="flex:1;background:#17181c;border:1px solid #252528;border-radius:14px;padding:12px;text-align:center;">
         <div style="font-size:11px;opacity:.5;margin-bottom:4px;">${t('todayLabel')}</div>
         <div style="font-size:20px;font-weight:900;color:#30d158;">$${fmt(todayTotal)}</div>
-        <div style="font-size:11px;opacity:.4;">${today.length} ${t('tripsUnit')}</div>
+        <div style="font-size:10px;opacity:.5;margin-top:3px;">$${fmt(todayTotal/2)}</div>
+        <div style="font-size:11px;opacity:.4;margin-top:6px;">${today.length} ${t('tripsUnit')}</div>
       </div>
       <div style="flex:1;background:#17181c;border:1px solid #252528;border-radius:14px;padding:12px;text-align:center;">
         <div style="font-size:11px;opacity:.5;margin-bottom:4px;">${t('totalLabel')}</div>
         <div style="font-size:20px;font-weight:900;">$${fmt(total)}</div>
-        <div style="font-size:11px;opacity:.4;">${trips.length} ${t('tripsUnit')}</div>
+        <div style="font-size:10px;opacity:.5;margin-top:3px;">$${fmt(total/2)}</div>
+        <div style="font-size:11px;opacity:.4;margin-top:6px;">${trips.length} ${t('tripsUnit')}</div>
       </div>
     </div>`;
 
