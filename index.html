@@ -4663,14 +4663,14 @@ function renderHistory(trips){
     return;
   }
 
-  const total = trips.reduce((s,tr)=>s+(tr.fare||0),0);
+  const total = trips.reduce((s,tr)=>s+(tr._disabled?0:tr.fare||0),0);
   const todayKey = shiftedDate(new Date()).toDateString();
   const today = trips.filter(tr=>{
     if(!tr.localTs && !tr.ts) return false;
     const d = tr.localTs ? new Date(tr.localTs) : (tr.ts.toDate ? tr.ts.toDate() : new Date(tr.ts));
     return shiftedDate(d).toDateString() === todayKey;
   });
-  const todayTotal = today.reduce((s,tr)=>s+(tr.fare||0),0);
+  const todayTotal = today.reduce((s,tr)=>s+(tr._disabled?0:tr.fare||0),0);
 
   if(stats) stats.innerHTML=`
     <div style="display:flex;gap:8px;">
@@ -4694,7 +4694,7 @@ function renderHistory(trips){
     const label = sd.toLocaleDateString(currentLang==='ru'?'ru-RU':'en-US',{day:'numeric',month:'short',weekday:'short'});
     if(!byGroup[key]) byGroup[key]={label,trips:[],sum:0};
     byGroup[key].trips.push({...trip,_date:d});
-    byGroup[key].sum+=(trip.fare||0);
+    byGroup[key].sum+=(trip._disabled?0:trip.fare||0);
   });
 
   list.innerHTML = Object.values(byGroup).map(group=>{
@@ -4702,12 +4702,16 @@ function renderHistory(trips){
     let accumulated = 0;
     const accumulatedByTrip = {};
     sortedTrips.forEach(trip=>{
-      accumulated += trip.fare || 0;
+      if(!trip._disabled) accumulated += trip.fare || 0;
       accumulatedByTrip[trip.id] = accumulated;
     });
     return `
-    <div style="font-size:11px;font-weight:700;opacity:.4;letter-spacing:1px;margin:14px 0 8px;display:flex;justify-content:space-between;">
-      <span>${group.label.toUpperCase()}</span><span>$${fmt(group.sum)}</span>
+    <div style="font-size:11px;font-weight:700;opacity:.4;letter-spacing:1px;margin:14px 0 8px;display:flex;justify-content:space-between;align-items:flex-start;">
+      <span>${group.label.toUpperCase()}</span>
+      <div style="text-align:right;">
+        <div>$${fmt(group.sum)}</div>
+        <div style="font-size:10px;opacity:.6;margin-top:2px;">$${fmt(group.sum/2)}</div>
+      </div>
     </div>
     ${group.trips.map(trip=>{
       const time = trip._date.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',hour12:true});
@@ -4725,8 +4729,10 @@ function renderHistory(trips){
         (trip.bags||0)>0?`💼 ${trip.bags}`:'',
         (trip.waitCharge||0)>0?`⏱ $${(trip.waitCharge).toFixed(2)}`:'',
       ].filter(Boolean).join(' · ');
-      const halfPrice = _easyMode ? (accumulatedByTrip[trip.id]/2).toFixed(2) : null;
-      return `<div style="background:#17181c;border:1px solid #252528;border-radius:14px;padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;gap:10px;">
+      const halfPrice = (accumulatedByTrip[trip.id]/2).toFixed(2);
+      const bgColor = trip._disabled ? '#0f0f10;opacity:.5' : '#17181c';
+      const textOpacity = trip._disabled ? 'opacity:.5;' : '';
+      return `<div style="background:${bgColor};border:1px solid #252528;border-radius:14px;padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;gap:10px;${textOpacity}">
         <div style="flex:1;min-width:0;">
           <div style="font-size:15px;font-weight:800;display:flex;align-items:baseline;gap:3px;min-width:0;">
             <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:0 1 auto;min-width:0;max-width:38%;">${from}</span>
@@ -4738,7 +4744,7 @@ function renderHistory(trips){
         </div>
         <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0;">
           <div style="font-size:20px;font-weight:900;color:#30d158;">$${trip.fare!=null?fmt(trip.fare):'?'}</div>
-          ${halfPrice?`<div style="font-size:14px;font-weight:700;color:#ff9500;opacity:.8;">$${halfPrice}</div>`:''}
+          ${!trip._disabled?`<div style="font-size:14px;font-weight:700;color:#ff9500;opacity:.8;">$${halfPrice}</div>`:''}
         </div>
         <button onclick="editTrip('${trip.id}')" style="background:#1a2233;border:none;color:#0a84ff;border-radius:10px;width:34px;height:34px;font-size:16px;cursor:pointer;flex-shrink:0;">✏️</button>
         <button onclick="deleteTrip('${trip.id}')" style="background:#2a1a1a;border:none;color:#ff453a;border-radius:10px;width:34px;height:34px;font-size:16px;cursor:pointer;flex-shrink:0;">🗑</button>
@@ -4981,6 +4987,10 @@ function _showEditModal(tripData){
         <button id="et_ferryRes" data-on="${td.ferryRes?'1':'0'}" onclick="etToggle('et_ferryRes')" style="flex:1;border-radius:10px;padding:10px;font-size:13px;font-weight:700;cursor:pointer;border:none;${td.ferryRes?'background:#0a1a2a;color:#64d2ff;':'background:#252530;color:white;'}">⛴ Ferry Res +$6</button>
       </div>
 
+      <div style="display:flex;gap:10px;margin-bottom:20px;">
+        <button id="et_disabled" data-on="${td._disabled?'1':'0'}" onclick="etToggle('et_disabled')" style="flex:1;border-radius:10px;padding:10px;font-size:13px;font-weight:700;cursor:pointer;border:none;${td._disabled?'background:#3a1a1a;color:#ff453a;':'background:#252530;color:white;'}">− ${currentLang==='ru'?'Не считать':'Exclude'}</button>
+      </div>
+
       <div style="margin-bottom:16px;">
         <div style="font-size:11px;opacity:.5;margin-bottom:5px;">📝 ${currentLang==='ru'?'ЗАМЕТКА':'NOTE'}</div>
         <textarea id="et_notes" rows="3" placeholder="${currentLang==='ru'?'Добавить заметку к поездке...':'Add a note to this trip...'}" style="width:100%;box-sizing:border-box;background:#12121a;border:1px solid #333;color:#ffd60a;border-radius:10px;padding:10px;font-size:14px;resize:vertical;font-family:inherit;">${(td.notes||'').replace(/</g,'&lt;')}</textarea>
@@ -5075,15 +5085,17 @@ function saveEditTrip(){
   const nightBtn     = document.getElementById('et_night');
   const airportBtn   = document.getElementById('et_airportRes');
   const ferryBtn     = document.getElementById('et_ferryRes');
+  const disabledBtn  = document.getElementById('et_disabled');
   const dirtRoad     = dirtBtn    ? dirtBtn.dataset.on    === '1' : false;
   const nightFee     = nightBtn   ? nightBtn.dataset.on   === '1' : false;
   const airportRes   = airportBtn ? airportBtn.dataset.on === '1' : false;
   const ferryRes     = ferryBtn   ? ferryBtn.dataset.on   === '1' : false;
+  const _disabled    = disabledBtn ? disabledBtn.dataset.on === '1' : false;
   const notes        = ((document.getElementById('et_notes')||{}).value||'').trim();
   const fromAddress  = ((document.getElementById('et_fromAddr')||{}).value||'').trim();
 
   fbDb.collection('users').doc(fbUser.uid).collection('trips').doc(_editingTripId)
-    .update({ fromZone, toZone, destination:dest, fare, passengers, waitCharge, dogs, bikes, bags, dirtRoad, nightFee, airportRes, ferryRes, notes, fromAddress })
+    .update({ fromZone, toZone, destination:dest, fare, passengers, waitCharge, dogs, bikes, bags, dirtRoad, nightFee, airportRes, ferryRes, notes, fromAddress, _disabled })
     .then(()=>{
       const overlay = document.getElementById('editTripOverlay');
       if(overlay) overlay.remove();
