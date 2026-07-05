@@ -4729,7 +4729,7 @@ function renderHistory(trips){
         (trip.bags||0)>0?`💼 ${trip.bags}`:'',
         (trip.waitCharge||0)>0?`⏱ $${(trip.waitCharge).toFixed(2)}`:'',
       ].filter(Boolean).join(' · ');
-      const halfPrice = _easyMode ? (accumulatedByTrip[trip.id]/2).toFixed(2) : null;
+      const halfPrice = (accumulatedByTrip[trip.id]/2).toFixed(2);
       const bgColor = trip._disabled ? '#0f0f10;opacity:.5' : '#17181c';
       const textOpacity = trip._disabled ? 'opacity:.5;' : '';
       return `<div style="background:${bgColor};border:1px solid #252528;border-radius:14px;padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;gap:10px;${textOpacity}">
@@ -4744,7 +4744,7 @@ function renderHistory(trips){
         </div>
         <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0;">
           <div style="font-size:20px;font-weight:900;color:#30d158;">$${trip.fare!=null?fmt(trip.fare):'?'}</div>
-          ${halfPrice && !trip._disabled?`<div style="font-size:14px;font-weight:700;color:#ff9500;opacity:.8;">$${halfPrice}</div>`:''}
+          ${!trip._disabled?`<div style="font-size:14px;font-weight:700;color:#ff9500;opacity:.8;">$${halfPrice}</div>`:''}
         </div>
         <button onclick="editTrip('${trip.id}')" style="background:#1a2233;border:none;color:#0a84ff;border-radius:10px;width:34px;height:34px;font-size:16px;cursor:pointer;flex-shrink:0;">✏️</button>
         <button onclick="deleteTrip('${trip.id}')" style="background:#2a1a1a;border:none;color:#ff453a;border-radius:10px;width:34px;height:34px;font-size:16px;cursor:pointer;flex-shrink:0;">🗑</button>
