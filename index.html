@@ -4391,13 +4391,10 @@ function initFirebase(){
     // If offline and was previously logged in — hide overlay immediately
     const overlay = document.getElementById('loginOverlay');
     if(!navigator.onLine && localStorage.getItem('wasLoggedIn')){
+      // Offline mode: allow access if user was logged in before
       if(overlay) overlay.style.display='none';
-      // Offline: check cached expiry
-      const cachedExpiry = localStorage.getItem('accessExpiry');
-      if(cachedExpiry && new Date(cachedExpiry) > new Date()){
-        const paywall = document.getElementById('paywallOverlay');
-        if(paywall) paywall.style.display = 'none'; // access still valid
-      }
+      const paywall = document.getElementById('paywallOverlay');
+      if(paywall) paywall.style.display = 'none';
     }
 
     const ADMIN_EMAIL = 'dima.kdy04@gmail.com';
@@ -4455,21 +4452,16 @@ function initFirebase(){
           localStorage.removeItem('wasLoggedIn');
           setTimeout(()=>{ if(!fbUser && overlay) overlay.style.display='flex'; }, 2000);
         } else {
-          // Offline: allow app if was logged in and subscription is cached & valid
+          // Offline: if user was ever logged in, allow app access
+          // (can't verify subscription status without internet anyway)
           if(localStorage.getItem('wasLoggedIn')){
-            const hasValidSub = localStorage.getItem('hasValidSubscription') === '1';
-            const cachedExpiry = localStorage.getItem('accessExpiry');
-            const expiryOk = !cachedExpiry || new Date(cachedExpiry) > new Date();
-
-            if(hasValidSub && expiryOk){
-              if(overlay) overlay.style.display = 'none';
-              const paywall = document.getElementById('paywallOverlay');
-              if(paywall) paywall.style.display = 'none';
-              // Offline mode with valid cache
-              return;
-            }
+            if(overlay) overlay.style.display = 'none';
+            const paywall = document.getElementById('paywallOverlay');
+            if(paywall) paywall.style.display = 'none';
+            // Offline mode - user will be blocked when they go online if subscription expired
+            return;
           }
-          // No valid cache or not logged in
+          // Never logged in before
           if(overlay) overlay.style.display='flex';
         }
       }
