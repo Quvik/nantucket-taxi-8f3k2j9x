@@ -1,5 +1,5 @@
-const CACHE      = 'ntaxi-v102';
-const TILE_CACHE = 'ntaxi-tiles-v3';
+const CACHE      = 'ntaxi-v999';
+const TILE_CACHE = 'ntaxi-tiles-v10';
 const MAX_TILES  = 1000;
 
 // Nantucket + surrounding waters bounding box
