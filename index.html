@@ -4706,8 +4706,12 @@ function renderHistory(trips){
       accumulatedByTrip[trip.id] = accumulated;
     });
     return `
-    <div style="font-size:11px;font-weight:700;opacity:.4;letter-spacing:1px;margin:14px 0 8px;display:flex;justify-content:space-between;">
-      <span>${group.label.toUpperCase()}</span><span>$${fmt(group.sum)}</span>
+    <div style="font-size:11px;font-weight:700;opacity:.4;letter-spacing:1px;margin:14px 0 8px;display:flex;justify-content:space-between;align-items:flex-start;">
+      <span>${group.label.toUpperCase()}</span>
+      <div style="text-align:right;">
+        <div>$${fmt(group.sum)}</div>
+        <div style="font-size:10px;opacity:.6;margin-top:2px;">$${fmt(group.sum/2)}</div>
+      </div>
     </div>
     ${group.trips.map(trip=>{
       const time = trip._date.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',hour12:true});
