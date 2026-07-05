@@ -3363,6 +3363,10 @@ function closeSettings(){
 function setEasyMode(on){
     _easyMode = on;
     localStorage.setItem('nta_easy_mode', on ? '1' : '0');
+    // Reload history to apply Easy Mode filter
+    if(document.getElementById('historyPanel')?.classList.contains('open')){
+        loadHistory();
+    }
 }
 let _pickupGeoResult = null; // cached fromAddress from Nominatim
 let waitAccruedMs = 0;
