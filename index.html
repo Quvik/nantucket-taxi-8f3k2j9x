@@ -773,6 +773,7 @@ input[type="time"].form-input{ -webkit-appearance:auto; appearance:auto; }
   <div style="padding:0 16px 12px 16px;">
     <button onclick="forceSwUpdate()" style="width:100%;background:#1e1e28;border:1px solid #333;color:#aaa;border-radius:10px;padding:10px;font-size:12px;cursor:pointer;">🔄 <span data-i18n="forceUpdate">Force App Update</span></button>
   </div>
+  <div style="text-align:center;padding:16px 16px 20px;font-size:11px;opacity:.3;border-top:1px solid #252528;margin-top:auto;">v1.0.0</div>
 </div>
 
 <div class="bookings-panel" id="bookingsPanel">
@@ -4678,13 +4679,13 @@ function renderHistory(trips){
       <div style="flex:1;background:#17181c;border:1px solid #252528;border-radius:14px;padding:12px;text-align:center;">
         <div style="font-size:11px;opacity:.5;margin-bottom:4px;">${t('todayLabel')}</div>
         <div style="font-size:20px;font-weight:900;color:#30d158;">$${fmt(todayTotal)}</div>
-        <div style="font-size:10px;opacity:.5;margin-top:3px;">$${fmt(todayTotal/2)}</div>
+        <div style="font-size:10px;color:#ff9500;margin-top:3px;">$${fmt(todayTotal/2)}</div>
         <div style="font-size:11px;opacity:.4;margin-top:6px;">${today.length} ${t('tripsUnit')}</div>
       </div>
       <div style="flex:1;background:#17181c;border:1px solid #252528;border-radius:14px;padding:12px;text-align:center;">
         <div style="font-size:11px;opacity:.5;margin-bottom:4px;">${t('totalLabel')}</div>
         <div style="font-size:20px;font-weight:900;">$${fmt(total)}</div>
-        <div style="font-size:10px;opacity:.5;margin-top:3px;">$${fmt(total/2)}</div>
+        <div style="font-size:10px;color:#ff9500;margin-top:3px;">$${fmt(total/2)}</div>
         <div style="font-size:11px;opacity:.4;margin-top:6px;">${trips.length} ${t('tripsUnit')}</div>
       </div>
     </div>`;
