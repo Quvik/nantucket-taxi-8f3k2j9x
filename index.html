@@ -4698,13 +4698,18 @@ function renderHistory(trips){
   });
 
   list.innerHTML = Object.values(byGroup).map(group=>{
+    const sortedTrips = [...group.trips].sort((a,b)=>a._date.getTime()-b._date.getTime());
     let accumulated = 0;
+    const accumulatedByTrip = {};
+    sortedTrips.forEach(trip=>{
+      accumulated += trip.fare || 0;
+      accumulatedByTrip[trip.id] = accumulated;
+    });
     return `
     <div style="font-size:11px;font-weight:700;opacity:.4;letter-spacing:1px;margin:14px 0 8px;display:flex;justify-content:space-between;">
       <span>${group.label.toUpperCase()}</span><span>$${fmt(group.sum)}</span>
     </div>
     ${group.trips.map(trip=>{
-      accumulated += trip.fare || 0;
       const time = trip._date.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',hour12:true});
       const from = _easyMode ? (trip.fromZone||'—') : (trip.fromAddress||trip.fromZone||'—');
       const toZone = trip.toZone||'—';
@@ -4720,7 +4725,7 @@ function renderHistory(trips){
         (trip.bags||0)>0?`💼 ${trip.bags}`:'',
         (trip.waitCharge||0)>0?`⏱ $${(trip.waitCharge).toFixed(2)}`:'',
       ].filter(Boolean).join(' · ');
-      const halfPrice = _easyMode ? (accumulated / 2).toFixed(2) : null;
+      const halfPrice = _easyMode ? (accumulatedByTrip[trip.id]/2).toFixed(2) : null;
       return `<div style="background:#17181c;border:1px solid #252528;border-radius:14px;padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;gap:10px;">
         <div style="flex:1;min-width:0;">
           <div style="font-size:15px;font-weight:800;display:flex;align-items:baseline;gap:3px;min-width:0;">
