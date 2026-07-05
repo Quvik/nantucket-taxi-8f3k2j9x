@@ -4750,7 +4750,7 @@ function renderHistory(trips){
         </div>
         <div style="display:flex;flex-direction:column;align-items:flex-end;gap:0;flex-shrink:0;">
           <div style="font-size:20px;font-weight:900;color:#30d158;">$${trip.fare!=null?fmt(trip.fare):'?'}</div>
-          ${!trip._disabled?`<div style="font-size:12px;opacity:.5;margin-top:2px;">$${halfPrice}</div>`:''}
+          ${!trip._disabled?`<div style="font-size:12px;color:#ff9500;margin-top:2px;">$${halfPrice}</div>`:''}
         </div>
         <button onclick="editTrip('${trip.id}')" style="background:#1a2233;border:none;color:#0a84ff;border-radius:10px;width:34px;height:34px;font-size:16px;cursor:pointer;flex-shrink:0;">✏️</button>
         <button onclick="deleteTrip('${trip.id}')" style="background:#2a1a1a;border:none;color:#ff453a;border-radius:10px;width:34px;height:34px;font-size:16px;cursor:pointer;flex-shrink:0;">🗑</button>
