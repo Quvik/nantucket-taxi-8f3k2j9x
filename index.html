@@ -4100,49 +4100,87 @@ function fetchSuggestions(query){
     componentRestrictions: { country:'us' },
     types: ['geocode','establishment']
   }, (predictions, status)=>{
+    if(status !== google.maps.places.PlacesServiceStatus.OK || !predictions) {
+      acDropdown.innerHTML = '';
+      if(!local.length){ hideDropdown(); return; }
+      local.forEach((p, i) => acDropdown.appendChild(renderLocalItem(p, i === local.length - 1)));
+      positionDropdown();
+      acDropdown.style.display = 'block';
+      return;
+    }
+
     const localNames = [...local.map(p => p.name.toLowerCase())];
-    const NANTUCKET_PLACES = ['nantucket','siasconset','sconset','madaket','wauwinet','polpis','quidnet','pocomo','shimmo','quaise','dionis','cisco','miacomet','sankaty','surfside','squam','tom nevers','madequecham'];
-    const gPreds = (status === google.maps.places.PlacesServiceStatus.OK && predictions)
-      ? predictions.filter(p => {
-          const sec  = (p.structured_formatting?.secondary_text||'').toLowerCase();
-          const main = (p.structured_formatting?.main_text||'').toLowerCase();
-          // Only show results from Nantucket island
-          if (!NANTUCKET_PLACES.some(loc => sec.includes(loc) || main.includes(loc))) return false;
-          // Remove exact duplicates only - allow same street in different zones (e.g., Main St in Town vs Sconset)
-          const isExactDup = localNames.some(ln => ln === main.trim());
-          return !isExactDup;
-        }).slice(0, Math.max(0, 8 - local.length))
-      : [];
+    const nanBoundsObj = { minLat: 41.230, maxLat: 41.340, minLng: -70.240, maxLng: -69.950 };
 
-    acDropdown.innerHTML = '';
-    const total = local.length + gPreds.length;
-    if(!total){ hideDropdown(); return; }
+    // Get details for each prediction to verify it's on island
+    let validPreds = [];
+    let processed = 0;
 
-    local.forEach((p, i) => acDropdown.appendChild(renderLocalItem(p, i === total-1 && !gPreds.length)));
-    gPreds.forEach((pred, i) => {
-      const item = document.createElement('div');
-      const isLast = i === gPreds.length - 1;
-      item.style.cssText = `padding:13px 16px;cursor:pointer;font-size:15px;color:white;
+    predictions.forEach((pred) => {
+      // Skip exact duplicates with local results
+      const main = pred.structured_formatting?.main_text||'';
+      const isExactDup = localNames.some(ln => ln === main.toLowerCase().trim());
+      if(isExactDup) {
+        processed++;
+        return;
+      }
+
+      placesService.getDetails({
+        placeId: pred.place_id,
+        fields: ['geometry','name','formatted_address'],
+        sessionToken: sessionToken
+      }, (place, status)=>{
+        processed++;
+        if(status === google.maps.places.PlacesServiceStatus.OK && place?.geometry?.location) {
+          const lat = place.geometry.location.lat();
+          const lng = place.geometry.location.lng();
+
+          // Check if coordinates are within island bounds
+          if(lat >= nanBoundsObj.minLat && lat <= nanBoundsObj.maxLat &&
+             lng >= nanBoundsObj.minLng && lng <= nanBoundsObj.maxLng) {
+            validPreds.push({pred, lat, lng, place});
+          }
+        }
+
+        // When all predictions processed, render dropdown
+        if(processed === predictions.length) renderGooglePredictions(local, validPreds.slice(0, 8));
+      });
+    });
+  });
+};
+
+function renderGooglePredictions(local, validPreds) {
+  acDropdown.innerHTML = '';
+  const total = local.length + validPreds.length;
+  if(!total){ hideDropdown(); return; }
+
+  local.forEach((p, i) => acDropdown.appendChild(renderLocalItem(p, i === total-1 && !validPreds.length)));
+  validPreds.forEach((item, i) => {
+    const pred = item.pred;
+    const lat = item.lat;
+    const lng = item.lng;
+    const divEl = document.createElement('div');
+    const isLast = i === validPreds.length - 1;
+    divEl.style.cssText = `padding:13px 16px;cursor:pointer;font-size:15px;color:white;
         ${!isLast ? 'border-bottom:1px solid #2a2a2a;' : ''}
         display:flex;align-items:center;gap:10px;`;
-      const main = pred.structured_formatting?.main_text || pred.description;
-      const rawSec = pred.structured_formatting?.secondary_text||'';
-      const sec  = rawSec
-        .replace(/,?\s*Nantucket,?\s*MA\s*\d*,?\s*USA/gi,'')
-        .replace(/,?\s*Nantucket,?\s*MA/gi,'').trim();
-      const zone = detectZoneFromText(main, rawSec);
-      item.innerHTML = `<span style="font-size:18px;">🌐</span>
-        <div>
-          <div style="font-weight:700;">${main}</div>
-          <div style="font-size:12px;opacity:.5;margin-top:2px;">${zone || sec || ''}</div>
-        </div>`;
-      item.addEventListener('click', () => selectPrediction(pred));
-      acDropdown.appendChild(item);
-    });
-
-    positionDropdown();
-    acDropdown.style.display = 'block';
+    const main = pred.structured_formatting?.main_text || pred.description;
+    const rawSec = pred.structured_formatting?.secondary_text||'';
+    const sec  = rawSec
+      .replace(/,?\s*Nantucket,?\s*MA\s*\d*,?\s*USA/gi,'')
+      .replace(/,?\s*Nantucket,?\s*MA/gi,'').trim();
+    const zone = detectZoneFromText(main, rawSec);
+    divEl.innerHTML = `<span style="font-size:18px;">🌐</span>
+      <div>
+        <div style="font-weight:700;">${main}</div>
+        <div style="font-size:12px;opacity:.5;margin-top:2px;">${zone || sec || ''}</div>
+      </div>`;
+    divEl.addEventListener('click', () => selectPrediction(pred));
+    acDropdown.appendChild(divEl);
   });
+
+  positionDropdown();
+  acDropdown.style.display = 'block';
 }
 
 function renderDropdown(predictions){
