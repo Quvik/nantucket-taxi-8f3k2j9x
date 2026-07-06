@@ -983,12 +983,15 @@ input[type="time"].form-input{ -webkit-appearance:auto; appearance:auto; }
   <span style="font-size:12px;opacity:.7;">+$6</span>
 </button>
 </div>
-<div class="chips" id="paymentMethodChips" style="margin-top:6px;display:none;gap:8px;">
-<button id="cashBtn" onclick="setPaymentMethod('cash')" style="flex:1;background:#1a2a1a;border:2px solid #30d158;border-radius:14px;padding:14px;font-size:16px;font-weight:700;color:white;cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:8px;">
+<div class="chips" id="paymentMethodChips" style="margin-top:6px;display:none;gap:8px;flex-wrap:wrap;">
+<button id="cashBtn" onclick="setPaymentMethod('cash')" style="flex:1;min-width:100px;background:#1a2a1a;border:2px solid #30d158;border-radius:14px;padding:12px;font-size:14px;font-weight:700;color:white;cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:6px;">
   💰 Cash
 </button>
-<button id="cardBtn" onclick="setPaymentMethod('card')" style="flex:1;background:#1a1f2a;border:2px solid #444;border-radius:14px;padding:14px;font-size:16px;font-weight:700;color:#888;cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:8px;">
+<button id="cardBtn" onclick="setPaymentMethod('card')" style="flex:1;min-width:100px;background:#1a1f2a;border:2px solid #444;border-radius:14px;padding:12px;font-size:14px;font-weight:700;color:#888;cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:6px;">
   💳 Card
+</button>
+<button id="venmoBtn" onclick="setPaymentMethod('venmo')" style="flex:1;min-width:100px;background:#1a1f2a;border:2px solid #444;border-radius:14px;padding:12px;font-size:14px;font-weight:700;color:#888;cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:6px;">
+  🔵 Venmo
 </button>
 </div>
 <button id="waitBtn" onclick="toggleWait()" style="width:100%;margin-top:8px;background:#1e1e28;border:1px solid #333;color:#aaa;border-radius:14px;padding:11px;font-size:15px;font-weight:700;cursor:pointer;transition:all .2s;letter-spacing:.3px;">⏱ Wait</button>
@@ -3330,7 +3333,7 @@ function openWaze() {
 function haptic(pattern){ try{ navigator.vibrate(pattern); }catch(e){} }
 
 const chipState = { nightFee: false, dirtRoad: false, airportRes: false, ferryRes: false };
-let paymentMethod = 'cash'; // 'cash' or 'card'
+let paymentMethod = 'cash'; // 'cash', 'card', or 'venmo'
 let _geoCache = { addr:'', zone:null, isCrossTown:false, lat:null, lng:null };
 let _nightAutoMode = true; // false once user manually toggles
 let waitStartTime = null;
@@ -3578,29 +3581,26 @@ function setPaymentMethod(method) {
     localStorage.setItem('nta_payment', method);
     const cashBtn = document.getElementById('cashBtn');
     const cardBtn = document.getElementById('cardBtn');
+    const venmoBtn = document.getElementById('venmoBtn');
 
-    if(method === 'cash') {
-        if(cashBtn) {
-            cashBtn.style.background = '#1a2a1a';
-            cashBtn.style.borderColor = '#30d158';
-            cashBtn.style.color = 'white';
-        }
-        if(cardBtn) {
-            cardBtn.style.background = '#1a1f2a';
-            cardBtn.style.borderColor = '#444';
-            cardBtn.style.color = '#888';
-        }
-    } else {
-        if(cashBtn) {
-            cashBtn.style.background = '#1a1f2a';
-            cashBtn.style.borderColor = '#444';
-            cashBtn.style.color = '#888';
-        }
-        if(cardBtn) {
-            cardBtn.style.background = '#1a2025';
-            cardBtn.style.borderColor = '#0a84ff';
-            cardBtn.style.color = 'white';
-        }
+    // Reset all to inactive state
+    if(cashBtn) { cashBtn.style.background = '#1a1f2a'; cashBtn.style.borderColor = '#444'; cashBtn.style.color = '#888'; }
+    if(cardBtn) { cardBtn.style.background = '#1a1f2a'; cardBtn.style.borderColor = '#444'; cardBtn.style.color = '#888'; }
+    if(venmoBtn) { venmoBtn.style.background = '#1a1f2a'; venmoBtn.style.borderColor = '#444'; venmoBtn.style.color = '#888'; }
+
+    // Activate selected button
+    if(method === 'cash' && cashBtn) {
+        cashBtn.style.background = '#1a2a1a';
+        cashBtn.style.borderColor = '#30d158';
+        cashBtn.style.color = 'white';
+    } else if(method === 'card' && cardBtn) {
+        cardBtn.style.background = '#1a2025';
+        cardBtn.style.borderColor = '#0a84ff';
+        cardBtn.style.color = 'white';
+    } else if(method === 'venmo' && venmoBtn) {
+        venmoBtn.style.background = '#1a2a38';
+        venmoBtn.style.borderColor = '#3d95ce';
+        venmoBtn.style.color = 'white';
     }
 }
 
@@ -4778,7 +4778,7 @@ function renderHistory(trips){
       const dest = _easyMode ? toZone : (trip.destination||toZone);
       const showDest = dest && dest.toLowerCase()!==toZone.toLowerCase();
       const pax = trip.passengers||1;
-      const paymentIcon = trip.paymentMethod === 'cash' ? '💰 Cash' : (trip.paymentMethod === 'card' ? '💳 Card' : '');
+      const paymentIcon = trip.paymentMethod === 'cash' ? '💰 Cash' : (trip.paymentMethod === 'card' ? '💳 Card' : (trip.paymentMethod === 'venmo' ? '🔵 Venmo' : ''));
       const extras = [
         `${pax} ${t('paxUnit')}`,
         trip.dirtRoad?t('dirtTag'):'',
