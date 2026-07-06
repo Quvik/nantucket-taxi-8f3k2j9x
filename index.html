@@ -983,6 +983,14 @@ input[type="time"].form-input{ -webkit-appearance:auto; appearance:auto; }
   <span style="font-size:12px;opacity:.7;">+$6</span>
 </button>
 </div>
+<div class="chips" id="paymentMethodChips" style="margin-top:6px;display:none;">
+<button class="chip" id="cashBtn" onclick="setPaymentMethod('cash')" style="flex-direction:column;gap:2px;background:#17181c;border:2px solid #30d158;">
+  <span style="font-size:14px;">💰 Cash</span>
+</button>
+<button class="chip" id="cardBtn" onclick="setPaymentMethod('card')" style="flex-direction:column;gap:2px;background:#17181c;border:2px solid #888;">
+  <span style="font-size:14px;">💳 Card</span>
+</button>
+</div>
 <button id="waitBtn" onclick="toggleWait()" style="width:100%;margin-top:8px;background:#1e1e28;border:1px solid #333;color:#aaa;border-radius:14px;padding:11px;font-size:15px;font-weight:700;cursor:pointer;transition:all .2s;letter-spacing:.3px;">⏱ Wait</button>
 
 </div>
@@ -3322,6 +3330,7 @@ function openWaze() {
 function haptic(pattern){ try{ navigator.vibrate(pattern); }catch(e){} }
 
 const chipState = { nightFee: false, dirtRoad: false, airportRes: false, ferryRes: false };
+let paymentMethod = 'cash'; // 'cash' or 'card'
 let _geoCache = { addr:'', zone:null, isCrossTown:false, lat:null, lng:null };
 let _nightAutoMode = true; // false once user manually toggles
 let waitStartTime = null;
@@ -3367,6 +3376,9 @@ function closeSettings(){
 function setEasyMode(on){
     _easyMode = on;
     localStorage.setItem('nta_easy_mode', on ? '1' : '0');
+    // Show/hide payment method buttons
+    const paymentChips = document.getElementById('paymentMethodChips');
+    if(paymentChips) paymentChips.style.display = on ? 'flex' : 'none';
     // Reload history to apply Easy Mode filter
     if(document.getElementById('historyPanel')?.classList.contains('open')){
         loadHistory();
@@ -3462,6 +3474,13 @@ function restoreAppState(){
   const ferryResBtn = document.getElementById('ferryResBtn');
   if(ferryResBtn) ferryResBtn.classList.toggle('on', ferryRes);
 
+  // Restore payment method
+  const savedPaymentMethod = localStorage.getItem('nta_payment');
+  if(savedPaymentMethod && _easyMode){
+    paymentMethod = savedPaymentMethod;
+    setPaymentMethod(savedPaymentMethod);
+  }
+
   if(localStorage.getItem('nta_zone_manual') === '1'){
     const zoneName = localStorage.getItem('nta_zone_name');
     if(zoneName){
@@ -3551,6 +3570,16 @@ function toggleChip(btn, id) {
     btn.classList.toggle('on', chipState[id]);
     if(document.getElementById('destination').value.trim())
         try { calculateFare(); } catch(e) {}
+}
+
+function setPaymentMethod(method) {
+    haptic(12);
+    paymentMethod = method;
+    localStorage.setItem('nta_payment', method);
+    const cashBtn = document.getElementById('cashBtn');
+    const cardBtn = document.getElementById('cardBtn');
+    if(cashBtn) cashBtn.style.borderColor = method === 'cash' ? '#30d158' : '#888';
+    if(cardBtn) cardBtn.style.borderColor = method === 'card' ? '#0a84ff' : '#888';
 }
 
 async function calculateFare() {
@@ -3833,6 +3862,7 @@ ${extraRows}${waitRow}
       destLng: _geoCache.lng || null,
       fromLat: gpsLat || null,
       fromLng: gpsLng || null,
+      paymentMethod: _easyMode ? paymentMethod : null,
     };
 
     // Reverse-geocode pickup location — only when destination changes (not on pax/extras re-calc)
@@ -4726,6 +4756,7 @@ function renderHistory(trips){
       const dest = _easyMode ? toZone : (trip.destination||toZone);
       const showDest = dest && dest.toLowerCase()!==toZone.toLowerCase();
       const pax = trip.passengers||1;
+      const paymentIcon = trip.paymentMethod === 'cash' ? '💰 Cash' : (trip.paymentMethod === 'card' ? '💳 Card' : '');
       const extras = [
         `${pax} ${t('paxUnit')}`,
         trip.dirtRoad?t('dirtTag'):'',
@@ -4734,6 +4765,7 @@ function renderHistory(trips){
         (trip.bikes||0)>0?`🚲 ${trip.bikes}`:'',
         (trip.bags||0)>0?`💼 ${trip.bags}`:'',
         (trip.waitCharge||0)>0?`⏱ $${(trip.waitCharge).toFixed(2)}`:'',
+        paymentIcon,
       ].filter(Boolean).join(' · ');
       const halfPrice = (accumulatedByTrip[trip.id]/2).toFixed(2);
       const bgColor = trip._disabled ? '#0f0f10;opacity:.5' : '#17181c';
@@ -5307,6 +5339,11 @@ if('serviceWorker' in navigator){
 window.addEventListener('DOMContentLoaded', ()=>{
   if(typeof _restoreWaitState==='function') _restoreWaitState();
   if(typeof restoreAppState==='function') restoreAppState();
+  // Show payment method buttons if Easy Mode is enabled
+  if(_easyMode){
+    const paymentChips = document.getElementById('paymentMethodChips');
+    if(paymentChips) paymentChips.style.display = 'flex';
+  }
 });
 
 </script>
