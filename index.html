@@ -4029,8 +4029,26 @@ function selectLocalPlace(place){
   }
 }
 
-function detectZoneFromText(text) {
+function detectZoneFromText(text, secondaryText) {
   const core = text.toLowerCase().split(',')[0].trim();
+  const secondary = (secondaryText || '').toLowerCase();
+
+  // Check if secondary text mentions a specific zone/area
+  const ZONE_KEYWORDS = {
+    'siasconset': 'Siasconset', 'sconset': 'Siasconset',
+    'madaket': 'Madaket', 'wauwinet': 'Wauwinet',
+    'polpis': 'Polpis', 'quidnet': 'Quidnet',
+    'pocomo': 'Pocomo', 'shimmo': 'Shimmo',
+    'quaise': 'Quaise', 'dionis': 'Dionis',
+    'cisco': 'Cisco/ Miacomet', 'miacomet': 'Cisco/ Miacomet',
+    'tom nevers': 'Tom Nevers', 'madequecham': 'Madequecham',
+    'sankaty': 'Sankaty Light', 'surfside': 'Tom Nevers'
+  };
+
+  for (const [keyword, zone] of Object.entries(ZONE_KEYWORDS)) {
+    if (secondary.includes(keyword)) return zone;
+  }
+
   const hasNum = /^\d+\s+/.test(core);
   let m = localPlaces.find(p => p.name.toLowerCase() === core);
   if (!m) m = localPlaces.find(p => { const pn = p.name.toLowerCase(); return core.includes(pn) || pn.includes(core); });
@@ -4090,13 +4108,10 @@ function fetchSuggestions(query){
           const main = (p.structured_formatting?.main_text||'').toLowerCase();
           // Only show results from Nantucket island
           if (!NANTUCKET_PLACES.some(loc => sec.includes(loc) || main.includes(loc))) return false;
-          // Remove near-duplicates of local results
-          const isDup = localNames.some(ln => {
-            if(main.includes(ln) || ln.includes(main)) return true;
-            return ln.split(' ').filter(w=>w.length>5).some(w=>main.includes(w));
-          });
-          return !isDup;
-        }).slice(0, Math.max(0, 5 - local.length))
+          // Remove exact duplicates only - allow same street in different zones (e.g., Main St in Town vs Sconset)
+          const isExactDup = localNames.some(ln => ln === main.trim());
+          return !isExactDup;
+        }).slice(0, Math.max(0, 8 - local.length))
       : [];
 
     acDropdown.innerHTML = '';
@@ -4111,10 +4126,11 @@ function fetchSuggestions(query){
         ${!isLast ? 'border-bottom:1px solid #2a2a2a;' : ''}
         display:flex;align-items:center;gap:10px;`;
       const main = pred.structured_formatting?.main_text || pred.description;
-      const sec  = (pred.structured_formatting?.secondary_text||'')
+      const rawSec = pred.structured_formatting?.secondary_text||'';
+      const sec  = rawSec
         .replace(/,?\s*Nantucket,?\s*MA\s*\d*,?\s*USA/gi,'')
         .replace(/,?\s*Nantucket,?\s*MA/gi,'').trim();
-      const zone = detectZoneFromText(main);
+      const zone = detectZoneFromText(main, rawSec);
       item.innerHTML = `<span style="font-size:18px;">🌐</span>
         <div>
           <div style="font-weight:700;">${main}</div>
