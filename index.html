@@ -5052,6 +5052,15 @@ function _showEditModal(tripData){
       </div>
 
       <div style="margin-bottom:16px;">
+        <div style="font-size:11px;opacity:.5;margin-bottom:8px;">${currentLang==='ru'?'СПОСОБ ОПЛАТЫ':'PAYMENT METHOD'}</div>
+        <div style="display:flex;gap:8px;">
+          <button id="et_payment_cash" onclick="etSetPayment('cash')" style="flex:1;background:${td.paymentMethod==='cash'?'#1a2a1a':'#252530'};border:2px solid ${td.paymentMethod==='cash'?'#30d158':'#444'};color:${td.paymentMethod==='cash'?'white':'#888'};border-radius:10px;padding:10px;font-size:12px;font-weight:700;cursor:pointer;">💰 Cash</button>
+          <button id="et_payment_card" onclick="etSetPayment('card')" style="flex:1;background:${td.paymentMethod==='card'?'#1a2025':'#252530'};border:2px solid ${td.paymentMethod==='card'?'#0a84ff':'#444'};color:${td.paymentMethod==='card'?'white':'#888'};border-radius:10px;padding:10px;font-size:12px;font-weight:700;cursor:pointer;">💳 Card</button>
+          <button id="et_payment_venmo" onclick="etSetPayment('venmo')" style="flex:1;background:${td.paymentMethod==='venmo'?'#1a2a38':'#252530'};border:2px solid ${td.paymentMethod==='venmo'?'#3d95ce':'#444'};color:${td.paymentMethod==='venmo'?'white':'#888'};border-radius:10px;padding:10px;font-size:12px;font-weight:700;cursor:pointer;">🔵 Venmo</button>
+        </div>
+      </div>
+
+      <div style="margin-bottom:16px;">
         <div style="font-size:11px;opacity:.5;margin-bottom:5px;">📝 ${currentLang==='ru'?'ЗАМЕТКА':'NOTE'}</div>
         <textarea id="et_notes" rows="3" placeholder="${currentLang==='ru'?'Добавить заметку к поездке...':'Add a note to this trip...'}" style="width:100%;box-sizing:border-box;background:#12121a;border:1px solid #333;color:#ffd60a;border-radius:10px;padding:10px;font-size:14px;resize:vertical;font-family:inherit;">${(td.notes||'').replace(/</g,'&lt;')}</textarea>
       </div>
@@ -5069,6 +5078,17 @@ function _showEditModal(tripData){
   const toSel   = document.getElementById('et_toZone');
   if(fromSel && td.fromZone) fromSel.value = td.fromZone;
   if(toSel   && td.toZone)   toSel.value   = td.toZone;
+
+  // Initialize payment method
+  let paymentInput = document.getElementById('et_payment_method');
+  if(!paymentInput) {
+    paymentInput = document.createElement('input');
+    paymentInput.id = 'et_payment_method';
+    paymentInput.type = 'hidden';
+    document.body.appendChild(paymentInput);
+  }
+  paymentInput.value = td.paymentMethod || 'cash';
+  if(td.paymentMethod) etSetPayment(td.paymentMethod);
 }
 
 function etStep(id, delta, min, max){
@@ -5130,6 +5150,42 @@ function etRecalc(){
   if(fareEl) fareEl.value = Number.isInteger(total) ? total : total.toFixed(2);
 }
 
+function etSetPayment(method){
+  const cashBtn = document.getElementById('et_payment_cash');
+  const cardBtn = document.getElementById('et_payment_card');
+  const venmoBtn = document.getElementById('et_payment_venmo');
+
+  // Reset all
+  if(cashBtn) { cashBtn.style.background = '#252530'; cashBtn.style.borderColor = '#444'; cashBtn.style.color = '#888'; }
+  if(cardBtn) { cardBtn.style.background = '#252530'; cardBtn.style.borderColor = '#444'; cardBtn.style.color = '#888'; }
+  if(venmoBtn) { venmoBtn.style.background = '#252530'; venmoBtn.style.borderColor = '#444'; venmoBtn.style.color = '#888'; }
+
+  // Activate selected
+  if(method === 'cash' && cashBtn) {
+    cashBtn.style.background = '#1a2a1a';
+    cashBtn.style.borderColor = '#30d158';
+    cashBtn.style.color = 'white';
+  } else if(method === 'card' && cardBtn) {
+    cardBtn.style.background = '#1a2025';
+    cardBtn.style.borderColor = '#0a84ff';
+    cardBtn.style.color = 'white';
+  } else if(method === 'venmo' && venmoBtn) {
+    venmoBtn.style.background = '#1a2a38';
+    venmoBtn.style.borderColor = '#3d95ce';
+    venmoBtn.style.color = 'white';
+  }
+
+  // Store in hidden input
+  let inp = document.getElementById('et_payment_method');
+  if(!inp) {
+    inp = document.createElement('input');
+    inp.id = 'et_payment_method';
+    inp.type = 'hidden';
+    document.body.appendChild(inp);
+  }
+  inp.value = method;
+}
+
 function saveEditTrip(){
   if(!_editingTripId||!fbDb||!fbUser) return;
   const fromZone  = (document.getElementById('et_fromZone')||{}).value||'';
@@ -5153,9 +5209,10 @@ function saveEditTrip(){
   const _disabled    = disabledBtn ? disabledBtn.dataset.on === '1' : false;
   const notes        = ((document.getElementById('et_notes')||{}).value||'').trim();
   const fromAddress  = ((document.getElementById('et_fromAddr')||{}).value||'').trim();
+  const paymentMethod = (document.getElementById('et_payment_method')||{}).value||null;
 
   fbDb.collection('users').doc(fbUser.uid).collection('trips').doc(_editingTripId)
-    .update({ fromZone, toZone, destination:dest, fare, passengers, waitCharge, dogs, bikes, bags, dirtRoad, nightFee, airportRes, ferryRes, notes, fromAddress, _disabled })
+    .update({ fromZone, toZone, destination:dest, fare, passengers, waitCharge, dogs, bikes, bags, dirtRoad, nightFee, airportRes, ferryRes, notes, fromAddress, _disabled, paymentMethod })
     .then(()=>{
       const overlay = document.getElementById('editTripOverlay');
       if(overlay) overlay.remove();
