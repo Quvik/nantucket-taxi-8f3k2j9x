@@ -983,12 +983,12 @@ input[type="time"].form-input{ -webkit-appearance:auto; appearance:auto; }
   <span style="font-size:12px;opacity:.7;">+$6</span>
 </button>
 </div>
-<div class="chips" id="paymentMethodChips" style="margin-top:6px;display:none;">
-<button class="chip" id="cashBtn" onclick="setPaymentMethod('cash')" style="flex-direction:column;gap:2px;background:#17181c;border:2px solid #30d158;">
-  <span style="font-size:14px;">💰 Cash</span>
+<div class="chips" id="paymentMethodChips" style="margin-top:6px;display:none;gap:8px;">
+<button id="cashBtn" onclick="setPaymentMethod('cash')" style="flex:1;background:#1a2a1a;border:2px solid #30d158;border-radius:14px;padding:14px;font-size:16px;font-weight:700;color:white;cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:8px;">
+  💰 Cash
 </button>
-<button class="chip" id="cardBtn" onclick="setPaymentMethod('card')" style="flex-direction:column;gap:2px;background:#17181c;border:2px solid #888;">
-  <span style="font-size:14px;">💳 Card</span>
+<button id="cardBtn" onclick="setPaymentMethod('card')" style="flex:1;background:#1a1f2a;border:2px solid #444;border-radius:14px;padding:14px;font-size:16px;font-weight:700;color:#888;cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:8px;">
+  💳 Card
 </button>
 </div>
 <button id="waitBtn" onclick="toggleWait()" style="width:100%;margin-top:8px;background:#1e1e28;border:1px solid #333;color:#aaa;border-radius:14px;padding:11px;font-size:15px;font-weight:700;cursor:pointer;transition:all .2s;letter-spacing:.3px;">⏱ Wait</button>
@@ -3578,8 +3578,30 @@ function setPaymentMethod(method) {
     localStorage.setItem('nta_payment', method);
     const cashBtn = document.getElementById('cashBtn');
     const cardBtn = document.getElementById('cardBtn');
-    if(cashBtn) cashBtn.style.borderColor = method === 'cash' ? '#30d158' : '#888';
-    if(cardBtn) cardBtn.style.borderColor = method === 'card' ? '#0a84ff' : '#888';
+
+    if(method === 'cash') {
+        if(cashBtn) {
+            cashBtn.style.background = '#1a2a1a';
+            cashBtn.style.borderColor = '#30d158';
+            cashBtn.style.color = 'white';
+        }
+        if(cardBtn) {
+            cardBtn.style.background = '#1a1f2a';
+            cardBtn.style.borderColor = '#444';
+            cardBtn.style.color = '#888';
+        }
+    } else {
+        if(cashBtn) {
+            cashBtn.style.background = '#1a1f2a';
+            cashBtn.style.borderColor = '#444';
+            cashBtn.style.color = '#888';
+        }
+        if(cardBtn) {
+            cardBtn.style.background = '#1a2025';
+            cardBtn.style.borderColor = '#0a84ff';
+            cardBtn.style.color = 'white';
+        }
+    }
 }
 
 async function calculateFare() {
