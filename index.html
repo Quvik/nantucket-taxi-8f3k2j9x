@@ -5072,7 +5072,7 @@ function _showEditModal(tripData){
   overlay.addEventListener('click', e=>{ if(e.target===overlay) overlay.remove(); });
 
   overlay.innerHTML=`
-    <div style="background:#1e1e28;border:1px solid #333;border-radius:20px 20px 0 0;padding:20px 18px 34px;width:100%;max-width:420px;max-height:92vh;overflow-y:auto;">
+    <div style="background:#1e1e28;border:1px solid #333;border-radius:20px 20px 0 0;padding:20px 18px 34px;width:100%;max-width:420px;max-height:92vh;overflow-y:auto;animation:slideUp 0.3s ease-out;touch-action:pan-y;">
       <div style="width:40px;height:4px;background:#333;border-radius:2px;margin:0 auto 18px;"></div>
       <div style="font-size:18px;font-weight:800;margin-bottom:16px;text-align:center;">${t('editTrip')}</div>
 
@@ -5198,6 +5198,42 @@ function _showEditModal(tripData){
     </div>`;
 
   document.body.appendChild(overlay);
+
+  // Add swipe-to-close gesture
+  let swipeStartY = 0;
+  const modalContent = overlay.querySelector('div');
+  overlay.addEventListener('touchstart', e => {
+    swipeStartY = e.touches[0].clientY;
+  }, {passive: true});
+
+  overlay.addEventListener('touchmove', e => {
+    const swipeCurrentY = e.touches[0].clientY;
+    const diff = swipeCurrentY - swipeStartY;
+    if (diff > 0 && modalContent) {
+      const progress = Math.min(1, diff / 300);
+      modalContent.style.transform = `translateY(${diff}px)`;
+      modalContent.style.opacity = `${1 - progress * 0.3}`;
+    }
+  }, {passive: true});
+
+  overlay.addEventListener('touchend', e => {
+    const swipeEndY = e.changedTouches[0].clientY;
+    const diff = swipeEndY - swipeStartY;
+    if (diff > 80) {
+      // Close with animation
+      modalContent.style.transition = 'all 0.3s ease-out';
+      modalContent.style.transform = 'translateY(100%)';
+      modalContent.style.opacity = '0';
+      overlay.style.transition = 'background 0.3s ease-out';
+      overlay.style.background = 'rgba(0,0,0,0)';
+      setTimeout(() => overlay.remove(), 300);
+    } else {
+      // Reset
+      modalContent.style.transition = 'all 0.2s ease-out';
+      modalContent.style.transform = 'translateY(0)';
+      modalContent.style.opacity = '1';
+    }
+  }, {passive: true});
 
   // Set selects after append
   const fromSel = document.getElementById('et_fromZone');
