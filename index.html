@@ -5113,8 +5113,10 @@ function _showEditModal(tripData){
 
       <div style="margin-bottom:16px;">
         <div style="font-size:11px;opacity:.5;margin-bottom:5px;">${t('totalField')}</div>
-        <input id="et_fare" type="number" min="0" step="0.01" value="${td.fare||0}" readonly
-          style="width:100%;box-sizing:border-box;background:#12121a;border:1px solid #252530;color:#30d158;border-radius:10px;padding:10px;font-size:22px;font-weight:900;cursor:default;">
+        <input id="et_fare" type="number" min="0" step="0.01" value="${td.fare||0}"
+          style="width:100%;box-sizing:border-box;background:#12121a;border:1px solid #333;color:#30d158;border-radius:10px;padding:10px;font-size:22px;font-weight:900;cursor:text;"
+          oninput="this.dataset.manualFare='1'"
+          onblur="if(!this.value||parseFloat(this.value)<0)this.value=(${td.fare||0}).toFixed(2)">
       </div>
 
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
