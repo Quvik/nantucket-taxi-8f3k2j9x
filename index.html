@@ -842,8 +842,9 @@ input[type="time"].form-input{ -webkit-appearance:auto; appearance:auto; }
   </div>
 </div>
 
-<div class="topbar-header" style="position:relative;">
-  <div id="offlineIndicator" style="position:absolute;top:0;left:0;right:0;background:#ff9500;color:#000;padding:4px;text-align:center;font-size:11px;font-weight:700;display:none;z-index:10000;">⏳ Offline — changes will sync when online</div>
+<div id="offlineIndicator" style="background:#ff9500;color:#000;padding:6px 4px;text-align:center;font-size:11px;font-weight:700;display:none;position:fixed;top:0;left:0;right:0;z-index:10001;">⏳ Offline — changes will sync when online</div>
+
+<div class="topbar-header">
   <button class="hamburger-btn" onclick="openDrawer()">
     <span></span><span></span><span></span>
   </button>
@@ -5545,11 +5546,6 @@ function updateOfflineIndicator(){
   const indicator = document.getElementById('offlineIndicator');
   if(!indicator) return;
   indicator.style.display = navigator.onLine ? 'none' : 'block';
-  if(!navigator.onLine){
-    document.body.style.paddingTop = '92px'; // Make room for offline banner
-  } else {
-    document.body.style.paddingTop = '48px';
-  }
 }
 
 window.addEventListener('online', ()=>{
