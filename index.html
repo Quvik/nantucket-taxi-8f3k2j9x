@@ -842,7 +842,8 @@ input[type="time"].form-input{ -webkit-appearance:auto; appearance:auto; }
   </div>
 </div>
 
-<div class="topbar-header">
+<div class="topbar-header" style="position:relative;">
+  <div id="offlineIndicator" style="position:absolute;top:0;left:0;right:0;background:#ff9500;color:#000;padding:4px;text-align:center;font-size:11px;font-weight:700;display:none;z-index:10000;">⏳ Offline — changes will sync when online</div>
   <button class="hamburger-btn" onclick="openDrawer()">
     <span></span><span></span><span></span>
   </button>
@@ -4680,42 +4681,110 @@ function saveTripManual(){
   }
   if(!_lastTripData) return;
   const btn = document.getElementById('saveTripBtn');
+  const wasOffline = !navigator.onLine;
   saveTrip(_lastTripData);
-  const offlineMsg = !navigator.onLine ? ' (офлайн — синхр. позже)' : '';
-  if(btn){ btn.textContent = t('savedMsg') + offlineMsg; btn.disabled=true; }
+
+  if(btn){
+    if(wasOffline){
+      btn.textContent = '⏳ ' + t('savedMsg') + ' (офлайн)';
+      btn.style.background = '#1a1a0a';
+      btn.style.color = '#ff9500';
+    } else {
+      btn.textContent = t('savedMsg');
+      btn.style.background = '#0a1a0a';
+      btn.style.color = '#30d158';
+    }
+    btn.disabled = true;
+  }
   _lastTripData = null;
 }
 
 function saveTrip(data){
   if(!fbDb||!fbUser) return;
-  fbDb.collection('users').doc(fbUser.uid).collection('trips').add({
+  const tripData = {
     ...data,
     uid: fbUser.uid,
     driverEmail: fbUser.email||'',
     driverName: fbUser.displayName||'',
     localTs: Date.now(),
     ts: firebase.firestore.FieldValue.serverTimestamp()
-  }).catch(()=>{});
+  };
+
+  if(!navigator.onLine){
+    // Offline — save to localStorage for sync later
+    let pending = JSON.parse(localStorage.getItem('nta_pending_trips')||'[]');
+    pending.push({...tripData, ts: Date.now()});
+    localStorage.setItem('nta_pending_trips', JSON.stringify(pending));
+    return;
+  }
+
+  fbDb.collection('users').doc(fbUser.uid).collection('trips').add(tripData).catch(err=>{
+    // Failed even though online — save as pending
+    let pending = JSON.parse(localStorage.getItem('nta_pending_trips')||'[]');
+    pending.push({...tripData, ts: Date.now()});
+    localStorage.setItem('nta_pending_trips', JSON.stringify(pending));
+  });
 }
 
 // ── History tab ───────────────────────────────────────────
 function loadHistory(){
   const list = document.getElementById('historyList');
   if(!fbDb||!fbUser){
-    if(list) list.innerHTML=`<div style="text-align:center;padding:40px;opacity:.4;">${t('signInHistory')}</div>`;
+    // Try showing offline cache
+    if(navigator.onLine){
+      if(list) list.innerHTML=`<div style="text-align:center;padding:40px;opacity:.4;">${t('signInHistory')}</div>`;
+    } else {
+      loadOfflineHistory(list);
+    }
     return;
   }
+
   if(list) list.innerHTML=`<div style="text-align:center;padding:40px;opacity:.4;">${t('loading')}</div>`;
   if(_unsubTrips) _unsubTrips();
+
   _unsubTrips = fbDb.collection('users').doc(fbUser.uid).collection('trips')
     .orderBy('ts','desc')
     .onSnapshot(snap=>{
-      renderHistory(snap.docs.map(d=>({id:d.id,...d.data()})));
-    }, ()=>{});
+      const trips = snap.docs.map(d=>({id:d.id,...d.data()}));
+      // Cache to localStorage
+      localStorage.setItem('nta_trips_cache', JSON.stringify(trips));
+      renderHistory(trips);
+    }, ()=>{
+      // Error — try cached version
+      const cached = JSON.parse(localStorage.getItem('nta_trips_cache')||'[]');
+      if(cached.length) renderHistory(cached);
+      else if(list) list.innerHTML=`<div style="text-align:center;padding:40px;opacity:.4;">${t('noTrips')}</div>`;
+    });
+}
+
+function loadOfflineHistory(list){
+  const trips = JSON.parse(localStorage.getItem('nta_trips_cache')||'[]');
+  const pending = JSON.parse(localStorage.getItem('nta_pending_trips')||'[]');
+  const allTrips = [...pending, ...trips].sort((a,b)=>(b.ts||b.localTs) - (a.ts||a.localTs));
+  if(allTrips.length){
+    renderHistory(allTrips);
+  } else if(list){
+    list.innerHTML=`<div style="text-align:center;padding:40px;opacity:.4;"><div>${t('offline')}</div><div style="font-size:12px;opacity:.6;margin-top:8px;">No cached trips</div></div>`;
+  }
 }
 
 function deleteTrip(id){
   if(!fbDb||!fbUser) return;
+
+  // Remove from cache immediately
+  let trips = JSON.parse(localStorage.getItem('nta_trips_cache')||'[]');
+  trips = trips.filter(t => t.id !== id);
+  localStorage.setItem('nta_trips_cache', JSON.stringify(trips));
+
+  if(!navigator.onLine){
+    // Queue deletion for when online
+    let deletes = JSON.parse(localStorage.getItem('nta_pending_deletes')||'[]');
+    deletes.push(id);
+    localStorage.setItem('nta_pending_deletes', JSON.stringify(deletes));
+    loadHistory();
+    return;
+  }
+
   fbDb.collection('users').doc(fbUser.uid).collection('trips').doc(id).delete().catch(()=>{});
 }
 
@@ -4833,6 +4902,7 @@ function renderHistory(trips){
       const showDest = dest && dest.toLowerCase()!==toZone.toLowerCase();
       const pax = trip.passengers||1;
       const paymentIcon = trip.paymentMethod === 'cash' ? '💰 Cash' : (trip.paymentMethod === 'card' ? '💳 Card' : (trip.paymentMethod === 'venmo' ? '🔵 Venmo' : ''));
+      const isPending = !trip.id; // Pending trips don't have ID yet
       const extras = [
         `${pax} ${t('paxUnit')}`,
         trip.dirtRoad?t('dirtTag'):'',
@@ -4842,9 +4912,10 @@ function renderHistory(trips){
         (trip.bags||0)>0?`💼 ${trip.bags}`:'',
         (trip.waitCharge||0)>0?`⏱ $${(trip.waitCharge).toFixed(2)}`:'',
         paymentIcon,
+        isPending ? '⏳ Not synced' : '',
       ].filter(Boolean).join(' · ');
       const halfPrice = (accumulatedByTrip[trip.id]/2).toFixed(2);
-      const bgColor = trip._disabled ? '#0f0f10;opacity:.5' : '#17181c';
+      const bgColor = isPending ? '#1a1a1a;border-color:#ff9500;opacity:.7' : (trip._disabled ? '#0f0f10;opacity:.5' : '#17181c');
       const textOpacity = trip._disabled ? 'opacity:.5;' : '';
       return `<div style="background:${bgColor};border:1px solid #252528;border-radius:14px;padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;gap:10px;${textOpacity}">
         <div style="flex:1;min-width:0;">
@@ -5469,6 +5540,68 @@ if('serviceWorker' in navigator){
   });
 }
 // Restore all state after any reload
+// ── Offline/Online sync ────────────────────────────────
+function updateOfflineIndicator(){
+  const indicator = document.getElementById('offlineIndicator');
+  if(!indicator) return;
+  indicator.style.display = navigator.onLine ? 'none' : 'block';
+  if(!navigator.onLine){
+    document.body.style.paddingTop = '92px'; // Make room for offline banner
+  } else {
+    document.body.style.paddingTop = '48px';
+  }
+}
+
+window.addEventListener('online', ()=>{
+  console.log('Back online — syncing pending trips...');
+  updateOfflineIndicator();
+  syncPendingTrips();
+  if(fbUser) loadHistory();
+});
+
+window.addEventListener('offline', ()=>{
+  console.log('Gone offline');
+  updateOfflineIndicator();
+});
+
+// Check initial state
+if(document.readyState === 'loading'){
+  document.addEventListener('DOMContentLoaded', updateOfflineIndicator);
+} else {
+  updateOfflineIndicator();
+}
+
+async function syncPendingTrips(){
+  if(!fbDb || !fbUser || navigator.onLine === false) return;
+
+  // Sync pending trips
+  const pending = JSON.parse(localStorage.getItem('nta_pending_trips')||'[]');
+  for(const trip of pending){
+    try{
+      await fbDb.collection('users').doc(fbUser.uid).collection('trips').add({
+        ...trip,
+        ts: firebase.firestore.FieldValue.serverTimestamp()
+      });
+    }catch(err){
+      console.error('Trip sync failed:', err);
+      return; // Stop trying if one fails
+    }
+  }
+  if(pending.length) localStorage.removeItem('nta_pending_trips');
+
+  // Sync pending deletions
+  const deletes = JSON.parse(localStorage.getItem('nta_pending_deletes')||'[]');
+  for(const tripId of deletes){
+    try{
+      await fbDb.collection('users').doc(fbUser.uid).collection('trips').doc(tripId).delete();
+    }catch(err){
+      console.error('Delete sync failed:', err);
+      return; // Stop trying if one fails
+    }
+  }
+  if(deletes.length) localStorage.removeItem('nta_pending_deletes');
+}
+
 window.addEventListener('DOMContentLoaded', ()=>{
   if(typeof _restoreWaitState==='function') _restoreWaitState();
   if(typeof restoreAppState==='function') restoreAppState();
